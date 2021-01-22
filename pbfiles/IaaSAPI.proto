@@ -1,0 +1,127 @@
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package v1;
+
+//租户相关服务
+service TenantService{
+  //创建租户
+  rpc CreateTenant(CreateTenantRequest) returns(CreateTenantResponse);
+}
+
+message CreateTenantRequest{
+  string tenant_name;
+}
+
+message CreateTenantResponse{
+  string tenant_id;
+  string apikey;
+}
+
+//规格相关服务
+service FlavorService{
+  //获取规格列表
+  rpc GetFlavors(GetFlavorsRequest) returns(GetFlavorsResponse);
+}
+
+message GetFlavorsRequest {
+  string apikey;
+  string tenant_id;
+  string platform_userid;
+  int32 page_number;
+  int32 page_size;
+}
+
+message GetFlavorsResponse {
+    message Flavor {
+      string flavor_ref;
+      string flavor_name;
+    }
+    repeated Flavor flavors;
+}
+
+//云主机相关服务
+service InstanceService{
+  //创建云主机
+  rpc CreateInstance(CreateInstanceRequest) returns(CreateInstanceResponse);
+  //查看云主机
+  rpc GetInstance(GetInstanceRequest) returns(GetInstanceResponse);
+  //修改云主机
+  rpc UpdateInstance(UpdateInstanceRequest) returns(UpdateInstanceResponse);
+  //删除云主机
+  rpc UpdateInstance(DeleteInstanceRequest) returns(DeleteInstanceResponse);
+}
+
+message CreateInstanceRequest {
+  string apikey;
+  string tenant_id;
+  string platform_userid;
+  string region;
+  string availability_zone;
+  string flavor_ref;
+  string image_ref;
+  string system_disk_typeid;
+  int32 system_disk_size_in_g;
+  message Data_disk {
+    string data_disk_typeid;
+    int32 data_disk_size_in_g;
+  }
+  repeated Data_disk data_disks;
+  message Nas_disk {
+    string nas_disk_id;
+    string mount_point;
+    string mount_path;
+  }
+  repeated Nas_disk nas_disks;
+  string network_uuid;
+  string security_group_name;
+  string instance_name;
+  string hypervisor_hostname;
+}
+
+message CreateInstanceResponse {
+  string instance_id;
+  string instance_status;
+  string instance_addr;
+}
+
+message GetInstanceRequest {
+  string apikey;
+  string tenant_id;
+  string platform_userid;
+  string instance_id;
+}
+
+message GetInstanceResponse {
+
+}
+
+message UpdateInstanceRequest {
+  string apikey;
+  string tenant_id;
+  string platform_userid;
+  string instance_id;
+}
+
+message UpdateInstanceResponse {
+
+}
+
+message DeleteInstanceRequest {
+  string apikey;
+  string tenant_id;
+  string platform_userid;
+  string instance_id;
+}
+
+message DeleteInstanceResponse {
+
+}
+
+
+
+
+
+
+
