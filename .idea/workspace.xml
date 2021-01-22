@@ -15,6 +15,9 @@
     </option>
   </component>
   <component name="GOROOT" path="/usr/local/go" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
   <component name="ProjectId" id="1nK6h9Pir2b4XXu0bXQkMFDfJ83" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
