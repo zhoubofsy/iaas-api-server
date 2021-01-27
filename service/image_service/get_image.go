@@ -7,8 +7,12 @@ import (
 )
 
 
-type GetImageSvc struct {}
+type ImageService struct {}
 
-func (gi *GetImageSvc) GetImage(context.Context, *image.GetImageReq) (*image.Image, error) {
+func (is *ImageService) GetImage(context.Context, *image.GetImageReq) (*image.Image, error) {
+	//your logic
+}
+
+func (is *ImageService) ListImages(context.Context, *image.ListImagesReq) (*image.ListImagesRes, error) {
 	//your logic
 }
