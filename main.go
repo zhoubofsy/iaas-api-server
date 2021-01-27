@@ -9,7 +9,6 @@ import (
 	"iaas-api-server/proto/nas_disk"
 	"iaas-api-server/proto/oss"
 	"os"
-
 	//"iaas-api-server/proto/route"
 	"iaas-api-server/proto/security_group"
 	"iaas-api-server/proto/tenant"
@@ -21,24 +20,24 @@ import (
 	"iaas-api-server/service/nas_disk_service"
 	"iaas-api-server/service/oss_service"
 	//"iaas-api-server/service/route_service"
+	log "github.com/sirupsen/logrus"
 	"iaas-api-server/service/security_group_service"
 	"iaas-api-server/service/tenant_service"
 	"iaas-api-server/service/vpc_service"
-	log "github.com/sirupsen/logrus"
 	"net"
 )
 
 func init() {
-	log.SetFormatter(&log.JSONFormatter{})//设置日志的输出格式为json格式，还可以设置为text格式
-	log.SetOutput(os.Stdout)//设置日志的输出为标准输出
-	log.SetLevel(log.InfoLevel)//设置日志的显示级别，这一级别以及更高级别的日志信息将会输出
+	log.SetFormatter(&log.JSONFormatter{}) //设置日志的输出格式为json格式，还可以设置为text格式
+	log.SetOutput(os.Stdout)               //设置日志的输出为标准输出
+	log.SetLevel(log.InfoLevel)            //设置日志的显示级别，这一级别以及更高级别的日志信息将会输出
 }
 
 func main() {
 
 	rpcServer := grpc.NewServer()
 
-    //注册服务
+	//注册服务
 	cloud_disk.RegisterCloudDiskServiceServer(rpcServer, &cloud_disk_service.CloudDiskService{})
 	flavor.RegisterFlavorServiceServer(rpcServer, &flavor_service.FlavorService{})
 	image.RegisterImageServiceServer(rpcServer, &image_service.ImageService{})
