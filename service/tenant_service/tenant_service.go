@@ -1,4 +1,4 @@
-package tenant
+package tenant_service
 
 import (
 	"google.golang.org/grpc"
