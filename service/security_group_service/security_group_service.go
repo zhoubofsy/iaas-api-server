@@ -10,6 +10,7 @@ package security_group_service
 
 import (
 	"golang.org/x/net/context"
+	//"iaas-api-server/common"
 	"iaas-api-server/proto/security_group"
 	//"unicode"
 )
@@ -18,8 +19,14 @@ type SecurityGroupService struct {
 	security_group.UnimplementedSecurityGroupServiceServer
 }
 
-func (sgs *SecurityGroupService) CreateSecurityGroup(context.Context, *security_group.CreateSecurityGroupReq) (*security_group.SecurityGroup, error) {
-	return &security_group.SecurityGroup{}, nil
+func (sgs *SecurityGroupService) CreateSecurityGroup(ctx context.Context, req *security_group.CreateSecurityGroupReq) (*security_group.SecurityGroup, error) {
+	task := CreateSecurityGroupTask{
+		req: req,
+		res: &security_group.SecurityGroup{},
+		err: nil,
+	}
+	task.Run(ctx)
+	return task.res, task.err
 }
 
 func (sgs *SecurityGroupService) GetSecurityGroup(context.Context, *security_group.GetSecurityGroupReq) (*security_group.SecurityGroup, error) {
