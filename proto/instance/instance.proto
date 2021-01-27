@@ -7,11 +7,11 @@ package instance;
 //云主机相关服务
 service InstanceService{
   //创建云主机
-  rpc CreateInstance(CreateInstanceReq) returns(Instance);
+  rpc CreateInstance(CreateInstanceReq) returns(InstanceRes);
   //获取云主机信息
-  rpc GetInstance(GetInstanceReq) returns(Instance);
+  rpc GetInstance(GetInstanceReq) returns(InstanceRes);
   //修改云主机规格
-  rpc UpdateInstanceFlavor(UpdateInstanceFlavorReq) returns(Instance);
+  rpc UpdateInstanceFlavor(UpdateInstanceFlavorReq) returns(InstanceRes);
   //删除云主机
   rpc DeleteInstance(DeleteInstanceReq) returns(DeleteInstanceRes);
   //启动-停止-挂起-重启云主机
@@ -31,22 +31,27 @@ message CloudDiskConf {
   int32 size_in_g = 2;
 }
 
-message Instance {
-  string instance_id = 1;
-  string instance_status = 2;
-  string instance_addr = 3;
-  string region = 4;
-  string availability_zone = 5;
-  Flavor flavor = 6;
-  string image_ref = 7;
-  CloudDiskConf system_disk = 8;
-  repeated CloudDiskConf data_disks = 9;
-  string network_uuid = 10;
-  repeated string security_group_name = 11;
-  string instance_name = 12;
-  string hypervisor_hostname = 13;
-  string created_time = 14;
-  string updated_time = 15;
+message InstanceRes {
+  int32 code = 1;
+  string msg = 2;
+  message Instance {
+    string instance_id = 1;
+    string instance_status = 2;
+    string instance_addr = 3;
+    string region = 4;
+    string availability_zone = 5;
+    Flavor flavor = 6;
+    string image_ref = 7;
+    CloudDiskConf system_disk = 8;
+    repeated CloudDiskConf data_disks = 9;
+    string network_uuid = 10;
+    repeated string security_group_name = 11;
+    string instance_name = 12;
+    string hypervisor_hostname = 13;
+    string created_time = 14;
+    string updated_time = 15;
+  }
+  Instance instance = 3;
 }
 
 message CreateInstanceReq {
@@ -88,8 +93,10 @@ message DeleteInstanceReq {
 }
 
 message DeleteInstanceRes {
-  string instance_id = 1;
-  string deleted_time = 2;
+  int32 code = 1;
+  string msg = 2;
+  string instance_id = 3;
+  string deleted_time = 4;
 }
 
 message OperateInstanceReq {
@@ -101,9 +108,11 @@ message OperateInstanceReq {
 }
 
 message OperateInstanceRes {
-  string instance_id = 1;
-  string operated_time = 2;
-  string operate_type = 3;
+  int32 code = 1;
+  string msg = 2;
+  string instance_id = 3;
+  string operated_time = 4;
+  string operate_type = 5;
 }
 
 

@@ -2,20 +2,20 @@
 syntax = "proto3";
 
 // 指定文件生成出来的package
-package cloud_disk;
+package clouddisk;
 
 //块存储相关服务
 service CloudDiskService{
   //创建云硬盘
-  rpc CreateCloudDisk(CreateCloudDiskReq) returns(CloudDisk);
+  rpc CreateCloudDisk(CreateCloudDiskReq) returns(CloudDiskRes);
   //获取云硬盘信息
-  rpc GetCloudDisk(GetCloudDiskReq) returns(CloudDisk);
+  rpc GetCloudDisk(GetCloudDiskReq) returns(CloudDiskRes);
   //云硬盘扩容
-  rpc ReqizeCloudDisk(ReqizeCloudDiskReq) returns(CloudDisk);
+  rpc ReqizeCloudDisk(ReqizeCloudDiskReq) returns(CloudDiskRes);
   //修改云硬盘信息
-  rpc ModifyCloudDiskInfo(ModifyCloudDiskInfoReq) returns(CloudDisk);
+  rpc ModifyCloudDiskInfo(ModifyCloudDiskInfoReq) returns(CloudDiskRes);
   //云主机挂载/卸载云硬盘
-  rpc OperateCloudDisk(OperateCloudDiskReq) returns(CloudDisk);
+  rpc OperateCloudDisk(OperateCloudDiskReq) returns(CloudDiskRes);
   //删除云硬盘
   rpc DeleteCloudDisk(DeleteCloudDiskReq) returns(DeleteCloudDiskRes);
 }
@@ -25,19 +25,24 @@ message CloudDiskConf {
   int32 size_in_g = 2;
 }
 
-message CloudDisk {
-  string volume_id = 1;
-  string volume_name = 2;
-  string volume_desc = 3;
-  string region = 4;
-  string availability_zone = 5;
-  CloudDiskConf cloud_disk_conf = 6;
-  string volume_status = 7;
-  string created_time = 8;
-  string updated_time = 9;
-  string attach_instance_id = 10;
-  string attach_instance_device = 11;
-  string attached_time = 12;
+message CloudDiskRes {
+  int32 code = 1;
+  string msg = 2;
+  message CloudDisk {
+    string volume_id = 1;
+    string volume_name = 2;
+    string volume_desc = 3;
+    string region = 4;
+    string availability_zone = 5;
+    CloudDiskConf cloud_disk_conf = 6;
+    string volume_status = 7;
+    string created_time = 8;
+    string updated_time = 9;
+    string attach_instance_id = 10;
+    string attach_instance_device = 11;
+    string attached_time = 12;
+  }
+  CloudDisk cloud_disk = 3;
 }
 
 message CreateCloudDiskReq {
@@ -92,8 +97,10 @@ message DeleteCloudDiskReq {
 }
 
 message DeleteCloudDiskRes {
-  string volume_id = 1;
-  string deleted_time = 2;
+  int32 code = 1;
+  string msg = 2;
+  string volume_id = 3;
+  string deleted_time = 4;
 }
 
 

@@ -9,7 +9,7 @@ service ImageService{
   //获取镜像列表
   rpc ListImages(ListImagesReq) returns(ListImagesRes);
   //获取镜像信息
-  rpc GetImage(GetImageReq) returns(Image);
+  rpc GetImage(GetImageReq) returns(GetImageRes);
 }
 
 message Image {
@@ -28,7 +28,9 @@ message ListImagesReq {
 }
 
 message ListImagesRes {
-  repeated Image images = 1;
+  int32 code = 1;
+  string msg = 2;
+  repeated Image images = 3;
 }
 
 message GetImageReq {
@@ -38,6 +40,11 @@ message GetImageReq {
   string image_id = 4;
 }
 
+message GetImageRes {
+  int32 code = 1;
+  string msg = 2;
+  Image image = 3;
+}
 
 
 

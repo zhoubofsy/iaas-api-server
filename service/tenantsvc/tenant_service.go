@@ -1,4 +1,4 @@
-package tenant_service
+package tenantsvc
 
 import (
 	"golang.org/x/net/context"

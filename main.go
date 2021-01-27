@@ -2,28 +2,28 @@ package main
 
 import (
 	"google.golang.org/grpc"
-	"iaas-api-server/proto/cloud_disk"
+	"iaas-api-server/proto/clouddisk"
 	"iaas-api-server/proto/flavor"
 	"iaas-api-server/proto/image"
 	"iaas-api-server/proto/instance"
-	"iaas-api-server/proto/nas_disk"
+	"iaas-api-server/proto/nasdisk"
 	"iaas-api-server/proto/oss"
 	"os"
 	//"iaas-api-server/proto/route"
-	"iaas-api-server/proto/security_group"
+	"iaas-api-server/proto/securitygroup"
 	"iaas-api-server/proto/tenant"
 	"iaas-api-server/proto/vpc"
-	"iaas-api-server/service/cloud_disk_service"
-	"iaas-api-server/service/flavor_service"
-	"iaas-api-server/service/image_service"
-	"iaas-api-server/service/instance_service"
-	"iaas-api-server/service/nas_disk_service"
-	"iaas-api-server/service/oss_service"
-	//"iaas-api-server/service/route_service"
+	"iaas-api-server/service/clouddisksvc"
+	"iaas-api-server/service/flavorsvc"
+	"iaas-api-server/service/imagesvc"
+	"iaas-api-server/service/instancesvc"
+	"iaas-api-server/service/nasdisksvc"
+	"iaas-api-server/service/osssvc"
+	//"iaas-api-server/service/routesvc"
 	log "github.com/sirupsen/logrus"
-	"iaas-api-server/service/security_group_service"
-	"iaas-api-server/service/tenant_service"
-	"iaas-api-server/service/vpc_service"
+	"iaas-api-server/service/securitygroupsvc"
+	"iaas-api-server/service/tenantsvc"
+	"iaas-api-server/service/vpcsvc"
 	"net"
 )
 
@@ -38,15 +38,15 @@ func main() {
 	rpcServer := grpc.NewServer()
 
 	//注册服务
-	cloud_disk.RegisterCloudDiskServiceServer(rpcServer, &cloud_disk_service.CloudDiskService{})
-	flavor.RegisterFlavorServiceServer(rpcServer, &flavor_service.FlavorService{})
-	image.RegisterImageServiceServer(rpcServer, &image_service.ImageService{})
-	instance.RegisterInstanceServiceServer(rpcServer, &instance_service.InstanceService{})
-	nas_disk.RegisterNasDiskServiceServer(rpcServer, &nas_disk_service.NasDiskService{})
-	oss.RegisterOSSServiceServer(rpcServer, &oss_service.OssService{})
-	security_group.RegisterSecurityGroupServiceServer(rpcServer, &security_group_service.SecurityGroupService{})
-	tenant.RegisterTenantServiceServer(rpcServer, &tenant_service.TenantService{})
-	vpc.RegisterVpcServiceServer(rpcServer, &vpc_service.VpcService{})
+	clouddisk.RegisterCloudDiskServiceServer(rpcServer, &clouddisksvc.CloudDiskService{})
+	flavor.RegisterFlavorServiceServer(rpcServer, &flavorsvc.FlavorService{})
+	image.RegisterImageServiceServer(rpcServer, &imagesvc.ImageService{})
+	instance.RegisterInstanceServiceServer(rpcServer, &instancesvc.InstanceService{})
+	nasdisk.RegisterNasDiskServiceServer(rpcServer, &nasdisksvc.NasDiskService{})
+	oss.RegisterOSSServiceServer(rpcServer, &osssvc.OssService{})
+	securitygroup.RegisterSecurityGroupServiceServer(rpcServer, &securitygroupsvc.SecurityGroupService{})
+	tenant.RegisterTenantServiceServer(rpcServer, &tenantsvc.TenantService{})
+	vpc.RegisterVpcServiceServer(rpcServer, &vpcsvc.VpcService{})
 
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
