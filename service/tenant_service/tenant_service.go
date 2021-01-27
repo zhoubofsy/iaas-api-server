@@ -1,13 +1,15 @@
 package tenant
 
 import (
-	"iaas/iaas-api-server/proto/tenant"
+	"google.golang.org/grpc"
+	"iaas-api-server/proto/tenant"
+	"golang.org/x/net/context"
 )
 
-type server struct {
-	pb.UnimplementedTenantServiceServer
+type TenantService struct {
+
 }
 
-func (s* server) CreateTenant(req* CreateTenantReq) (res* CreateTenantRes, error) {
-	
+func (s *TenantService) CreateTenant(context.Context, *tenant.CreateTenantReq) (*tenant.CreateTenantRes, error) {
+
 }
