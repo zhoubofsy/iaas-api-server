@@ -1,0 +1,51 @@
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package image;
+
+//镜像相关服务
+service ImageService{
+  //获取镜像列表
+  rpc ListImages(ListImagesReq) returns(ListImagesRes);
+  //获取镜像信息
+  rpc GetImage(GetImageReq) returns(Image);
+}
+
+message Image {
+  string image_id = 1;
+  string image_name = 2;
+  string image_diskformat = 3;
+  string image_containerformat = 4;
+}
+
+message ListImagesReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  int32 page_number = 4;
+  int32 page_size = 5;
+}
+
+message ListImagesRes {
+  repeated Image images = 1;
+}
+
+message GetImageReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string image_id = 4;
+}
+
+
+
+
+
+
+
+
+
+
+
+

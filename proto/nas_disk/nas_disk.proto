@@ -1,0 +1,79 @@
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package nas_disk;
+
+//NAS存储相关服务
+service NasDiskService {
+  //创建NAS盘
+  rpc CreateNasDisk(CreateNasDiskReq) returns(NasDisk);
+  //删除NAS盘
+  rpc DeleteNasDisk(DeleteNasDiskReq) returns(DeleteNasDiskRes);
+  //查看挂载客户端
+  rpc GetMountClients(GetMountClientsReq) returns(MountClients);
+}
+
+message NasDisk {
+  string share_id = 1;
+  string share_name = 2;
+  string share_desc =3;
+  string share_proto = 4;
+  int32  share_size_in_g = 5;
+  string region = 6;
+  string  network_id = 7;
+  string share_status = 8;
+  string share_progress = 9;
+  string share_server_id = 10;
+  string share_server_host = 11;
+  string share_network_id = 12;
+  string created_time = 13;
+  string updated_time = 14;
+}
+
+message CreateNasDiskReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string share_name = 4;
+  string share_desc = 5;
+  string share_proto = 6;
+  int32  share_size_in_g = 7;
+  string region = 8;
+  string network_id = 9;
+}
+
+message DeleteNasDiskReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string share_id = 4;
+}
+
+message DeleteNasDiskRes {
+  string share_id = 1;
+  string deleted_time = 2;
+}
+
+message GetMountClientsReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string share_id = 4;
+}
+
+message MountClients {
+  repeated string instance_id = 1;
+}
+
+
+
+
+
+
+
+
+
+
+
+

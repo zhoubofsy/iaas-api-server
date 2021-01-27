@@ -1,0 +1,114 @@
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package security_group;
+
+//安全组相关服务
+service SecurityGroupService{
+  //创建安全组
+  rpc CreateSecurityGroup(CreateSecurityGroupReq) returns(SecurityGroup);
+  //获取安全组信息
+  rpc GetSecurityGroup(GetSecurityGroupReq) returns(SecurityGroup);
+  //修改安全组
+  rpc UpdateSecurityGroup(UpdateSecurityGroupReq) returns(SecurityGroup);
+  //删除安全组
+  rpc DeleteSecurityGroup(DeleteSecurityGroupReq) returns(DeleteSecurityGroupRes);
+  //安全组关联/取关云主机
+  rpc OperateSecurityGroup(OperateSecurityGroupReq) returns(OperateSecurityGroupRes);
+}
+
+message SecurityGroup {
+  string security_group_id = 1;
+  string security_group_name = 2;
+  string security_group_desc = 3;
+  message SecurityGroupRule {
+    string rule_id = 1;
+    string rule_desc = 2;
+    string direction = 3;
+    string protocol = 4;
+    int32  port_range_min = 5;
+    int32 port_range_max = 6;
+    string remote_ip_prefix = 7;
+    string security_group_id = 8;
+    string created_time = 9;
+    string updated_time = 10;
+  }
+  repeated SecurityGroupRule security_group_rules = 4;
+  string created_time = 5;
+  string updated_time = 6;
+}
+
+message SecurityGroupRuleSet {
+  string rule_desc = 1;
+  string direction = 2;
+  string protocol = 3;
+  int32  port_range_min = 4;
+  int32 port_range_max = 5;
+  string remote_ip_prefix = 6;
+}
+
+message CreateSecurityGroupReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string security_group_name = 4;
+  string security_group_desc = 5;
+  repeated SecurityGroupRuleSet security_group_rule_sets = 6;
+}
+
+message GetSecurityGroupReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string security_group_id = 4;
+}
+
+message UpdateSecurityGroupReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string security_group_id = 4;
+  string security_group_name = 5;
+  string security_group_desc = 6;
+  repeated SecurityGroupRuleSet security_group_rule_sets = 7;
+}
+
+message DeleteSecurityGroupReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string security_group_id = 4;
+}
+
+message DeleteSecurityGroupRes {
+  string security_group_id = 1;
+  string deleted_time = 2;
+}
+
+message OperateSecurityGroupReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string security_group_id = 4;
+  repeated string instance_ids = 5;
+  string ops_type = 6; //attach or detach
+}
+
+message OperateSecurityGroupRes {
+  string security_group_id = 1;
+  string ops_type = 2;
+  string operateed_time = 3;
+}
+
+
+
+
+
+
+
+
+
+
+
+

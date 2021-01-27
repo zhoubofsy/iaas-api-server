@@ -1,0 +1,24 @@
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package route;
+
+//路由相关服务
+service RouterService {
+  //创建专有网络路由器
+
+  //编辑路由表条目
+}
+
+
+
+
+
+
+
+
+
+
+
+

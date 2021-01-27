@@ -1,0 +1,20 @@
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package tenant;
+
+//租户相关服务
+service TenantService{
+  //创建租户
+  rpc CreateTenant(CreateTenantReq) returns(CreateTenantRes);
+}
+
+message CreateTenantReq{
+  string tenant_name = 1;
+}
+
+message CreateTenantRes{
+  string tenant_id = 1;
+  string apikey = 2;
+}

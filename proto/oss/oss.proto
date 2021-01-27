@@ -1,0 +1,114 @@
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package oss;
+
+//对象存储相关服务
+service OSSService {
+  //创建Oss账号和bucket
+  rpc CreateUserAndBucket(CreateUserAndBucketReq) returns(CreateUserAndBucketRes);
+  //查看具体一个bucket详情
+  rpc GetBucketInfo(GetBucketInfoReq) returns(OssBucket);
+  //列出云管平台用户在一个entrypoint下的bucet列表
+  rpc ListBucketsInfo(ListBucketsInfoReq) returns(ListBucketsInfoRes);
+  //扩容oss_user配额
+  rpc SetOssUserQuota(SetOssUserQuotaReq) returns(OssUser);
+  //找回key
+  rpc RecoverKey(RecoverKeyReq) returns(RecoverKeyRes);
+}
+
+message OssBucket {
+  string bucket_name = 1;
+  string bucket_policy = 2; //private/public-ro/public-rw
+  int32 bucket_use_size_in_g = 3;
+  int32 bucket_use_objects = 4;
+  string belong_to_uid = 5;
+  string bucket_created_time = 6;
+}
+
+message OssUser {
+  string oss_uid = 1;
+  string oss_user_created_time = 2;
+  int32 user_max_size_in_g = 3;
+  int32 user_max_objects = 4;
+  int32 user_use_size_in_g = 5;
+  int32 user_use_objects = 6;
+  string user_created_time = 7;
+  int32 total_buckets = 8;
+}
+
+message CreateUserAndBucketReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string region = 5;
+  string bucket_name = 6;
+  string storege_type = 7;
+  int32 user_max_size_in_g = 8;
+  int32 user_max_objects = 9;
+  string bucket_policy = 10;
+}
+
+message CreateUserAndBucketRes {
+  string oss_endpoint = 1;
+  string oss_access_key = 2;
+  string oss_secret_key = 3;
+  OssUser oss_user = 4;
+  OssBucket oss_bucket = 5;
+}
+
+message GetBucketInfoReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string region = 4;
+  string oss_uid = 5;
+  string bucket_name = 6;
+}
+
+message ListBucketsInfoReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string region = 4;
+  string oss_uid = 5;
+  int32 page_number = 6;
+  int32 page_size = 7;
+}
+
+message ListBucketsInfoRes {
+  repeated OssBucket oss_buckets = 1;
+}
+
+message SetOssUserQuotaReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string region = 4;
+  string oss_uid = 5;
+  int32 user_max_size_in_g = 6;
+  int32 user_max_objects = 7;
+}
+
+message RecoverKeyReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string region = 4;
+  string oss_uid = 5;
+}
+
+message RecoverKeyRes {
+  string oss_endpoint = 1;
+  string oss_access_key = 2;
+  string oss_secret_key = 3;
+}
+
+
+
+
+
+
+
+

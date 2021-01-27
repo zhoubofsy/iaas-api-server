@@ -1,0 +1,108 @@
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package cloud_disk;
+
+//块存储相关服务
+service CloudDiskService{
+  //创建云硬盘
+  rpc CreateCloudDisk(CreateCloudDiskReq) returns(CloudDisk);
+  //获取云硬盘信息
+  rpc GetCloudDisk(GetCloudDiskReq) returns(CloudDisk);
+  //云硬盘扩容
+  rpc ReqizeCloudDisk(ReqizeCloudDiskReq) returns(CloudDisk);
+  //修改云硬盘信息
+  rpc ModifyCloudDiskInfo(ModifyCloudDiskInfoReq) returns(CloudDisk);
+  //云主机挂载/卸载云硬盘
+  rpc OperateCloudDisk(OperateCloudDiskReq) returns(CloudDisk);
+  //删除云硬盘
+  rpc DeleteCloudDisk(DeleteCloudDiskReq) returns(DeleteCloudDiskRes);
+}
+
+message CloudDiskConf {
+  string volume_type = 1;
+  int32 size_in_g = 2;
+}
+
+message CloudDisk {
+  string volume_id = 1;
+  string volume_name = 2;
+  string volume_desc = 3;
+  string region = 4;
+  string availability_zone = 5;
+  CloudDiskConf cloud_disk_conf = 6;
+  string volume_status = 7;
+  string created_time = 8;
+  string updated_time = 9;
+  string attach_instance_id = 10;
+  string attach_instance_device = 11;
+  string attached_time = 12;
+}
+
+message CreateCloudDiskReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string volume_name = 4;
+  string volume_desc = 5;
+  string region = 6;
+  string availability_zone = 7;
+  CloudDiskConf cloud_disk_conf = 8;
+}
+
+message GetCloudDiskReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string volume_id = 4;
+}
+
+message ReqizeCloudDiskReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string volume_id = 4;
+  CloudDiskConf cloud_disk_conf = 5;
+}
+
+message ModifyCloudDiskInfoReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string volume_id = 4;
+  string volume_name = 5;
+  string volume_desc = 6;
+}
+
+message OperateCloudDiskReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string volume_id = 4;
+  string instance_id = 5;
+  string ops_type = 6; //attach or detach
+}
+
+message DeleteCloudDiskReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string volume_id = 4;
+}
+
+message DeleteCloudDiskRes {
+  string volume_id = 1;
+  string deleted_time = 2;
+}
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,63 @@
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package vpc;
+
+//专有网络相关服务
+service VpcService {
+  //创建vpc
+  rpc CreateVpc(CreateVpcReq) returns(Vpc);
+  //查看vpc信息
+  rpc GetVpcInfo(GetVpcInfoReq) returns(Vpc);
+  //修改vpc信息
+  rpc SetVpcInfo(SetVpcInfoReq) returns(Vpc);
+}
+
+message Vpc {
+  string vpc_id = 1;
+  string vpc_name = 2;
+  string vpc_desc = 3;
+  string region = 4;
+  repeated string subnet = 5;
+  string vpc_status = 6;
+  string created_time = 7;
+}
+
+message CreateVpcReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string vpc_name = 4;
+  string vpc_desc = 5;
+  string region = 6;
+  string subnet = 7;
+}
+
+message GetVpcInfoReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string vpc_id = 4;
+}
+
+message SetVpcInfoReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string vpc_id = 4;
+  string vpc_name = 5;
+  string vpc_desc = 6;
+}
+
+
+
+
+
+
+
+
+
+
+
+

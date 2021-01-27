@@ -1,0 +1,40 @@
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package flavor;
+
+//规格相关服务
+service FlavorService{
+  //获取规格列表
+  rpc ListFlavors(ListFlavorsReq) returns(ListFlavorsRes);
+  //获取规格信息
+  rpc GetFlavor(GetFlavorReq) returns(Flavor);
+}
+
+message Flavor {
+  string flavor_id = 1;
+  string flavor_name = 2;
+  string flavor_vcpus = 3;
+  string flavor_ram = 4;
+  string flavor_disk =5 ;
+}
+
+message ListFlavorsReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  int32 page_number = 4;
+  int32 page_size = 5;
+}
+
+message ListFlavorsRes {
+  repeated Flavor flavors = 1;
+}
+
+message GetFlavorReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string flavor_id = 4;
+}
