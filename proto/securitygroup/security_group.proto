@@ -2,41 +2,46 @@
 syntax = "proto3";
 
 // 指定文件生成出来的package
-package security_group;
+package securitygroup;
 
 //安全组相关服务
 service SecurityGroupService{
   //创建安全组
-  rpc CreateSecurityGroup(CreateSecurityGroupReq) returns(SecurityGroup);
+  rpc CreateSecurityGroup(CreateSecurityGroupReq) returns(SecurityGroupRes);
   //获取安全组信息
-  rpc GetSecurityGroup(GetSecurityGroupReq) returns(SecurityGroup);
+  rpc GetSecurityGroup(GetSecurityGroupReq) returns(SecurityGroupRes);
   //修改安全组
-  rpc UpdateSecurityGroup(UpdateSecurityGroupReq) returns(SecurityGroup);
+  rpc UpdateSecurityGroup(UpdateSecurityGroupReq) returns(SecurityGroupRes);
   //删除安全组
   rpc DeleteSecurityGroup(DeleteSecurityGroupReq) returns(DeleteSecurityGroupRes);
   //安全组关联/取关云主机
   rpc OperateSecurityGroup(OperateSecurityGroupReq) returns(OperateSecurityGroupRes);
 }
 
-message SecurityGroup {
-  string security_group_id = 1;
-  string security_group_name = 2;
-  string security_group_desc = 3;
-  message SecurityGroupRule {
-    string rule_id = 1;
-    string rule_desc = 2;
-    string direction = 3;
-    string protocol = 4;
-    int32  port_range_min = 5;
-    int32 port_range_max = 6;
-    string remote_ip_prefix = 7;
-    string security_group_id = 8;
-    string created_time = 9;
-    string updated_time = 10;
+message SecurityGroupRes {
+  int32 code = 1;
+  string msg = 2;
+  message SecurityGroup {
+    string security_group_id = 1;
+    string security_group_name = 2;
+    string security_group_desc = 3;
+    message SecurityGroupRule {
+      string rule_id = 1;
+      string rule_desc = 2;
+      string direction = 3;
+      string protocol = 4;
+      int32  port_range_min = 5;
+      int32 port_range_max = 6;
+      string remote_ip_prefix = 7;
+      string security_group_id = 8;
+      string created_time = 9;
+      string updated_time = 10;
+    }
+    repeated SecurityGroupRule security_group_rules = 4;
+    string created_time = 5;
+    string updated_time = 6;
   }
-  repeated SecurityGroupRule security_group_rules = 4;
-  string created_time = 5;
-  string updated_time = 6;
+  SecurityGroup security_group =3;
 }
 
 message SecurityGroupRuleSet {
@@ -82,8 +87,10 @@ message DeleteSecurityGroupReq {
 }
 
 message DeleteSecurityGroupRes {
-  string security_group_id = 1;
-  string deleted_time = 2;
+  int32 code = 1;
+  string msg = 2;
+  string security_group_id = 3;
+  string deleted_time = 4;
 }
 
 message OperateSecurityGroupReq {
@@ -96,9 +103,11 @@ message OperateSecurityGroupReq {
 }
 
 message OperateSecurityGroupRes {
-  string security_group_id = 1;
-  string ops_type = 2;
-  string operateed_time = 3;
+  int32 code = 1;
+  string msg = 2;
+  string security_group_id = 3;
+  string ops_type = 4;
+  string operateed_time = 5;
 }
 
 

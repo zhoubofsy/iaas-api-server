@@ -7,22 +7,28 @@ package vpc;
 //专有网络相关服务
 service VpcService {
   //创建vpc
-  rpc CreateVpc(CreateVpcReq) returns(Vpc);
+  rpc CreateVpc(CreateVpcReq) returns(VpcRes);
   //查看vpc信息
-  rpc GetVpcInfo(GetVpcInfoReq) returns(Vpc);
+  rpc GetVpcInfo(GetVpcInfoReq) returns(VpcRes);
   //修改vpc信息
-  rpc SetVpcInfo(SetVpcInfoReq) returns(Vpc);
+  rpc SetVpcInfo(SetVpcInfoReq) returns(VpcRes);
 }
 
-message Vpc {
-  string vpc_id = 1;
-  string vpc_name = 2;
-  string vpc_desc = 3;
-  string region = 4;
-  repeated string subnet = 5;
-  string vpc_status = 6;
-  string created_time = 7;
+message VpcRes {
+  int32 code = 1;
+  string msg = 2;
+  message Vpc {
+    string vpc_id = 1;
+    string vpc_name = 2;
+    string vpc_desc = 3;
+    string region = 4;
+    repeated string subnet = 5;
+    string vpc_status = 6;
+    string created_time = 7;
+  }
+  Vpc vpc = 3;
 }
+
 
 message CreateVpcReq {
   string apikey = 1;

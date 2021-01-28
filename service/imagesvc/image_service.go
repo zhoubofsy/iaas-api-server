@@ -1,4 +1,4 @@
-package image_service
+package imagesvc
 
 import (
 	"iaas-api-server/proto/image"
