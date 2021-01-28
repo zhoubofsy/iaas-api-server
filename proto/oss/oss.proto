@@ -9,11 +9,11 @@ service OSSService {
   //创建Oss账号和bucket
   rpc CreateUserAndBucket(CreateUserAndBucketReq) returns(CreateUserAndBucketRes);
   //查看具体一个bucket详情
-  rpc GetBucketInfo(GetBucketInfoReq) returns(OssBucket);
+  rpc GetBucketInfo(GetBucketInfoReq) returns(GetBucketInfoRes);
   //列出云管平台用户在一个entrypoint下的bucet列表
   rpc ListBucketsInfo(ListBucketsInfoReq) returns(ListBucketsInfoRes);
   //扩容oss_user配额
-  rpc SetOssUserQuota(SetOssUserQuotaReq) returns(OssUser);
+  rpc SetOssUserQuota(SetOssUserQuotaReq) returns(SetOssUserQuotaRes);
   //找回key
   rpc RecoverKey(RecoverKeyReq) returns(RecoverKeyRes);
 }
@@ -51,11 +51,13 @@ message CreateUserAndBucketReq {
 }
 
 message CreateUserAndBucketRes {
-  string oss_endpoint = 1;
-  string oss_access_key = 2;
-  string oss_secret_key = 3;
-  OssUser oss_user = 4;
-  OssBucket oss_bucket = 5;
+  int32 code = 1;
+  string msg = 2;
+  string oss_endpoint = 3;
+  string oss_access_key = 4;
+  string oss_secret_key = 5;
+  OssUser oss_user = 6;
+  OssBucket oss_bucket = 7;
 }
 
 message GetBucketInfoReq {
@@ -65,6 +67,12 @@ message GetBucketInfoReq {
   string region = 4;
   string oss_uid = 5;
   string bucket_name = 6;
+}
+
+message GetBucketInfoRes {
+  int32 code = 1;
+  string msg = 2;
+  OssBucket oss_bucket = 3;
 }
 
 message ListBucketsInfoReq {
@@ -78,7 +86,9 @@ message ListBucketsInfoReq {
 }
 
 message ListBucketsInfoRes {
-  repeated OssBucket oss_buckets = 1;
+  int32 code = 1;
+  string msg = 2;
+  repeated OssBucket oss_buckets = 3;
 }
 
 message SetOssUserQuotaReq {
@@ -91,6 +101,12 @@ message SetOssUserQuotaReq {
   int32 user_max_objects = 7;
 }
 
+message SetOssUserQuotaRes {
+  int32 code = 1;
+  string msg = 2;
+  OssUser oss_user = 3;
+}
+
 message RecoverKeyReq {
   string apikey = 1;
   string tenant_id = 2;
@@ -100,9 +116,11 @@ message RecoverKeyReq {
 }
 
 message RecoverKeyRes {
-  string oss_endpoint = 1;
-  string oss_access_key = 2;
-  string oss_secret_key = 3;
+  int32 code = 1;
+  string msg = 2;
+  string oss_endpoint = 3;
+  string oss_access_key = 4;
+  string oss_secret_key = 5;
 }
 
 

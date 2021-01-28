@@ -1,22 +1,22 @@
 /*================================================================
 *
-*  文件名称：create_security_group_task.go
+*  文件名称：create_securitygroup_task.go
 *  创 建 者: mongia
 *  创建日期：2021年01月27日
 *
 ================================================================*/
 
-package security_group_service
+package securitygroupsvc
 
 import (
 	"golang.org/x/net/context"
 	//	"iaas-api-server/common"
-	"iaas-api-server/proto/security_group"
+	"iaas-api-server/proto/securitygroup"
 )
 
 type CreateSecurityGroupRPCTask struct {
-	req *security_group.CreateSecurityGroupReq
-	res *security_group.SecurityGroup
+	req *securitygroup.CreateSecurityGroupReq
+	res *securitygroup.SecurityGroupRes
 	err error
 }
 

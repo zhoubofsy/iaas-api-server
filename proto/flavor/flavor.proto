@@ -9,7 +9,7 @@ service FlavorService{
   //获取规格列表
   rpc ListFlavors(ListFlavorsReq) returns(ListFlavorsRes);
   //获取规格信息
-  rpc GetFlavor(GetFlavorReq) returns(Flavor);
+  rpc GetFlavor(GetFlavorReq) returns(GetFlavorRes);
 }
 
 message Flavor {
@@ -29,7 +29,9 @@ message ListFlavorsReq {
 }
 
 message ListFlavorsRes {
-  repeated Flavor flavors = 1;
+  int32 code = 1;
+  string msg = 2;
+  repeated Flavor flavors = 3;
 }
 
 message GetFlavorReq {
@@ -37,4 +39,10 @@ message GetFlavorReq {
   string tenant_id = 2;
   string platform_userid = 3;
   string flavor_id = 4;
+}
+
+message GetFlavorRes {
+  int32 code = 1;
+  string msg = 2;
+  Flavor flavor = 3;
 }

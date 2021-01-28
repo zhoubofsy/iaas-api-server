@@ -9,9 +9,8 @@ import (
 	//	"iaas-api-server/proto/nas_disk"
 	//	"iaas-api-server/proto/oss"
 	"os"
-
 	//"iaas-api-server/proto/route"
-	"iaas-api-server/proto/security_group"
+	"iaas-api-server/proto/securitygroup"
 	//	"iaas-api-server/proto/tenant"
 	//	"iaas-api-server/proto/vpc"
 	//	"iaas-api-server/service/cloud_disk_service"
@@ -21,10 +20,13 @@ import (
 	//	"iaas-api-server/service/nas_disk_service"
 	//	"iaas-api-server/service/oss_service"
 	//"iaas-api-server/service/route_service"
-	"iaas-api-server/service/security_group_service"
+	"iaas-api-server/service/securitygroupsvc"
 	//	"iaas-api-server/service/tenant_service"
 	//	"iaas-api-server/service/vpc_service"
 	log "github.com/sirupsen/logrus"
+	//"iaas-api-server/service/securitygroupsvc"
+	//"iaas-api-server/service/tenantsvc"
+	//"iaas-api-server/service/vpcsvc"
 	"net"
 )
 
@@ -45,7 +47,7 @@ func main() {
 	//	instance.RegisterInstanceServiceServer(rpcServer, &instance_service.InstanceService{})
 	//	nas_disk.RegisterNasDiskServiceServer(rpcServer, &nas_disk_service.NasDiskService{})
 	//	oss.RegisterOSSServiceServer(rpcServer, &oss_service.OssService{})
-	security_group.RegisterSecurityGroupServiceServer(rpcServer, &security_group_service.SecurityGroupService{})
+	securitygroup.RegisterSecurityGroupServiceServer(rpcServer, &securitygroupsvc.SecurityGroupService{})
 	//	tenant.RegisterTenantServiceServer(rpcServer, &tenant_service.TenantService{})
 	//	vpc.RegisterVpcServiceServer(rpcServer, &vpc_service.VpcService{})
 
