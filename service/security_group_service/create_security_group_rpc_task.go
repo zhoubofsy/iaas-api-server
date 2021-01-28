@@ -14,19 +14,19 @@ import (
 	"iaas-api-server/proto/security_group"
 )
 
-type CreateSecurityGroupTask struct {
+type CreateSecurityGroupRPCTask struct {
 	req *security_group.CreateSecurityGroupReq
 	res *security_group.SecurityGroup
 	err error
 }
 
-func (this *CreateSecurityGroupTask) Run(context.Context) {
+func (this *CreateSecurityGroupRPCTask) Run(context.Context) {
 	if err := this.checkParam(); nil != err {
 		this.err = err
 		return
 	}
 }
 
-func (this *CreateSecurityGroupTask) checkParam() error {
+func (this *CreateSecurityGroupRPCTask) checkParam() error {
 	return nil
 }

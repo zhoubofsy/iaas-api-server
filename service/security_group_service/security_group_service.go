@@ -20,7 +20,7 @@ type SecurityGroupService struct {
 }
 
 func (sgs *SecurityGroupService) CreateSecurityGroup(ctx context.Context, req *security_group.CreateSecurityGroupReq) (*security_group.SecurityGroup, error) {
-	task := CreateSecurityGroupTask{
+	task := CreateSecurityGroupRPCTask{
 		req: req,
 		res: &security_group.SecurityGroup{},
 		err: nil,
