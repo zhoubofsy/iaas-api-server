@@ -1,33 +1,32 @@
 package main
 
 import (
+	"net"
+	"os"
+
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	//	"iaas-api-server/proto/cloud_disk"
+
+	//	"iaas-api-server/proto/clouddisk"
 	//	"iaas-api-server/proto/flavor"
 	//	"iaas-api-server/proto/image"
 	//	"iaas-api-server/proto/instance"
-	//	"iaas-api-server/proto/nas_disk"
+	//	"iaas-api-server/proto/nasdisk"
 	//	"iaas-api-server/proto/oss"
-	"os"
-	//"iaas-api-server/proto/route"
+	//	"iaas-api-server/proto/route"
 	"iaas-api-server/proto/securitygroup"
 	//	"iaas-api-server/proto/tenant"
 	//	"iaas-api-server/proto/vpc"
-	//	"iaas-api-server/service/cloud_disk_service"
-	//	"iaas-api-server/service/flavor_service"
-	//	"iaas-api-server/service/image_service"
-	//	"iaas-api-server/service/instance_service"
-	//	"iaas-api-server/service/nas_disk_service"
-	//	"iaas-api-server/service/oss_service"
-	//"iaas-api-server/service/route_service"
+	//	"iaas-api-server/service/clouddisksvc"
+	//	"iaas-api-server/service/flavorsvc"
+	//	"iaas-api-server/service/imagesvc"
+	//	"iaas-api-server/service/instancesvc"
+	//	"iaas-api-server/service/nasdisksvc"
+	//	"iaas-api-server/service/osssvc"
+	//	"iaas-api-server/service/routesvc"
 	"iaas-api-server/service/securitygroupsvc"
-	//	"iaas-api-server/service/tenant_service"
-	//	"iaas-api-server/service/vpc_service"
-	log "github.com/sirupsen/logrus"
-	//"iaas-api-server/service/securitygroupsvc"
-	//"iaas-api-server/service/tenantsvc"
-	//"iaas-api-server/service/vpcsvc"
-	"net"
+	//	"iaas-api-server/service/tenantsvc"
+	//	"iaas-api-server/service/vpcsvc"
 )
 
 func init() {
@@ -41,30 +40,23 @@ func main() {
 	rpcServer := grpc.NewServer()
 
 	//注册服务
-	//	cloud_disk.RegisterCloudDiskServiceServer(rpcServer, &cloud_disk_service.CloudDiskService{})
-	//	flavor.RegisterFlavorServiceServer(rpcServer, &flavor_service.FlavorService{})
-	//	image.RegisterImageServiceServer(rpcServer, &image_service.ImageService{})
-	//	instance.RegisterInstanceServiceServer(rpcServer, &instance_service.InstanceService{})
-	//	nas_disk.RegisterNasDiskServiceServer(rpcServer, &nas_disk_service.NasDiskService{})
-	//	oss.RegisterOSSServiceServer(rpcServer, &oss_service.OssService{})
+	//	clouddisk.RegisterCloudDiskServiceServer(rpcServer, &clouddisksvc.CloudDiskService{})
+	//	flavor.RegisterFlavorServiceServer(rpcServer, &flavorsvc.FlavorService{})
+	//	image.RegisterImageServiceServer(rpcServer, &imagesvc.ImageService{})
+	//	instance.RegisterInstanceServiceServer(rpcServer, &instancesvc.InstanceService{})
+	//	nasdisk.RegisterNasDiskServiceServer(rpcServer, &nasdisksvc.NasDiskService{})
+	//	oss.RegisterOSSServiceServer(rpcServer, &osssvc.OssService{})
 	securitygroup.RegisterSecurityGroupServiceServer(rpcServer, &securitygroupsvc.SecurityGroupService{})
-	//	tenant.RegisterTenantServiceServer(rpcServer, &tenant_service.TenantService{})
-	//	vpc.RegisterVpcServiceServer(rpcServer, &vpc_service.VpcService{})
+	//	tenant.RegisterTenantServiceServer(rpcServer, &tenantsvc.TenantService{})
+	//	vpc.RegisterVpcServiceServer(rpcServer, &vpcsvc.VpcService{})
 
-	log.Info("start listen.")
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
-		log.WithFields(log.Fields{
-			"err": err,
-		}).Panic("服务监听端口失败")
+		log.Fatal("服务监听端口失败", err)
 	}
-
-	log.Info("start server.")
 
 	err = rpcServer.Serve(listener)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"err": err,
-		}).Panic("服务启动失败")
+		log.Fatal("服务启动失败", err)
 	}
 }
