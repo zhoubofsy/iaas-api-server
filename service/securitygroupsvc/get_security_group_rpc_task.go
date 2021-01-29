@@ -11,7 +11,7 @@ package securitygroupsvc
 import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
-	//	sg "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups"
+	sg "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
@@ -33,12 +33,6 @@ func (rpctask *GetSecurityGroupRPCTask) Run(context.Context) {
 			"err": err,
 		}).Error("check param failed.")
 		rpctask.Err = common.EPARAM
-		return
-	}
-
-	if !common.APIAuth(rpctask.Req.Apikey, rpctask.Req.TenantId, rpctask.Req.PlatformUserid) {
-		log.Error("call common, api auth error")
-		rpctask.Err = common.EAPIAUTH
 		return
 	}
 
@@ -67,7 +61,35 @@ func (rpctask *GetSecurityGroupRPCTask) execute(providers *gophercloud.ProviderC
 	log.WithFields(log.Fields{
 		"client": client,
 	}).Info("client")
-	//TODO call sdk api
+
+	groups, err := sg.Get(client, rpctask.Req.SecurityGroupId).Extract()
+	if nil != err {
+		return common.ESGGETGROUP
+	}
+
+	rpctask.Res.SecurityGroup.UpdatedTime = groups.UpdatedAt.String()
+	rpctask.Res.SecurityGroup.CreatedTime = groups.CreatedAt.String()
+	rpctask.Res.SecurityGroup.SecurityGroupId = groups.ID
+	rpctask.Res.SecurityGroup.SecurityGroupName = groups.Name
+	rpctask.Res.SecurityGroup.SecurityGroupDesc = groups.Description
+
+	if len(groups.Rules) > 0 {
+		rpctask.Res.SecurityGroup.SecurityGroupRules = make([]*securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule, len(groups.Rules))
+		for index, rule := range groups.Rules {
+			rpctask.Res.SecurityGroup.SecurityGroupRules[index] = &securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule{
+				RuleId:          rule.ID,
+				RuleDesc:        rule.Description,
+				Direction:       rule.Direction,
+				Protocol:        rule.Protocol,
+				PortRangeMin:    int32(rule.PortRangeMin),
+				PortRangeMax:    int32(rule.PortRangeMax),
+				RemoteIpPrefix:  rule.RemoteIPPrefix,
+				SecurityGroupId: rule.SecGroupID,
+				CreatedTime:     groups.CreatedAt.String(),
+				UpdatedTime:     groups.UpdatedAt.String(),
+			}
+		}
+	}
 
 	return common.EOK
 }

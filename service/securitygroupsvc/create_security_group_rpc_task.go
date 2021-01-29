@@ -36,12 +36,6 @@ func (rpctask *CreateSecurityGroupRPCTask) Run(context.Context) {
 		return
 	}
 
-	if !common.APIAuth(rpctask.Req.Apikey, rpctask.Req.TenantId, rpctask.Req.PlatformUserid) {
-		log.Error("call common, api auth error")
-		rpctask.Err = common.EAPIAUTH
-		return
-	}
-
 	providers, err := common.GetOpenstackClient(rpctask.Req.Apikey, rpctask.Req.TenantId, rpctask.Req.PlatformUserid)
 	if nil != err {
 		log.Error("call common, get openstack client error")

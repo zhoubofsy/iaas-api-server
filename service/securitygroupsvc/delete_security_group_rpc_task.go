@@ -26,19 +26,13 @@ type DeleteSecurityGroupRPCTask struct {
 	Err *common.Error
 }
 
-// Run first input
+// Run call this func in DeleteSecurityGroupRPCTask object
 func (rpctask *DeleteSecurityGroupRPCTask) Run(context.Context) {
 	if err := rpctask.checkParam(); nil != err {
 		log.WithFields(log.Fields{
 			"err": err,
 		}).Error("check param failed.")
 		rpctask.Err = common.EPARAM
-		return
-	}
-
-	if !common.APIAuth(rpctask.Req.Apikey, rpctask.Req.TenantId, rpctask.Req.PlatformUserid) {
-		log.Error("call common, api auth error")
-		rpctask.Err = common.EAPIAUTH
 		return
 	}
 

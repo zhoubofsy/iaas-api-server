@@ -21,4 +21,5 @@ var (
 
 	ESGNEWNETWORK  = &Error{Code: 20000, Msg: "security group new network v2 failed"}
 	ESGCREATEGROUP = &Error{Code: 20001, Msg: "security group create group failed"}
+	ESGGETGROUP    = &Error{Code: 20002, Msg: "security group get group failed"}
 )
