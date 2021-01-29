@@ -9,6 +9,8 @@
 package securitygroupsvc
 
 import (
+	"errors"
+
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	sg "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups"
@@ -28,6 +30,11 @@ type CreateSecurityGroupRPCTask struct {
 
 // Run call this func for doing task
 func (rpctask *CreateSecurityGroupRPCTask) Run(context.Context) {
+	defer func() {
+		rpctask.Res.Code = rpctask.Err.Code
+		rpctask.Res.Msg = rpctask.Err.Msg
+	}()
+
 	if err := rpctask.checkParam(); nil != err {
 		log.WithFields(log.Fields{
 			"err": err,
@@ -82,5 +89,10 @@ func (rpctask *CreateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 }
 
 func (rpctask *CreateSecurityGroupRPCTask) checkParam() error {
+	if "" == rpctask.Req.GetApikey() ||
+		"" == rpctask.Req.GetTenantId() ||
+		"" == rpctask.Req.GetPlatformUserid() {
+		return errors.New("input params is wrong")
+	}
 	return nil
 }

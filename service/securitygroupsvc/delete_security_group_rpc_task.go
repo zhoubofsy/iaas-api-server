@@ -9,9 +9,13 @@
 package securitygroupsvc
 
 import (
+	"errors"
+	"time"
+
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
-	//	sg "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups"
+
+	sg "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
@@ -28,9 +32,20 @@ type DeleteSecurityGroupRPCTask struct {
 
 // Run call this func in DeleteSecurityGroupRPCTask object
 func (rpctask *DeleteSecurityGroupRPCTask) Run(context.Context) {
+	defer func() {
+		rpctask.Res.Code = rpctask.Err.Code
+		rpctask.Res.Msg = rpctask.Err.Msg
+		rpctask.Res.SecurityGroupId = rpctask.Req.GetSecurityGroupId()
+		rpctask.Res.DeletedTime = time.Now().Format("2006-01-02 15:04:05")
+	}()
+
 	if err := rpctask.checkParam(); nil != err {
 		log.WithFields(log.Fields{
-			"err": err,
+			"err":               err,
+			"apikey":            rpctask.Req.GetApikey(),
+			"tenant_id":         rpctask.Req.GetTenantId(),
+			"platform_userid":   rpctask.Req.GetPlatformUserid(),
+			"security_group_id": rpctask.Req.GetSecurityGroupId(),
 		}).Error("check param failed.")
 		rpctask.Err = common.EPARAM
 		return
@@ -47,25 +62,43 @@ func (rpctask *DeleteSecurityGroupRPCTask) Run(context.Context) {
 }
 
 func (rpctask *DeleteSecurityGroupRPCTask) execute(providers *gophercloud.ProviderClient) *common.Error {
-	client, err := openstack.NewNetworkV2(providers, gophercloud.EndpointOpts{
-		Region: "RegionOne",
-	})
+	client, err := openstack.NewNetworkV2(providers, gophercloud.EndpointOpts{})
 
 	if nil != err {
 		log.WithFields(log.Fields{
-			"err": err,
+			"err":               err,
+			"apikey":            rpctask.Req.GetApikey(),
+			"tenant_id":         rpctask.Req.GetTenantId(),
+			"platform_userid":   rpctask.Req.GetPlatformUserid(),
+			"security_group_id": rpctask.Req.GetSecurityGroupId(),
 		}).Error("new network v2 failed.")
 		return common.ESGNEWNETWORK
 	}
 
-	log.WithFields(log.Fields{
-		"client": client,
-	}).Info("client")
-	//TODO call sdk api
+	err = sg.Delete(client, rpctask.Req.GetSecurityGroupId()).ExtractErr()
+	if nil != err {
+		log.WithFields(log.Fields{
+			"err":               err,
+			"apikey":            rpctask.Req.GetApikey(),
+			"tenant_id":         rpctask.Req.GetTenantId(),
+			"platform_userid":   rpctask.Req.GetPlatformUserid(),
+			"security_group_id": rpctask.Req.GetSecurityGroupId(),
+		}).Error("delete security group failed")
+		return &common.Error{
+			Code: common.ESGDELGROUP.Code,
+			Msg:  err.Error(),
+		}
+	}
 
 	return common.EOK
 }
 
 func (rpctask *DeleteSecurityGroupRPCTask) checkParam() error {
+	if "" == rpctask.Req.GetApikey() ||
+		"" == rpctask.Req.GetTenantId() ||
+		"" == rpctask.Req.GetPlatformUserid() ||
+		"" == rpctask.Req.GetSecurityGroupId() {
+		return errors.New("input params is wrong")
+	}
 	return nil
 }

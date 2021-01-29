@@ -9,6 +9,8 @@
 package securitygroupsvc
 
 import (
+	"errors"
+
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	sg "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups"
@@ -28,9 +30,18 @@ type GetSecurityGroupRPCTask struct {
 
 // Run first input
 func (rpctask *GetSecurityGroupRPCTask) Run(context.Context) {
+	defer func() {
+		rpctask.Res.Code = rpctask.Err.Code
+		rpctask.Res.Msg = rpctask.Err.Msg
+	}()
+
 	if err := rpctask.checkParam(); nil != err {
 		log.WithFields(log.Fields{
-			"err": err,
+			"err":               err,
+			"apikey":            rpctask.Req.GetApikey(),
+			"tenant_id":         rpctask.Req.GetTenantId(),
+			"platform_userid":   rpctask.Req.GetPlatformUserid(),
+			"security_group_id": rpctask.Req.GetSecurityGroupId(),
 		}).Error("check param failed.")
 		rpctask.Err = common.EPARAM
 		return
@@ -47,24 +58,32 @@ func (rpctask *GetSecurityGroupRPCTask) Run(context.Context) {
 }
 
 func (rpctask *GetSecurityGroupRPCTask) execute(providers *gophercloud.ProviderClient) *common.Error {
-	client, err := openstack.NewNetworkV2(providers, gophercloud.EndpointOpts{
-		Region: "RegionOne",
-	})
+	client, err := openstack.NewNetworkV2(providers, gophercloud.EndpointOpts{})
 
 	if nil != err {
 		log.WithFields(log.Fields{
-			"err": err,
+			"err":               err,
+			"apikey":            rpctask.Req.GetApikey(),
+			"tenant_id":         rpctask.Req.GetTenantId(),
+			"platform_userid":   rpctask.Req.GetPlatformUserid(),
+			"security_group_id": rpctask.Req.GetSecurityGroupId(),
 		}).Error("new network v2 failed.")
 		return common.ESGNEWNETWORK
 	}
 
-	log.WithFields(log.Fields{
-		"client": client,
-	}).Info("client")
-
 	groups, err := sg.Get(client, rpctask.Req.SecurityGroupId).Extract()
 	if nil != err {
-		return common.ESGGETGROUP
+		log.WithFields(log.Fields{
+			"err":               err,
+			"apikey":            rpctask.Req.GetApikey(),
+			"tenant_id":         rpctask.Req.GetTenantId(),
+			"platform_userid":   rpctask.Req.GetPlatformUserid(),
+			"security_group_id": rpctask.Req.GetSecurityGroupId(),
+		}).Error("call sdk get security group failed.")
+		return &common.Error{
+			Code: common.ESGGETGROUP.Code,
+			Msg:  err.Error(),
+		}
 	}
 
 	rpctask.Res.SecurityGroup.UpdatedTime = groups.UpdatedAt.String()
@@ -95,5 +114,11 @@ func (rpctask *GetSecurityGroupRPCTask) execute(providers *gophercloud.ProviderC
 }
 
 func (rpctask *GetSecurityGroupRPCTask) checkParam() error {
+	if "" == rpctask.Req.GetApikey() ||
+		"" == rpctask.Req.GetPlatformUserid() ||
+		"" == rpctask.Req.GetSecurityGroupId() ||
+		"" == rpctask.Req.GetTenantId() {
+		return errors.New("imput param is wrong")
+	}
 	return nil
 }
