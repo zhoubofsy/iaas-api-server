@@ -10,9 +10,7 @@ package securitygroupsvc
 
 import (
 	"golang.org/x/net/context"
-	//"iaas-api-server/common"
 	"iaas-api-server/proto/securitygroup"
-	//"unicode"
 )
 
 // SecurityGroupService service for security group
@@ -33,20 +31,44 @@ func (sgs *SecurityGroupService) CreateSecurityGroup(ctx context.Context, req *s
 
 // GetSecurityGroup get security group
 func (sgs *SecurityGroupService) GetSecurityGroup(context.Context, *securitygroup.GetSecurityGroupReq) (*securitygroup.SecurityGroupRes, error) {
-	return &securitygroup.SecurityGroupRes{}, nil
+	task := GetSecurityGroupRPCTask{
+		Req: req,
+		Res: &securitygroup.SecurityGroupRes{},
+		Err: nil,
+	}
+	task.Run(ctx)
+	return task.Res, task.Err
 }
 
 // UpdateSecurityGroup update security group
 func (sgs *SecurityGroupService) UpdateSecurityGroup(context.Context, *securitygroup.UpdateSecurityGroupReq) (*securitygroup.SecurityGroupRes, error) {
-	return &securitygroup.SecurityGroupRes{}, nil
+	task := UpdateSecurityGroupRPCTask{
+		Req: req,
+		Res: &securitygroup.SecurityGroupRes{},
+		Err: nil,
+	}
+	task.Run(ctx)
+	return task.Res, task.Err
 }
 
 // DeleteSecurityGroup delete security group
 func (sgs *SecurityGroupService) DeleteSecurityGroup(context.Context, *securitygroup.DeleteSecurityGroupReq) (*securitygroup.DeleteSecurityGroupRes, error) {
-	return &securitygroup.DeleteSecurityGroupRes{}, nil
+	task := DeleteSecurityGroupRPCTask{
+		Req: req,
+		Res: &securitygroup.DeleteSecurityGroupRes{},
+		Err: nil,
+	}
+	task.Run(ctx)
+	return task.Res, task.Err
 }
 
 // OperateSecurityGroup operate security group
 func (sgs *SecurityGroupService) OperateSecurityGroup(context.Context, *securitygroup.OperateSecurityGroupReq) (*securitygroup.OperateSecurityGroupRes, error) {
-	return &securitygroup.OperateSecurityGroupRes{}, nil
+	task := OperateSecurityGroupRPCTask{
+		Req: req,
+		Res: &securitygroup.OperateSecurityGroupRes{},
+		Err: nil,
+	}
+	task.Run(ctx)
+	return task.Res, task.Err
 }
