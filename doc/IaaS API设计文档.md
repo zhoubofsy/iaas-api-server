@@ -3,26 +3,27 @@
 ## 租户相关服务
 
 ```jsx
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package tenant;
+
+//租户相关服务
 service TenantService{
-
-//创建租户
-
-rpc CreateTenant(CreateTenantReq) returns(CreateTenantRes);
-
+  //创建租户
+  rpc CreateTenant(CreateTenantReq) returns(CreateTenantRes);
 }
 
 message CreateTenantReq{
-
-string tenant_name;
-
+  string tenant_name = 1;
 }
 
 message CreateTenantRes{
-
-string tenant_id;
-
-string apikey;
-
+  int32 code = 1;
+  string msg = 2;
+  string tenant_id = 3;
+  string apikey = 4;
 }
 ```
 
@@ -75,62 +76,53 @@ func APIAuth(apikey string, tenant_id string, platform_userid string, resource_i
 ## 规格相关服务
 
 ```jsx
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package flavor;
+
+//规格相关服务
 service FlavorService{
-
-//获取规格列表
-
-rpc ListFlavors(ListFlavorsReq) returns(ListFlavorsRes);
-
-//获取规格信息
-
-rpc GetFlavor(GetFlavorReq) returns(Flavor);
-
-}
-
-message ListFlavorsReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-int32 page_number;
-
-int32 page_size;
-
-}
-
-message ListFlavorsRes {
-
-repeated Flavor flavors;
-
-}
-
-message GetFlavorReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string flavor_id;
-
+  //获取规格列表
+  rpc ListFlavors(ListFlavorsReq) returns(ListFlavorsRes);
+  //获取规格信息
+  rpc GetFlavor(GetFlavorReq) returns(GetFlavorRes);
 }
 
 message Flavor {
+  string flavor_id = 1;
+  string flavor_name = 2;
+  string flavor_vcpus = 3;
+  string flavor_ram = 4;
+  string flavor_disk =5 ;
+}
 
-string flavor_id;
+message ListFlavorsReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  int32 page_number = 4;
+  int32 page_size = 5;
+}
 
-string flavor_name;
+message ListFlavorsRes {
+  int32 code = 1;
+  string msg = 2;
+  repeated Flavor flavors = 3;
+}
 
-string flavor_vcpus;
+message GetFlavorReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string flavor_id = 4;
+}
 
-string flavor_ram;
-
-string flavor_disk;
-
+message GetFlavorRes {
+  int32 code = 1;
+  string msg = 2;
+  Flavor flavor = 3;
 }
 ```
 
@@ -152,65 +144,54 @@ string flavor_disk;
 ## 镜像相关服务
 
 ```jsx
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package image;
+
+//镜像相关服务
 service ImageService{
-
-//获取镜像列表
-
-rpc ListImages(ListImagesReq) returns(ListImagesRes);
-
-//获取镜像信息
-
-rpc GetImage(GetImageReq) returns(Image);
-
-}
-
-rpc ListImages(ListImagesReq) returns(ListImagesRes);
-
-message ListImagesReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-int32 page_number;
-
-int32 page_size;
-
+  //获取镜像列表
+  rpc ListImages(ListImagesReq) returns(ListImagesRes);
+  //获取镜像信息
+  rpc GetImage(GetImageReq) returns(GetImageRes);
 }
 
 message Image {
+  string image_id = 1;
+  string image_name = 2;
+  string image_diskformat = 3;
+  string image_containerformat = 4;
+}
 
-string image_id;
-
-string image_name;
-
-string image_diskformat;
-
-string image_containerformat;
-
+message ListImagesReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  int32 page_number = 4;
+  int32 page_size = 5;
 }
 
 message ListImagesRes {
-
-repeated Image images;
-
+  int32 code = 1;
+  string msg = 2;
+  repeated Image images = 3;
 }
-
-rpc GetImage(GetImageReq) returns(Image);
 
 message GetImageReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string image_id;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string image_id = 4;
 }
+
+message GetImageRes {
+  int32 code = 1;
+  string msg = 2;
+  Image image = 3;
+}
+
 ```
 
 ### 获取镜像列表
@@ -230,170 +211,123 @@ string image_id;
 ## 云主机相关服务
 
 ```jsx
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package instance;
+
+//云主机相关服务
 service InstanceService{
+  //创建云主机
+  rpc CreateInstance(CreateInstanceReq) returns(InstanceRes);
+  //获取云主机信息
+  rpc GetInstance(GetInstanceReq) returns(InstanceRes);
+  //修改云主机规格
+  rpc UpdateInstanceFlavor(UpdateInstanceFlavorReq) returns(InstanceRes);
+  //删除云主机
+  rpc DeleteInstance(DeleteInstanceReq) returns(DeleteInstanceRes);
+  //启动-停止-挂起-重启云主机
+  rpc OperateInstance(OperateInstanceReq) returns(OperateInstanceRes);
+}
 
-//创建云主机
-
-rpc CreateInstance(CreateInstanceReq) returns(Instance);
-
-//获取云主机信息
-
-rpc GetInstance(GetInstanceReq) returns(Instance);
-
-//修改云主机规格
-
-rpc UpdateInstanceFlavor(UpdateInstanceFlavorReq) returns(Instance);
-
-//删除云主机
-
-rpc DeleteInstance(DeleteInstanceReq) returns(DeleteInstanceRes);
-
-//启动-停止-挂起-重启云主机
-
-rpc OperateInstance(OperateInstanceReq) returns(OperateInstanceRes);
-
+message Flavor {
+  string flavor_id = 1;
+  string flavor_name = 2;
+  string flavor_vcpus = 3;
+  string flavor_ram = 4;
+  string flavor_disk = 5;
 }
 
 message CloudDiskConf {
-
-string volume_type;
-
-int32 size_in_g;
-
+  string volume_type = 1;
+  int32 size_in_g = 2;
 }
 
-message Instance {
-
-string instance_id;
-
-string instance_status;
-
-string instance_addr;
-
-string region;
-
-string availability_zone;
-
-Flavor flavor;
-
-string image_ref;
-
-CloudDiskConf system_disk;
-
-repeated CloudDiskConf data_disks;
-
-string network_uuid;
-
-repeated string security_group_name;
-
-string instance_name;
-
-string hypervisor_hostname;
-
-string created_time;
-
-string updated_time;
-
+message InstanceRes {
+  int32 code = 1;
+  string msg = 2;
+  message Instance {
+    string instance_id = 1;
+    string instance_status = 2;
+    string instance_addr = 3;
+    string region = 4;
+    string availability_zone = 5;
+    Flavor flavor = 6;
+    string image_ref = 7;
+    CloudDiskConf system_disk = 8;
+    repeated CloudDiskConf data_disks = 9;
+    string network_uuid = 10;
+    repeated string security_group_name = 11;
+    string instance_name = 12;
+    string hypervisor_hostname = 13;
+    string created_time = 14;
+    string updated_time = 15;
+  }
+  Instance instance = 3;
 }
 
 message CreateInstanceReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string region;
-
-string availability_zone;
-
-string flavor_ref;
-
-string image_ref;
-
-CloudDiskConf system_disk;
-
-repeated CloudDiskConf data_disks;
-
-string network_uuid;
-
-repeated string security_group_name;
-
-string instance_name;
-
-string hypervisor_hostname;
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string region = 4;
+  string availability_zone = 5;
+  string flavor_ref = 6;
+  string image_ref = 7;
+  CloudDiskConf system_disk = 8;
+  repeated CloudDiskConf data_disks = 9;
+  string network_uuid = 10;
+  repeated string security_group_name = 11;
+  string instance_name = 12;
+  string hypervisor_hostname = 13;
 }
 
 message GetInstanceReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string instance_id;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string instance_id = 4;
 }
 
 message UpdateInstanceFlavorReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string instance_id;
-
-string flavor_ref;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string instance_id = 4;
+  string flavor_ref = 5;
 }
 
 message DeleteInstanceReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string instance_id;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string instance_id = 4;
 }
 
 message DeleteInstanceRes {
-
-string instance_id;
-
-string deleted_time;
-
+  int32 code = 1;
+  string msg = 2;
+  string instance_id = 3;
+  string deleted_time = 4;
 }
 
 message OperateInstanceReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string instance_id;
-
-string operate_type; //start/stop/softreboot/hardreboot/suspend
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string instance_id = 4;
+  string operate_type = 5; //start/stop/softreboot/hardreboot/suspend
 }
 
 message OperateInstanceRes {
-
-string instance_id;
-
-string operated_time;
-
-string operate_type;
-
+  int32 code = 1;
+  string msg = 2;
+  string instance_id = 3;
+  string operated_time = 4;
+  string operate_type = 5;
 }
+
 ```
 
 ### 创建云主机
@@ -441,177 +375,118 @@ string operate_type;
 ## 安全组相关服务
 
 ```jsx
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package securitygroup;
+
+//安全组相关服务
 service SecurityGroupService{
-
-//创建安全组
-
-rpc CreateSecurityGroup(CreateSecurityGroupReq) returns(SecurityGroup);
-
-//获取安全组信息
-
-rpc GetSecurityGroup(GetSecurityGroupReq) returns(SecurityGroup);
-
-//修改安全组
-
-rpc UpdateSecurityGroup(UpdateSecurityGroupReq) returns(SecurityGroup);
-
-//删除安全组
-
-rpc DeleteSecurityGroup(DeleteSecurityGroupReq) returns(DeleteSecurityGroupRes);
-
-//安全组关联/取关云主机
-
-rpc OperateSecurityGroup(OperateSecurityGroupReq) returns(OperateSecurityGroupRes);
-
+  //创建安全组
+  rpc CreateSecurityGroup(CreateSecurityGroupReq) returns(SecurityGroupRes);
+  //获取安全组信息
+  rpc GetSecurityGroup(GetSecurityGroupReq) returns(SecurityGroupRes);
+  //修改安全组
+  rpc UpdateSecurityGroup(UpdateSecurityGroupReq) returns(SecurityGroupRes);
+  //删除安全组
+  rpc DeleteSecurityGroup(DeleteSecurityGroupReq) returns(DeleteSecurityGroupRes);
+  //安全组关联/取关云主机
+  rpc OperateSecurityGroup(OperateSecurityGroupReq) returns(OperateSecurityGroupRes);
 }
 
-message SecurityGroup {
-
-string security_group_id;
-
-string security_group_name;
-
-string security_group_desc;
-
-message SecurityGroupRule {
-
-string rule_id;
-
-string rule_desc;
-
-string direction;
-
-string protocol;
-
-int32 port_range_min;
-
-int32 port_range_max;
-
-string remote_ip_prefix;
-
-string security_group_id;
-
-string created_time;
-
-string updated_time;
-
-}
-
-repeated SecurityGroupRule security_group_rules;
-
-string created_time;
-
-string updated_time;
-
+message SecurityGroupRes {
+  int32 code = 1;
+  string msg = 2;
+  message SecurityGroup {
+    string security_group_id = 1;
+    string security_group_name = 2;
+    string security_group_desc = 3;
+    message SecurityGroupRule {
+      string rule_id = 1;
+      string rule_desc = 2;
+      string direction = 3;
+      string protocol = 4;
+      int32  port_range_min = 5;
+      int32 port_range_max = 6;
+      string remote_ip_prefix = 7;
+      string security_group_id = 8;
+      string created_time = 9;
+      string updated_time = 10;
+    }
+    repeated SecurityGroupRule security_group_rules = 4;
+    string created_time = 5;
+    string updated_time = 6;
+  }
+  SecurityGroup security_group =3;
 }
 
 message SecurityGroupRuleSet {
-
-string rule_desc;
-
-string direction;
-
-string protocol;
-
-int32 port_range_min;
-
-int32 port_range_max;
-
-string remote_ip_prefix;
-
+  string rule_desc = 1;
+  string direction = 2;
+  string protocol = 3;
+  int32  port_range_min = 4;
+  int32 port_range_max = 5;
+  string remote_ip_prefix = 6;
 }
 
 message CreateSecurityGroupReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string security_group_name;
-
-string security_group_desc;
-
-repeated SecurityGroupRuleSet security_group_rule_sets;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string security_group_name = 4;
+  string security_group_desc = 5;
+  repeated SecurityGroupRuleSet security_group_rule_sets = 6;
 }
 
 message GetSecurityGroupReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string security_group_id;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string security_group_id = 4;
 }
 
 message UpdateSecurityGroupReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string security_group_id;
-
-string security_group_name;
-
-string security_group_desc;
-
-repeated SecurityGroupRuleSet security_group_rule_sets;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string security_group_id = 4;
+  string security_group_name = 5;
+  string security_group_desc = 6;
+  repeated SecurityGroupRuleSet security_group_rule_sets = 7;
 }
 
 message DeleteSecurityGroupReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string security_group_id;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string security_group_id = 4;
 }
 
 message DeleteSecurityGroupRes {
-
-string security_group_id;
-
-string deleted_time;
-
+  int32 code = 1;
+  string msg = 2;
+  string security_group_id = 3;
+  string deleted_time = 4;
 }
 
 message OperateSecurityGroupReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string security_group_id;
-
-repeated string instance_ids;
-
-string ops_type; //attach or detach
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string security_group_id = 4;
+  repeated string instance_ids = 5;
+  string ops_type = 6; //attach or detach
 }
 
 message OperateSecurityGroupRes {
-
-string security_group_id;
-
-string ops_type;
-
-string operateed_time;
-
+  int32 code = 1;
+  string msg = 2;
+  string security_group_id = 3;
+  string ops_type = 4;
+  string operateed_time = 5;
 }
+
 ```
 
 ### 创建安全组
@@ -658,159 +533,111 @@ string operateed_time;
 ## 块存储相关服务
 
 ```jsx
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package clouddisk;
+
+//块存储相关服务
 service CloudDiskService{
-
-//创建云硬盘
-
-rpc CreateCloudDisk(CreateCloudDiskReq) returns(CloudDisk);
-
-//获取云硬盘信息
-
-rpc GetCloudDisk(GetCloudDiskReq) returns(CloudDisk);
-
-//云硬盘扩容
-
-rpc ReqizeCloudDisk(ReqizeCloudDiskReq) returns(CloudDisk);
-
-//修改云硬盘信息
-
-rpc ModifyCloudDiskInfo(ModifyCloudDiskInfoReq) returns(CloudDisk);
-
-//云主机挂载/卸载云硬盘
-
-rpc OperateCloudDisk(OperateCloudDiskReq) returns(CloudDisk);
-
-//删除云硬盘
-
-rpc DeleteCloudDisk(DeleteCloudDiskReq) returns(DeleteCloudDiskRes);
-
+  //创建云硬盘
+  rpc CreateCloudDisk(CreateCloudDiskReq) returns(CloudDiskRes);
+  //获取云硬盘信息
+  rpc GetCloudDisk(GetCloudDiskReq) returns(CloudDiskRes);
+  //云硬盘扩容
+  rpc ReqizeCloudDisk(ReqizeCloudDiskReq) returns(CloudDiskRes);
+  //修改云硬盘信息
+  rpc ModifyCloudDiskInfo(ModifyCloudDiskInfoReq) returns(CloudDiskRes);
+  //云主机挂载/卸载云硬盘
+  rpc OperateCloudDisk(OperateCloudDiskReq) returns(CloudDiskRes);
+  //删除云硬盘
+  rpc DeleteCloudDisk(DeleteCloudDiskReq) returns(DeleteCloudDiskRes);
 }
 
-message CloudDisk {
+message CloudDiskConf {
+  string volume_type = 1;
+  int32 size_in_g = 2;
+}
 
-string volume_id;
-
-string volume_name;
-
-string volume_desc;
-
-string region;
-
-string availability_zone;
-
-CloudDiskConf cloud_disk_conf;
-
-string volume_status;
-
-string created_time;
-
-string updated_time;
-
-string attach_instance_id;
-
-string attach_instance_device;
-
-string attached_time;
-
+message CloudDiskRes {
+  int32 code = 1;
+  string msg = 2;
+  message CloudDisk {
+    string volume_id = 1;
+    string volume_name = 2;
+    string volume_desc = 3;
+    string region = 4;
+    string availability_zone = 5;
+    CloudDiskConf cloud_disk_conf = 6;
+    string volume_status = 7;
+    string created_time = 8;
+    string updated_time = 9;
+    string attach_instance_id = 10;
+    string attach_instance_device = 11;
+    string attached_time = 12;
+  }
+  CloudDisk cloud_disk = 3;
 }
 
 message CreateCloudDiskReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string volume_name;
-
-string volume_desc;
-
-string region;
-
-string availability_zone;
-
-CloudDiskConf cloud_disk_conf;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string volume_name = 4;
+  string volume_desc = 5;
+  string region = 6;
+  string availability_zone = 7;
+  CloudDiskConf cloud_disk_conf = 8;
 }
 
 message GetCloudDiskReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string volume_id;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string volume_id = 4;
 }
 
 message ReqizeCloudDiskReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string volume_id;
-
-CloudDiskConf cloud_disk_conf;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string volume_id = 4;
+  CloudDiskConf cloud_disk_conf = 5;
 }
 
 message ModifyCloudDiskInfoReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string volume_id;
-
-string volume_name;
-
-string volume_desc;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string volume_id = 4;
+  string volume_name = 5;
+  string volume_desc = 6;
 }
 
 message OperateCloudDiskReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string volume_id;
-
-string instance_id;
-
-string ops_type; //attach or detach
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string volume_id = 4;
+  string instance_id = 5;
+  string ops_type = 6; //attach or detach
 }
 
 message DeleteCloudDiskReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string volume_id;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string volume_id = 4;
 }
 
 message DeleteCloudDiskRes {
-
-string volume_id;
-
-string deleted_time;
-
+  int32 code = 1;
+  string msg = 2;
+  string volume_id = 3;
+  string deleted_time = 4;
 }
+
 ```
 
 ### 创建云硬盘
@@ -858,113 +685,83 @@ string deleted_time;
 ## NAS存储相关服务
 
 ```jsx
+/ 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package nasdisk;
+
+//NAS存储相关服务
 service NasDiskService {
-
-//创建NAS盘
-
-rpc CreateNasDisk(CreateNasDiskReq) returns(NasDisk);
-
-//删除NAS盘
-
-rpc DeleteNasDisk(DeleteNasDiskReq) returns(DeleteNasDiskRes);
-
-//查看挂载客户端
-
-rpc GetMountClients(GetMountClientsReq) returns(MountClients);
-
+  //创建NAS盘
+  rpc CreateNasDisk(CreateNasDiskReq) returns(CreateNasDiskRes);
+  //删除NAS盘
+  rpc DeleteNasDisk(DeleteNasDiskReq) returns(DeleteNasDiskRes);
+  //查看挂载客户端
+  rpc GetMountClients(GetMountClientsReq) returns(GetMountClientsRes);
 }
 
-message NasDisk {
-
-string share_id;
-
-string share_name;
-
-string share_desci
-
-string share_proto;
-
-int32 share_size_in_g;
-
-string region;
-
-string network_id;
-
-string share_status;
-
-string share_progress;
-
-string share_server_id;
-
-string share_server_host;
-
-string share_network_id;
-
-string created_time;
-
-string updated_time;
-
+message CreateNasDiskRes {
+  int32 code = 1;
+  string msg = 2;
+  message NasDisk {
+    string share_id = 1;
+    string share_name = 2;
+    string share_desc =3;
+    string share_proto = 4;
+    int32  share_size_in_g = 5;
+    string region = 6;
+    string  network_id = 7;
+    string share_status = 8;
+    string share_progress = 9;
+    string share_server_id = 10;
+    string share_server_host = 11;
+    string share_network_id = 12;
+    string created_time = 13;
+    string updated_time = 14;
+  }
+  NasDisk nas_disk = 3;
 }
 
 message CreateNasDiskReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string share_name;
-
-string share_desc;
-
-string share_proto;
-
-int32 share_size_in_g;
-
-string region;
-
-string network_id;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string share_name = 4;
+  string share_desc = 5;
+  string share_proto = 6;
+  int32  share_size_in_g = 7;
+  string region = 8;
+  string network_id = 9;
 }
 
 message DeleteNasDiskReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string share_id;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string share_id = 4;
 }
 
 message DeleteNasDiskRes {
-
-string share_id;
-
-string deleted_time;
-
+  int32 code = 1;
+  string msg = 2;
+  string share_id = 3;
+  string deleted_time = 4;
 }
 
 message GetMountClientsReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string share_id;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string share_id = 4;
 }
 
-message MountClients {
-
-repeated string instance_id;
-
+message GetMountClientsRes {
+  int32 code = 1;
+  string msg = 2;
+  repeated string instance_id = 3;
 }
+
 ```
 
 **注：以下描述是基于使用manila方案的实现，只看文档没使用过，不能保证准确性和完整性。**
@@ -995,167 +792,131 @@ repeated string instance_id;
 ## 对象存储相关服务
 
 ```jsx
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package oss;
+
+//对象存储相关服务
 service OSSService {
+  //创建Oss账号和bucket
+  rpc CreateUserAndBucket(CreateUserAndBucketReq) returns(CreateUserAndBucketRes);
+  //查看具体一个bucket详情
+  rpc GetBucketInfo(GetBucketInfoReq) returns(GetBucketInfoRes);
+  //列出云管平台用户在一个entrypoint下的bucet列表
+  rpc ListBucketsInfo(ListBucketsInfoReq) returns(ListBucketsInfoRes);
+  //扩容oss_user配额
+  rpc SetOssUserQuota(SetOssUserQuotaReq) returns(SetOssUserQuotaRes);
+  //找回key
+  rpc RecoverKey(RecoverKeyReq) returns(RecoverKeyRes);
+}
 
-//创建Oss账号和bucket
-
-rpc CreateUserAndBucket(CreateUserAndBucketReq) returns(CreateUserAndBucketRes);
-
-//查看具体一个bucket详情
-
-rpc GetBucketInfo(GetBucketInfoReq) returns(OssBucket);
-
-//列出云管平台用户在一个ceph集群下的bucet列表
-
-rpc ListBucketsInfo(ListBucketsInfoReq) returns(ListBucketsInfoRes);
-
-//扩容oss_user配额
-
-rpc SetOssUserQuota(SetOssUserQuotaReq) returns(OssUser);
-
-//找回key
-
-rpc RecoverKey(RecoverKeyReq) returns(RecoverKeyRes)
-
+message OssBucket {
+  string bucket_name = 1;
+  string bucket_policy = 2; //private/public-ro/public-rw
+  int32 bucket_use_size_in_g = 3;
+  int32 bucket_use_objects = 4;
+  string belong_to_uid = 5;
+  string bucket_created_time = 6;
 }
 
 message OssUser {
-
-string oss_uid;
-
-string oss_user_created_time;
-
-int32 user_max_size_in_g;
-
-int32 user_max_objects;
-
-int32 user_use_size_in_g;
-
-int32 user_use_objects;
-
-string user_created_time;
-
-int32 total_buckets;
-
+  string oss_uid = 1;
+  string oss_user_created_time = 2;
+  int32 user_max_size_in_g = 3;
+  int32 user_max_objects = 4;
+  int32 user_use_size_in_g = 5;
+  int32 user_use_objects = 6;
+  string user_created_time = 7;
+  int32 total_buckets = 8;
 }
 
 message CreateUserAndBucketReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string region;
-
-string bucket_name;
-
-string storege_type;
-
-int32 user_max_size_in_g;
-
-int32 user_max_objects;
-
-string bucket_policy;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string region = 5;
+  string bucket_name = 6;
+  string storege_type = 7;
+  int32 user_max_size_in_g = 8;
+  int32 user_max_objects = 9;
+  string bucket_policy = 10;
 }
 
 message CreateUserAndBucketRes {
-
-string oss_endpoint;
-
-string oss_access_key;
-
-string oss_secret_key;
-
-OssUser oss_user;
-
-OssBucket oss_bucket;
-
+  int32 code = 1;
+  string msg = 2;
+  string oss_endpoint = 3;
+  string oss_access_key = 4;
+  string oss_secret_key = 5;
+  OssUser oss_user = 6;
+  OssBucket oss_bucket = 7;
 }
 
 message GetBucketInfoReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string region = 4;
+  string oss_uid = 5;
+  string bucket_name = 6;
+}
 
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string region;
-
-string oss_uid;
-
-string bucket_name;
-
+message GetBucketInfoRes {
+  int32 code = 1;
+  string msg = 2;
+  OssBucket oss_bucket = 3;
 }
 
 message ListBucketsInfoReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string region;
-
-string oss_uid;
-
-int32 page_number;
-
-int32 page_size;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string region = 4;
+  string oss_uid = 5;
+  int32 page_number = 6;
+  int32 page_size = 7;
 }
 
 message ListBucketsInfoRes {
-
-repeated OssBucket oss_buckets;
-
+  int32 code = 1;
+  string msg = 2;
+  repeated OssBucket oss_buckets = 3;
 }
 
 message SetOssUserQuotaReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string region = 4;
+  string oss_uid = 5;
+  int32 user_max_size_in_g = 6;
+  int32 user_max_objects = 7;
+}
 
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string region;
-
-string oss_uid;
-
-int32 user_max_size_in_g;
-
-int32 user_max_objects;
-
+message SetOssUserQuotaRes {
+  int32 code = 1;
+  string msg = 2;
+  OssUser oss_user = 3;
 }
 
 message RecoverKeyReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string region;
-
-string oss_uid;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string region = 4;
+  string oss_uid = 5;
 }
 
 message RecoverKeyRes {
-
-string oss_endpoint;
-
-string oss_access_key;
-
-string oss_secret_key;
-
+  int32 code = 1;
+  string msg = 2;
+  string oss_endpoint = 3;
+  string oss_access_key = 4;
+  string oss_secret_key = 5;
 }
+
 ```
 
 ### 首次创建账号并创建1个bucket
@@ -1204,85 +965,64 @@ string oss_secret_key;
 ## 专有网络相关服务
 
 ```jsx
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package vpc;
+
+//专有网络相关服务
 service VpcService {
-
-//创建vpc
-
-rpc CreateVpc(CreateVpcReq) returns(Vpc);
-
-//查看vpc信息
-
-rpc GetVpcInfo(GetVpcInfoReq) returns(Vpc)
-
-//修改vpc信息
-
-rpc SetVpcInfo(SetVpcInfoReq) returns(Vpc)
-
+  //创建vpc
+  rpc CreateVpc(CreateVpcReq) returns(VpcRes);
+  //查看vpc信息
+  rpc GetVpcInfo(GetVpcInfoReq) returns(VpcRes);
+  //修改vpc信息
+  rpc SetVpcInfo(SetVpcInfoReq) returns(VpcRes);
 }
 
-message Vpc {
-
-string vpc_id;
-
-string vpc_name;
-
-string vpc_desc;
-
-string region;
-
-repeated string subnet;
-
-string vpc_status;
-
-string created_time;
-
+message VpcRes {
+  int32 code = 1;
+  string msg = 2;
+  message Vpc {
+    string vpc_id = 1;
+    string vpc_name = 2;
+    string vpc_desc = 3;
+    string region = 4;
+    repeated string subnet = 5;
+    string vpc_status = 6;
+    string created_time = 7;
+  }
+  Vpc vpc = 3;
 }
+
 
 message CreateVpcReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string vpc_name;
-
-string vpc_desc;
-
-string region;
-
-string subnet;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string vpc_name = 4;
+  string vpc_desc = 5;
+  string region = 6;
+  string subnet = 7;
 }
 
 message GetVpcInfoReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string vpc_id;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string vpc_id = 4;
 }
 
 message SetVpcInfoReq {
-
-string apikey;
-
-string tenant_id;
-
-string platform_userid;
-
-string vpc_id;
-
-string vpc_name;
-
-string vpc_desc;
-
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string vpc_id = 4;
+  string vpc_name = 5;
+  string vpc_desc = 6;
 }
+
 ```
 
 ### 创建vpc
