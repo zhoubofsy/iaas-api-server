@@ -30,7 +30,7 @@ func (sgs *SecurityGroupService) CreateSecurityGroup(ctx context.Context, req *s
 }
 
 // GetSecurityGroup get security group
-func (sgs *SecurityGroupService) GetSecurityGroup(context.Context, *securitygroup.GetSecurityGroupReq) (*securitygroup.SecurityGroupRes, error) {
+func (sgs *SecurityGroupService) GetSecurityGroup(ctx context.Context, req *securitygroup.GetSecurityGroupReq) (*securitygroup.SecurityGroupRes, error) {
 	task := GetSecurityGroupRPCTask{
 		Req: req,
 		Res: &securitygroup.SecurityGroupRes{},
@@ -41,7 +41,7 @@ func (sgs *SecurityGroupService) GetSecurityGroup(context.Context, *securitygrou
 }
 
 // UpdateSecurityGroup update security group
-func (sgs *SecurityGroupService) UpdateSecurityGroup(context.Context, *securitygroup.UpdateSecurityGroupReq) (*securitygroup.SecurityGroupRes, error) {
+func (sgs *SecurityGroupService) UpdateSecurityGroup(ctx context.Context, req *securitygroup.UpdateSecurityGroupReq) (*securitygroup.SecurityGroupRes, error) {
 	task := UpdateSecurityGroupRPCTask{
 		Req: req,
 		Res: &securitygroup.SecurityGroupRes{},
@@ -52,7 +52,7 @@ func (sgs *SecurityGroupService) UpdateSecurityGroup(context.Context, *securityg
 }
 
 // DeleteSecurityGroup delete security group
-func (sgs *SecurityGroupService) DeleteSecurityGroup(context.Context, *securitygroup.DeleteSecurityGroupReq) (*securitygroup.DeleteSecurityGroupRes, error) {
+func (sgs *SecurityGroupService) DeleteSecurityGroup(ctx context.Context, req *securitygroup.DeleteSecurityGroupReq) (*securitygroup.DeleteSecurityGroupRes, error) {
 	task := DeleteSecurityGroupRPCTask{
 		Req: req,
 		Res: &securitygroup.DeleteSecurityGroupRes{},
@@ -63,7 +63,7 @@ func (sgs *SecurityGroupService) DeleteSecurityGroup(context.Context, *securityg
 }
 
 // OperateSecurityGroup operate security group
-func (sgs *SecurityGroupService) OperateSecurityGroup(context.Context, *securitygroup.OperateSecurityGroupReq) (*securitygroup.OperateSecurityGroupRes, error) {
+func (sgs *SecurityGroupService) OperateSecurityGroup(ctx context.Context, req *securitygroup.OperateSecurityGroupReq) (*securitygroup.OperateSecurityGroupRes, error) {
 	task := OperateSecurityGroupRPCTask{
 		Req: req,
 		Res: &securitygroup.OperateSecurityGroupRes{},
