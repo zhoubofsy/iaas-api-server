@@ -1,0 +1,12 @@
+@startuml demo
+Client -> IAAService : 1. 认证请求，携带(apikey, tenantID, platformUserID...)
+IAAService -> MYSQL : 2. 根据 tenantID 查询租户信息
+MYSQL -> IAAService : 3. 返回 TenantInfo
+IAAService -> Client : 4. 根据 TenantInfo 中的 authURL 发起反向认证
+Client -> IAAService : 5. Auth OK
+@enduml
+
+- 说明
+
+第 3 步拿到 TenantInfo 后，IAAService 内部会校验 apikey，校验通过后，根据 TenantInfo
+中的 authURL 发起反向认证
