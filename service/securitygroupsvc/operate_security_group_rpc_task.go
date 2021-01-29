@@ -9,8 +9,11 @@
 package securitygroupsvc
 
 import (
+	"errors"
+
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
+
 	//	sg "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -26,11 +29,19 @@ type OperateSecurityGroupRPCTask struct {
 	Err *common.Error
 }
 
-// Run first input
+// Run call this func
 func (rpctask *OperateSecurityGroupRPCTask) Run(context.Context) {
+	defer func() {
+		rpctask.Res.Code = rpctask.Err.Code
+		rpctask.Res.Msg = rpctask.Err.Msg
+	}()
+
 	if err := rpctask.checkParam(); nil != err {
 		log.WithFields(log.Fields{
-			"err": err,
+			"err":             err,
+			"apikey":          rpctask.Req.GetApikey(),
+			"tenant_id":       rpctask.Req.GetTenantId(),
+			"platform_userid": rpctask.Req.GetPlatformUserid(),
 		}).Error("check param failed.")
 		rpctask.Err = common.EPARAM
 		return
@@ -47,25 +58,30 @@ func (rpctask *OperateSecurityGroupRPCTask) Run(context.Context) {
 }
 
 func (rpctask *OperateSecurityGroupRPCTask) execute(providers *gophercloud.ProviderClient) *common.Error {
-	client, err := openstack.NewNetworkV2(providers, gophercloud.EndpointOpts{
-		Region: "RegionOne",
-	})
+	client, err := openstack.NewNetworkV2(providers, gophercloud.EndpointOpts{})
 
 	if nil != err {
 		log.WithFields(log.Fields{
-			"err": err,
+			"err":             err,
+			"apikey":          rpctask.Req.GetApikey(),
+			"tenant_id":       rpctask.Req.GetTenantId(),
+			"platform_userid": rpctask.Req.GetPlatformUserid(),
+			"client":          client,
 		}).Error("new network v2 failed.")
 		return common.ESGNEWNETWORK
 	}
-
-	log.WithFields(log.Fields{
-		"client": client,
-	}).Info("client")
-	//TODO call sdk api
 
 	return common.EOK
 }
 
 func (rpctask *OperateSecurityGroupRPCTask) checkParam() error {
+	if "" == rpctask.Req.GetApikey() ||
+		"" == rpctask.Req.GetTenantId() ||
+		"" == rpctask.Req.GetPlatformUserid() ||
+		"" == rpctask.Req.GetSecurityGroupId() ||
+		"" == rpctask.Req.GetOpsType() ||
+		0 == len(rpctask.Req.GetInstanceIds()) {
+		return errors.New("input param is wrong")
+	}
 	return nil
 }
