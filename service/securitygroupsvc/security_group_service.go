@@ -23,12 +23,12 @@ type SecurityGroupService struct {
 // CreateSecurityGroup create security group
 func (sgs *SecurityGroupService) CreateSecurityGroup(ctx context.Context, req *securitygroup.CreateSecurityGroupReq) (*securitygroup.SecurityGroupRes, error) {
 	task := CreateSecurityGroupRPCTask{
-		req: req,
-		res: &securitygroup.SecurityGroupRes{},
-		err: nil,
+		Req: req,
+		Res: &securitygroup.SecurityGroupRes{},
+		Err: nil,
 	}
 	task.Run(ctx)
-	return task.res, task.err
+	return task.Res, task.Err
 }
 
 // GetSecurityGroup get security group
