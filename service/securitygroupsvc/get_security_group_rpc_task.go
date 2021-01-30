@@ -37,11 +37,8 @@ func (rpctask *GetSecurityGroupRPCTask) Run(context.Context) {
 
 	if err := rpctask.checkParam(); nil != err {
 		log.WithFields(log.Fields{
-			"err":               err,
-			"apikey":            rpctask.Req.GetApikey(),
-			"tenant_id":         rpctask.Req.GetTenantId(),
-			"platform_userid":   rpctask.Req.GetPlatformUserid(),
-			"security_group_id": rpctask.Req.GetSecurityGroupId(),
+			"err": err,
+			"req": rpctask.Req.String(),
 		}).Error("check param failed.")
 		rpctask.Err = common.EPARAM
 		return
@@ -49,7 +46,10 @@ func (rpctask *GetSecurityGroupRPCTask) Run(context.Context) {
 
 	providers, err := common.GetOpenstackClient(rpctask.Req.Apikey, rpctask.Req.TenantId, rpctask.Req.PlatformUserid)
 	if nil != err {
-		log.Error("call common, get openstack client error")
+		log.WithFields(log.Fields{
+			"err": err,
+			"req": rpctask.Req.String(),
+		}).Error("call common, get openstack client error")
 		rpctask.Err = common.EGETOPSTACKCLIENT
 		return
 	}
@@ -62,11 +62,8 @@ func (rpctask *GetSecurityGroupRPCTask) execute(providers *gophercloud.ProviderC
 
 	if nil != err {
 		log.WithFields(log.Fields{
-			"err":               err,
-			"apikey":            rpctask.Req.GetApikey(),
-			"tenant_id":         rpctask.Req.GetTenantId(),
-			"platform_userid":   rpctask.Req.GetPlatformUserid(),
-			"security_group_id": rpctask.Req.GetSecurityGroupId(),
+			"err": err,
+			"req": rpctask.Req.String(),
 		}).Error("new network v2 failed.")
 		return common.ESGNEWNETWORK
 	}
@@ -74,11 +71,8 @@ func (rpctask *GetSecurityGroupRPCTask) execute(providers *gophercloud.ProviderC
 	groups, err := sg.Get(client, rpctask.Req.SecurityGroupId).Extract()
 	if nil != err {
 		log.WithFields(log.Fields{
-			"err":               err,
-			"apikey":            rpctask.Req.GetApikey(),
-			"tenant_id":         rpctask.Req.GetTenantId(),
-			"platform_userid":   rpctask.Req.GetPlatformUserid(),
-			"security_group_id": rpctask.Req.GetSecurityGroupId(),
+			"err": err,
+			"req": rpctask.Req.String(),
 		}).Error("call sdk get security group failed.")
 		return &common.Error{
 			Code: common.ESGGETGROUP.Code,
@@ -86,6 +80,7 @@ func (rpctask *GetSecurityGroupRPCTask) execute(providers *gophercloud.ProviderC
 		}
 	}
 
+	//TODO 时间返回后续修改为接口需要的格式
 	rpctask.Res.SecurityGroup.UpdatedTime = groups.UpdatedAt.String()
 	rpctask.Res.SecurityGroup.CreatedTime = groups.CreatedAt.String()
 	rpctask.Res.SecurityGroup.SecurityGroupId = groups.ID
@@ -93,6 +88,7 @@ func (rpctask *GetSecurityGroupRPCTask) execute(providers *gophercloud.ProviderC
 	rpctask.Res.SecurityGroup.SecurityGroupDesc = groups.Description
 
 	if len(groups.Rules) > 0 {
+		cur := getCurTime()
 		rpctask.Res.SecurityGroup.SecurityGroupRules = make([]*securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule, len(groups.Rules))
 		for index, rule := range groups.Rules {
 			rpctask.Res.SecurityGroup.SecurityGroupRules[index] = &securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule{
@@ -104,8 +100,8 @@ func (rpctask *GetSecurityGroupRPCTask) execute(providers *gophercloud.ProviderC
 				PortRangeMax:    int32(rule.PortRangeMax),
 				RemoteIpPrefix:  rule.RemoteIPPrefix,
 				SecurityGroupId: rule.SecGroupID,
-				CreatedTime:     groups.CreatedAt.String(),
-				UpdatedTime:     groups.UpdatedAt.String(),
+				CreatedTime:     cur,
+				UpdatedTime:     cur,
 			}
 		}
 	}

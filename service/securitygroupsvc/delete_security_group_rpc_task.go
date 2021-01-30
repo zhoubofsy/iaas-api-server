@@ -10,7 +10,6 @@ package securitygroupsvc
 
 import (
 	"errors"
-	"time"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
@@ -36,16 +35,13 @@ func (rpctask *DeleteSecurityGroupRPCTask) Run(context.Context) {
 		rpctask.Res.Code = rpctask.Err.Code
 		rpctask.Res.Msg = rpctask.Err.Msg
 		rpctask.Res.SecurityGroupId = rpctask.Req.GetSecurityGroupId()
-		rpctask.Res.DeletedTime = time.Now().Format("2006-01-02 15:04:05")
+		rpctask.Res.DeletedTime = getCurTime()
 	}()
 
 	if err := rpctask.checkParam(); nil != err {
 		log.WithFields(log.Fields{
-			"err":               err,
-			"apikey":            rpctask.Req.GetApikey(),
-			"tenant_id":         rpctask.Req.GetTenantId(),
-			"platform_userid":   rpctask.Req.GetPlatformUserid(),
-			"security_group_id": rpctask.Req.GetSecurityGroupId(),
+			"err": err,
+			"req": rpctask.Req.String(),
 		}).Error("check param failed.")
 		rpctask.Err = common.EPARAM
 		return
@@ -53,7 +49,10 @@ func (rpctask *DeleteSecurityGroupRPCTask) Run(context.Context) {
 
 	providers, err := common.GetOpenstackClient(rpctask.Req.Apikey, rpctask.Req.TenantId, rpctask.Req.PlatformUserid)
 	if nil != err {
-		log.Error("call common, get openstack client error")
+		log.WithFields(log.Fields{
+			"err": err,
+			"req": rpctask.Req.String(),
+		}).Error("call common, get openstack client error")
 		rpctask.Err = common.EGETOPSTACKCLIENT
 		return
 	}
@@ -66,11 +65,8 @@ func (rpctask *DeleteSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 
 	if nil != err {
 		log.WithFields(log.Fields{
-			"err":               err,
-			"apikey":            rpctask.Req.GetApikey(),
-			"tenant_id":         rpctask.Req.GetTenantId(),
-			"platform_userid":   rpctask.Req.GetPlatformUserid(),
-			"security_group_id": rpctask.Req.GetSecurityGroupId(),
+			"err": err,
+			"req": rpctask.Req.String(),
 		}).Error("new network v2 failed.")
 		return common.ESGNEWNETWORK
 	}
@@ -78,11 +74,8 @@ func (rpctask *DeleteSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 	err = sg.Delete(client, rpctask.Req.GetSecurityGroupId()).ExtractErr()
 	if nil != err {
 		log.WithFields(log.Fields{
-			"err":               err,
-			"apikey":            rpctask.Req.GetApikey(),
-			"tenant_id":         rpctask.Req.GetTenantId(),
-			"platform_userid":   rpctask.Req.GetPlatformUserid(),
-			"security_group_id": rpctask.Req.GetSecurityGroupId(),
+			"err": err,
+			"req": rpctask.Req.String(),
 		}).Error("delete security group failed")
 		return &common.Error{
 			Code: common.ESGDELGROUP.Code,
