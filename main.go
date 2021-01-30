@@ -1,7 +1,6 @@
 package main
 
 import (
-	"google.golang.org/grpc"
 	"iaas-api-server/proto/clouddisk"
 	"iaas-api-server/proto/flavor"
 	"iaas-api-server/proto/image"
@@ -9,6 +8,9 @@ import (
 	"iaas-api-server/proto/nasdisk"
 	"iaas-api-server/proto/oss"
 	"os"
+
+	"google.golang.org/grpc"
+
 	//"iaas-api-server/proto/route"
 	"iaas-api-server/proto/securitygroup"
 	"iaas-api-server/proto/tenant"
@@ -19,12 +21,14 @@ import (
 	"iaas-api-server/service/instancesvc"
 	"iaas-api-server/service/nasdisksvc"
 	"iaas-api-server/service/osssvc"
+
 	//"iaas-api-server/service/routesvc"
-	log "github.com/sirupsen/logrus"
 	"iaas-api-server/service/securitygroupsvc"
 	"iaas-api-server/service/tenantsvc"
 	"iaas-api-server/service/vpcsvc"
 	"net"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func init() {
