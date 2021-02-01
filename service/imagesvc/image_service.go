@@ -1,13 +1,12 @@
 package imagesvc
 
 import (
-	"iaas-api-server/proto/image"
 	"golang.org/x/net/context"
+	"iaas-api-server/proto/image"
 	"unicode"
 )
 
-
-type ImageService struct {}
+type ImageService struct{}
 
 func (is *ImageService) GetImage(context.Context, *image.GetImageReq) (*image.Image, error) {
 	//your logic
