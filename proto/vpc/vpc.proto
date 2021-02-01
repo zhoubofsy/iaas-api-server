@@ -22,13 +22,31 @@ message VpcRes {
     string vpc_name = 2;
     string vpc_desc = 3;
     string region = 4;
-    repeated string subnet = 5;
+    message Subnet {
+      string subnet = 1;
+      string subnet_id = 2;
+      string subnet_created_time = 3;
+    }
+    repeated Subnet subnet = 5;
     string vpc_status = 6;
-    string created_time = 7;
+    string vpc_created_time = 7;
+    message Router {
+      string router_id = 1;
+      string router_name = 2;
+      string router_created_time = 3;
+      message Intf {
+        string intf_id = 1;
+        string intf_name = 2;
+        string intf_ip = 3;
+        string subnet_id = 4;
+        string intf_created_time = 5;
+      }
+      repeated Intf Intfs = 4;
+    }
+    Router router = 8;
   }
   Vpc vpc = 3;
 }
-
 
 message CreateVpcReq {
   string apikey = 1;
