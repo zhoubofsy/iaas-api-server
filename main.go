@@ -7,9 +7,11 @@ import (
 
 	//"iaas-api-server/proto/route"
 	"iaas-api-server/proto/securitygroup"
+	"iaas-api-server/proto/tenant"
 
 	//"iaas-api-server/service/routesvc"
 	"iaas-api-server/service/securitygroupsvc"
+	"iaas-api-server/service/tenantsvc"
 	"net"
 
 	log "github.com/sirupsen/logrus"
@@ -34,7 +36,7 @@ func main() {
 	//	nasdisk.RegisterNasDiskServiceServer(rpcServer, &nasdisksvc.NasDiskService{})
 	//	oss.RegisterOSSServiceServer(rpcServer, &osssvc.OssService{})
 	securitygroup.RegisterSecurityGroupServiceServer(rpcServer, &securitygroupsvc.SecurityGroupService{})
-	//	tenant.RegisterTenantServiceServer(rpcServer, &tenantsvc.TenantService{})
+	tenant.RegisterTenantServiceServer(rpcServer, &tenantsvc.TenantService{})
 	//	vpc.RegisterVpcServiceServer(rpcServer, &vpcsvc.VpcService{})
 
 	listener, err := net.Listen("tcp", ":8080")
