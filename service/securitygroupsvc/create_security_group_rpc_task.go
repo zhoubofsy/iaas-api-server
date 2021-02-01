@@ -76,6 +76,7 @@ func (rpctask *CreateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 		Description: rpctask.Req.GetSecurityGroupDesc(),
 	}
 
+	// TODO 事务保证安全组跟安全组规则都是ok的
 	group, err := sg.Create(client, gopts).Extract()
 	if nil != err {
 		log.WithFields(log.Fields{

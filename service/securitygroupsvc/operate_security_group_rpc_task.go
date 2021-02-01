@@ -68,20 +68,20 @@ func (rpctask *OperateSecurityGroupRPCTask) Run(context.Context) {
 }
 
 func (rpctask *OperateSecurityGroupRPCTask) execute(providers *gophercloud.ProviderClient) *common.Error {
-	client, err := openstack.NewNetworkV2(providers, gophercloud.EndpointOpts{})
-	novaclient, err1 := openstack.NewComputeV2(providers, gophercloud.EndpointOpts{})
+	netclient, neterr := openstack.NewNetworkV2(providers, gophercloud.EndpointOpts{})
+	novaclient, novaerr := openstack.NewComputeV2(providers, gophercloud.EndpointOpts{})
 
-	if nil != err || nil != err1 {
+	if nil != neterr || nil != novaerr {
 		log.WithFields(log.Fields{
-			"neutron err": err,
-			"nova err":    err1,
+			"neutron err": neterr,
+			"nova err":    novaerr,
 			"req":         rpctask.Req.String(),
 		}).Error("new network v2 failed.")
 		return common.ESGNEWNETWORK
 	}
 
 	// 获取安全组，保证要操作的安全组存在
-	_, err = sg.Get(client, rpctask.Req.GetSecurityGroupId()).Extract()
+	_, err = sg.Get(netclient, rpctask.Req.GetSecurityGroupId()).Extract()
 	if nil != err {
 		log.WithFields(log.Fields{
 			"err": err,
