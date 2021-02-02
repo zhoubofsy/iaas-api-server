@@ -10,11 +10,23 @@ import (
 	"iaas-api-server/proto/tenant"
 
 	//"iaas-api-server/service/routesvc"
-	"iaas-api-server/service/securitygroupsvc"
-	"iaas-api-server/service/tenantsvc"
 	"net"
 
 	log "github.com/sirupsen/logrus"
+	//	"iaas-api-server/proto/tenant"
+	//	"iaas-api-server/proto/vpc"
+	//	"iaas-api-server/proto/route"
+	//	"iaas-api-server/service/clouddisksvc"
+	//	"iaas-api-server/service/flavorsvc"
+	//	"iaas-api-server/service/imagesvc"
+	//	"iaas-api-server/service/instancesvc"
+	//	"iaas-api-server/service/nasdisksvc"
+	//	"iaas-api-server/service/osssvc"
+	//	"iaas-api-server/service/routesvc"
+	"iaas-api-server/service/securitygroupsvc"
+	"iaas-api-server/service/tenantsvc"
+	//	"iaas-api-server/service/vpcsvc"
+	//	"iaas-api-server/service/routesvc"
 )
 
 func init() {
@@ -38,6 +50,7 @@ func main() {
 	securitygroup.RegisterSecurityGroupServiceServer(rpcServer, &securitygroupsvc.SecurityGroupService{})
 	tenant.RegisterTenantServiceServer(rpcServer, &tenantsvc.TenantService{})
 	//	vpc.RegisterVpcServiceServer(rpcServer, &vpcsvc.VpcService{})
+	//	route.RegisterRouteServiceServer(rpcServer, &routesvc.RouteService{})
 
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
