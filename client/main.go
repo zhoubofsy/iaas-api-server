@@ -21,8 +21,9 @@ import (
 )
 
 var (
-	address = flag.String("address", "localhost:50051", "grpc server address, localhost:50051")
+	address = flag.String("address", "localhost:8080", "grpc server address, localhost:8080")
 	param   = flag.String("param", "", "grpc request param")
+	method  = flag.String("method", "", "call method")
 )
 
 func main() {
@@ -42,7 +43,9 @@ func main() {
 	}
 
 	var data []byte = []byte(*param)
+	//req := &pb.DeleteSecurityGroupReq{}
 	req := &pb.CreateSecurityGroupReq{}
+
 	err = json.Unmarshal(data, req)
 	if nil != err {
 		log.Fatalf("input param is not json or format error, err: %+v", err)
@@ -53,6 +56,12 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
+	startTime := time.Now()
+	defer func() {
+		duration := time.Now().Sub(startTime)
+		log.Printf("rpc waste time: %+v", duration)
+	}()
+	//r, err := c.DeleteSecurityGroup(ctx, req)
 	r, err := c.CreateSecurityGroup(ctx, req)
 	if err != nil {
 		log.Fatalf("could not rpc request: %v", err)

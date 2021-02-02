@@ -81,7 +81,7 @@ func (rpctask *OperateSecurityGroupRPCTask) execute(providers *gophercloud.Provi
 	}
 
 	// 获取安全组，保证要操作的安全组存在
-	_, err = sg.Get(netclient, rpctask.Req.GetSecurityGroupId()).Extract()
+	_, err := sg.Get(netclient, rpctask.Req.GetSecurityGroupId()).Extract()
 	if nil != err {
 		log.WithFields(log.Fields{
 			"err": err,

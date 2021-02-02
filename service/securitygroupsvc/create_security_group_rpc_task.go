@@ -58,6 +58,10 @@ func (rpctask *CreateSecurityGroupRPCTask) Run(context.Context) {
 	}
 
 	rpctask.Err = rpctask.execute(providers)
+
+	log.WithFields(log.Fields{
+		"rpctask": rpctask,
+	}).Error("over")
 }
 
 func (rpctask *CreateSecurityGroupRPCTask) execute(providers *gophercloud.ProviderClient) *common.Error {
@@ -90,11 +94,14 @@ func (rpctask *CreateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 	}
 
 	//TODO 根据返回要求的时间格式返回
-	rpctask.Res.SecurityGroup.SecurityGroupId = group.ID
-	rpctask.Res.SecurityGroup.SecurityGroupName = group.Name
-	rpctask.Res.SecurityGroup.SecurityGroupDesc = group.Description
-	rpctask.Res.SecurityGroup.CreatedTime = group.CreatedAt.String()
-	rpctask.Res.SecurityGroup.UpdatedTime = group.UpdatedAt.String()
+	rpctask.Res.SecurityGroup = &securitygroup.SecurityGroupRes_SecurityGroup{
+		SecurityGroupId:    group.ID,
+		SecurityGroupName:  group.Name,
+		SecurityGroupDesc:  group.Description,
+		CreatedTime:        group.CreatedAt.String(),
+		UpdatedTime:        group.UpdatedAt.String(),
+		SecurityGroupRules: make([]*securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule, 1),
+	}
 
 	if len(group.Rules) > 0 {
 		cur := getCurTime()
@@ -115,6 +122,7 @@ func (rpctask *CreateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 	}
 
 	// 创建安全组规则
+	log.Error("execute 4")
 	if nil != rpctask.Req.GetSecurityGroupRuleSets() {
 		for _, rule := range rpctask.Req.GetSecurityGroupRuleSets() {
 			ropts := sr.CreateOpts{

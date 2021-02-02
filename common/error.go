@@ -15,7 +15,7 @@ var (
 	EOK         = &Error{Code: 200, Msg: "200 OK"}
 	EUNAUTHORED = &Error{Code: 401, Msg: "401 Unauthorized"}
 
-	EPARAM            = &Error{Code: 10000, Msg: "param ckeck failed"}
+	EPARAM            = &Error{Code: 10000, Msg: "param check failed"}
 	EAPIAUTH          = &Error{Code: 10001, Msg: "api auth failed"}
 	EGETOPSTACKCLIENT = &Error{Code: 10002, Msg: "get openstack client failed"}
 

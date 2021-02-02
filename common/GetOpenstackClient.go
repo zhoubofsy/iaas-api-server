@@ -13,11 +13,11 @@ func GetOpenstackClient(apikey string, tenantID string, platformUserID string,
 	//   2. get tenant info
 
 	opts := sdk.AuthOptions{
-		IdentityEndpoint: "", // idenEndPoint,
-		Username:         "", // username,
-		Password:         "", // password,
-		DomainName:       "", // domain,
-		TenantID:         "", // tenantID,
+		IdentityEndpoint: "http://192.168.66.131/identity",   // idenEndPoint,
+		Username:         "admin",                            // username,
+		Password:         "secret",                           // password,
+		DomainName:       "default",                          // domain,
+		TenantID:         "e851733194d5460c9d3c21b801fe8831", // tenantID,
 	}
 
 	return openstack.AuthenticatedClient(opts)

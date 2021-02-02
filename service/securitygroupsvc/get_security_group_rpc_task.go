@@ -68,7 +68,7 @@ func (rpctask *GetSecurityGroupRPCTask) execute(providers *gophercloud.ProviderC
 		return common.ESGNEWNETWORK
 	}
 
-	groups, err := sg.Get(client, rpctask.Req.SecurityGroupId).Extract()
+	group, err := sg.Get(client, rpctask.Req.SecurityGroupId).Extract()
 	if nil != err {
 		log.WithFields(log.Fields{
 			"err": err,
@@ -81,16 +81,17 @@ func (rpctask *GetSecurityGroupRPCTask) execute(providers *gophercloud.ProviderC
 	}
 
 	//TODO 时间返回后续修改为接口需要的格式
-	rpctask.Res.SecurityGroup.UpdatedTime = groups.UpdatedAt.String()
-	rpctask.Res.SecurityGroup.CreatedTime = groups.CreatedAt.String()
-	rpctask.Res.SecurityGroup.SecurityGroupId = groups.ID
-	rpctask.Res.SecurityGroup.SecurityGroupName = groups.Name
-	rpctask.Res.SecurityGroup.SecurityGroupDesc = groups.Description
-
-	if len(groups.Rules) > 0 {
+	rpctask.Res.SecurityGroup = &securitygroup.SecurityGroupRes_SecurityGroup{
+		SecurityGroupId:   group.ID,
+		SecurityGroupName: group.Name,
+		SecurityGroupDesc: group.Description,
+		CreatedTime:       group.CreatedAt.String(),
+		UpdatedTime:       group.UpdatedAt.String(),
+	}
+	if len(group.Rules) > 0 {
 		cur := getCurTime()
-		rpctask.Res.SecurityGroup.SecurityGroupRules = make([]*securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule, len(groups.Rules))
-		for index, rule := range groups.Rules {
+		rpctask.Res.SecurityGroup.SecurityGroupRules = make([]*securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule, len(group.Rules))
+		for index, rule := range group.Rules {
 			rpctask.Res.SecurityGroup.SecurityGroupRules[index] = &securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule{
 				RuleId:          rule.ID,
 				RuleDesc:        rule.Description,
