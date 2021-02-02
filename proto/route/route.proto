@@ -6,14 +6,59 @@ package route;
 
 //路由相关服务
 service RouterService {
-  //创建专有网络路由器
-
-  //编辑路由表条目
+  //获取路由器信息
+  rpc GetRouter(GetRouterReq) returns(GetRouterRes);
+  //添加或删除路由表条目
+  rpc SetRoutes(SetRoutesReq) returns(SetRoutesRes);
 }
 
+message GetRouterReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string router_id = 4;
+}
 
+message GetRouterRes {
+  int32 code = 1;
+  string msg = 2;
+  message Router {
+    string router_id = 1;
+    string router_name = 2;
+    string router_created_time = 3;
+    message Intf {
+      string intf_id = 1;
+      string intf_name = 2;
+      string intf_ip = 3;
+      string subnet_id = 4;
+      string intf_created_time = 5;
+    }
+    repeated Intf Intfs = 4;
+  }
+}
 
+message Route {
+  string destination = 1;
+  string nexthop = 2;
+}
 
+message SetRoutesReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string router_id = 4;
+  string set_type = 5; //add or remove
+  repeated Route routes = 6;
+}
+
+message SetRoutesRes {
+  int32 code = 1;
+  string msg = 2;
+  string router_id = 3;
+  string set_type = 4;
+  string set_time = 5;
+  repeated Route current_routes = 6;
+}
 
 
 
