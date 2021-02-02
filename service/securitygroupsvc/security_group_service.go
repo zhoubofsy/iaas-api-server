@@ -9,6 +9,8 @@
 package securitygroupsvc
 
 import (
+	"time"
+
 	"golang.org/x/net/context"
 	"iaas-api-server/proto/securitygroup"
 )
@@ -71,4 +73,8 @@ func (sgs *SecurityGroupService) OperateSecurityGroup(ctx context.Context, req *
 	}
 	task.Run(ctx)
 	return task.Res, task.Err
+}
+
+func getCurTime() string {
+	return time.Now().Format("2006-01-02 15:04:05")
 }
