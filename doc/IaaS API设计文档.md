@@ -1152,6 +1152,94 @@ message SetRoutesRes {
 2. 根据router_id和set_type，调用network API v2中Add extra routes to router/Remove extra routes to router接口
 3. 返回值中的current_routes数组，是该路由器当前所有的路由条目（openstack api返回的正好也是这样的）
 
+## NAT网关相关服务
+
+```
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package natgateway;
+
+//NAT网关相关服务
+service NatGatewayService {
+  //创建NAT网关
+  rpc CreateNatGateway(CreateNatGatewayReq) returns(NatGatewayRes);
+  //获取NAT网关信息
+  rpc GetNatGateway(GetNatGatewayReq) returns(NatGatewayRes);
+  //删除NAT网关
+  rpc DeleteNatGateway(DeleteNatGatewayReq) returns(DeleteNatGatewayRes);
+}
+
+message NatGatewayRes {
+  int32 code = 1;
+  string msg = 2;
+  message NatGateway {
+    string gateway_id = 1;
+    string router_id = 2;
+    string external_network_id = 3;
+    bool enable_snat = 4;
+    string external_fixed_ip = 5;
+    string created_time = 6;
+  }
+  NatGateway nat_gateway = 3;
+}
+
+message CreateNatGatewayReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string router_id = 4;
+  string external_network_id = 5;
+}
+
+message GetNatGatewayReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string router_id = 4;
+  string gateway_id = 5;
+}
+
+message DeleteNatGatewayReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string router_id = 4;
+  string gateway_id = 5;
+}
+
+message DeleteNatGatewayRes {
+  int32 code = 1;
+  string msg = 2;
+  string router_id = 3;
+  string gateway_id = 4;
+  string deleted_time = 5;
+}
+```
+
+### 创建NAT网关
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 根据传入的routerID，调用network V2 sdk中routers.Update方法，为router增加Gatewayinfo field，Gatewayinfo中NetworkID取自external_network_id，EnableSNAT默认设置true；
+3. 创建完成后，会返回exterbal_fixed_ip，该路由器会增加一个新的interface，取出这个interface的interface id作为返回参数中的gateway_id;
+
+### 获取NAT网关信息
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 根据传入的router_id，gateway_id（即路由器连接外网的那个接口的ID），使用network V2 sdk中routers.Get相关方法，获取完整的router对象，从中解析出GatewayInfo filed，拼装返回参数
+
+### 删除NAT网关
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 根据传入的router_id，gateway_id（即路由器连接外网的那个接口的ID），使用network V2 sdk中routers.RemoveInterface相关方法，从路由器上删除该接口即可
+
 
 
 ## 统一注意事项
