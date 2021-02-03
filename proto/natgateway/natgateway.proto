@@ -1,0 +1,72 @@
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package natgateway;
+
+//NAT网关相关服务
+service NatGatewayService {
+  //创建NAT网关
+  rpc CreateNatGateway(CreateNatGatewayReq) returns(NatGatewayRes);
+  //获取NAT网关信息
+  rpc GetNatGateway(GetNatGatewayReq) returns(NatGatewayRes);
+  //删除NAT网关
+  rpc DeleteNatGateway(DeleteNatGatewayReq) returns(DeleteNatGatewayRes);
+}
+
+message NatGatewayRes {
+  int32 code = 1;
+  string msg = 2;
+  message NatGateway {
+    string gateway_id = 1;
+    string router_id = 2;
+    string external_network_id = 3;
+    bool enable_snat = 4;
+    string external_fixed_ip = 5;
+    string created_time = 6;
+  }
+  NatGateway nat_gateway = 3;
+}
+
+message CreateNatGatewayReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string router_id = 4;
+  string external_network_id = 5;
+}
+
+message GetNatGatewayReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string router_id = 4;
+  string gateway_id = 5;
+}
+
+message DeleteNatGatewayReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string router_id = 4;
+  string gateway_id = 5;
+}
+
+message DeleteNatGatewayRes {
+  int32 code = 1;
+  string msg = 2;
+  string router_id = 3;
+  string gateway_id = 4;
+  string deleted_time = 5;
+}
+
+
+
+
+
+
+
+
+
+
+

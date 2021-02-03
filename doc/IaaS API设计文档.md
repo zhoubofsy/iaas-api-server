@@ -41,18 +41,18 @@ message CreateTenantRes{
 
 | 名称 | 数据类型 | 描述 | 主键 |
 | ---  | --- | --- | --- |
-| tenant_id | varchar2(20) | 租户id | 
-| tenant_name | varchar2(100) | 租户名 | 
-| openstack_domainname | varchar2(20) | openstack域名，取值=租户id | 
-| openstack_domainid | varchar2(40) | openstack域ID | 
+| tenant_id | varchar2(20) | 租户id |
+| tenant_name | varchar2(100) | 租户名 |
+| openstack_domainname | varchar2(20) | openstack域名，取值=租户id |
+| openstack_domainid | varchar2(40) | openstack域ID |
 | openstack_projectname | varchar2(20) | openstack项目名，取值=租户id |
 | openstack_projectid | varchar2(40) | openstack项目id |
-| openstack_username | varchar2(20) | openstack用户名，取值=租户id | 
-| openstack_userid | varchar2(40) | openstack用户id | 
-| openstack_password | varchar2(20) | openstack用户密码 | 
-| openstack_rolename | varchar2(20) | openstack角色，取值=租户id | 
-| openstack_roleid | varchar2(40) | openstack角色id | 
-| apikey | varchar2(20) | api key | 
+| openstack_username | varchar2(20) | openstack用户名，取值=租户id |
+| openstack_userid | varchar2(40) | openstack用户id |
+| openstack_password | varchar2(20) | openstack用户密码 |
+| openstack_rolename | varchar2(20) | openstack角色，取值=租户id |
+| openstack_roleid | varchar2(40) | openstack角色id |
+| apikey | varchar2(20) | api key |
 
 ### Api key验证
 
@@ -989,9 +989,28 @@ message VpcRes {
     string vpc_name = 2;
     string vpc_desc = 3;
     string region = 4;
-    repeated string subnet = 5;
+    message Subnet {
+      string subnet = 1;
+      string subnet_id = 2;
+      string subnet_created_time = 3;
+    }
+    repeated Subnet subnet = 5;
     string vpc_status = 6;
-    string created_time = 7;
+    string vpc_created_time = 7;
+    message Router {
+      string router_id = 1;
+      string router_name = 2;
+      string router_created_time = 3;
+      message Intf {
+        string intf_id = 1;
+        string intf_name = 2;
+        string intf_ip = 3;
+        string subnet_id = 4;
+        string intf_created_time = 5;
+      }
+      repeated Intf Intfs = 4;
+    }
+    Router router = 8;
   }
   Vpc vpc = 3;
 }
@@ -1030,8 +1049,12 @@ message SetVpcInfoReq {
 **要点**：
 
 1. 鉴权 && 查表获取该租户的openstack连接参数；
-2. 根据传入的vpc名称、描述，调用network API v2中networks create接口，拿到network_id
-3. 根据查到的network_id，和输入的subnet，调用network API v2中subnet create接口
+2. 根据传入的vpc名称、描述，调用network API v2中networks create接口，拿到network_id等信息
+3. 根据拿到的network_id，和输入的subnet，调用network API v2中subnet create接口，创建subnet，子网网关IP设定为该sunnet的第1个IP，例如192.168.1.0/24，就使用192.168.1.1；并启用dhcp，dhcp池从第2个IP开始到该子网的最后一个（注意最后一个不一定是.254。要看子网的netmask是多少，子网地址范围，网上有专门计算这个函数，可以拿来用）创建完成后获得subnet_id等信息
+4. 调用network API v2中router create接口，创建一个路由器，路由器的name命名规则：router-vpc名称；创建完成后拿到router_id等信息
+5. 根据router_id, subnet_id，为上一步建好的路由器增加第一个接口，调用network API v2 add_router_interface方法创建接口，接口IP为第2步创建的子网网关IP，创建完成后获得interface_id等信息
+6. 一个vpc下只创建一个router
+7. 目前一个vpc下，仅支持创建一个subnet即可，vpc返回值中，subnet为数组，只是为了预留，也方便与openstack概念对应
 
 ### 查看vpc信息
 
@@ -1047,17 +1070,177 @@ message SetVpcInfoReq {
 1. 鉴权 && 查表获取该租户的openstack连接参数；
 2. 调用network API v2中network update接口
 
-## 路由相关服务（待补充）
+## 路由相关服务
 
 ```jsx
-service RouteService {
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
 
-//创建专有网络路由器
+// 指定文件生成出来的package
+package route;
 
-//编辑路由表条目
+//路由相关服务
+service RouterService {
+  //获取路由器信息
+  rpc GetRouter(GetRouterReq) returns(GetRouterRes);
+  //添加或删除路由表条目
+  rpc SetRoutes(SetRoutesReq) returns(SetRoutesRes);
+}
 
+message GetRouterReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string router_id = 4;
+}
+
+message GetRouterRes {
+  int32 code = 1;
+  string msg = 2;
+  message Router {
+    string router_id = 1;
+    string router_name = 2;
+    string router_created_time = 3;
+    message Intf {
+      string intf_id = 1;
+      string intf_name = 2;
+      string intf_ip = 3;
+      string subnet_id = 4;
+      string intf_created_time = 5;
+    }
+    repeated Intf Intfs = 4;
+  }
+}
+
+message Route {
+  string destination = 1;
+  string nexthop = 2;
+}
+
+message SetRoutesReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string router_id = 4;
+  string set_type = 5; //add or remove
+  repeated Route routes = 6;
+}
+
+message SetRoutesRes {
+  int32 code = 1;
+  string msg = 2;
+  string router_id = 3;
+  string set_type = 4;
+  string set_time = 5;
+  repeated Route current_routes = 6;
 }
 ```
+
+### 获取路由器信息
+
+**要点**：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 根据router_id调用network API v2中show router detail接口
+3. 获得该路由器所有interfaces信息（实现方法待补充）
+
+### 添加或删除路由表条目
+
+**要点**：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 根据router_id和set_type，调用network API v2中Add extra routes to router/Remove extra routes to router接口
+3. 返回值中的current_routes数组，是该路由器当前所有的路由条目（openstack api返回的正好也是这样的）
+
+## NAT网关相关服务
+
+```
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package natgateway;
+
+//NAT网关相关服务
+service NatGatewayService {
+  //创建NAT网关
+  rpc CreateNatGateway(CreateNatGatewayReq) returns(NatGatewayRes);
+  //获取NAT网关信息
+  rpc GetNatGateway(GetNatGatewayReq) returns(NatGatewayRes);
+  //删除NAT网关
+  rpc DeleteNatGateway(DeleteNatGatewayReq) returns(DeleteNatGatewayRes);
+}
+
+message NatGatewayRes {
+  int32 code = 1;
+  string msg = 2;
+  message NatGateway {
+    string gateway_id = 1;
+    string router_id = 2;
+    string external_network_id = 3;
+    bool enable_snat = 4;
+    string external_fixed_ip = 5;
+    string created_time = 6;
+  }
+  NatGateway nat_gateway = 3;
+}
+
+message CreateNatGatewayReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string router_id = 4;
+  string external_network_id = 5;
+}
+
+message GetNatGatewayReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string router_id = 4;
+  string gateway_id = 5;
+}
+
+message DeleteNatGatewayReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string router_id = 4;
+  string gateway_id = 5;
+}
+
+message DeleteNatGatewayRes {
+  int32 code = 1;
+  string msg = 2;
+  string router_id = 3;
+  string gateway_id = 4;
+  string deleted_time = 5;
+}
+```
+
+### 创建NAT网关
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 根据传入的routerID，调用network V2 sdk中routers.Update方法，为router增加Gatewayinfo field，Gatewayinfo中NetworkID取自external_network_id，EnableSNAT默认设置true；
+3. 创建完成后，会返回exterbal_fixed_ip，该路由器会增加一个新的interface，取出这个interface的interface id作为返回参数中的gateway_id;
+
+### 获取NAT网关信息
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 根据传入的router_id，gateway_id（即路由器连接外网的那个接口的ID），使用network V2 sdk中routers.Get相关方法，获取完整的router对象，从中解析出GatewayInfo filed，拼装返回参数
+
+### 删除NAT网关
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 根据传入的router_id，gateway_id（即路由器连接外网的那个接口的ID），使用network V2 sdk中routers.RemoveInterface相关方法，从路由器上删除该接口即可
+
+
 
 ## 统一注意事项
 
