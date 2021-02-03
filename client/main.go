@@ -20,11 +20,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-var (
-	address = flag.String("address", "localhost:50051", "grpc server address, localhost:50051")
-	param   = flag.String("param", "", "grpc request param")
-)
-
 func main() {
 	flag.Parse()
 
