@@ -35,6 +35,7 @@ message GetRouterRes {
     }
     repeated Intf Intfs = 4;
   }
+  Router router = 3;
 }
 
 message Route {
