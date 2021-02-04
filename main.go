@@ -16,6 +16,7 @@ import (
 	//	"iaas-api-server/proto/tenant"
 	//	"iaas-api-server/proto/vpc"
 	//	"iaas-api-server/proto/route"
+	//	"iaas-api-server/proto/natgateway"
 	//	"iaas-api-server/service/clouddisksvc"
 	//	"iaas-api-server/service/flavorsvc"
 	//	"iaas-api-server/service/imagesvc"
@@ -27,6 +28,7 @@ import (
 	"iaas-api-server/service/tenantsvc"
 	//	"iaas-api-server/service/vpcsvc"
 	//	"iaas-api-server/service/routesvc"
+	//	"iaas-api-server/service/natgatewaysvc"
 )
 
 func init() {
@@ -51,6 +53,7 @@ func main() {
 	tenant.RegisterTenantServiceServer(rpcServer, &tenantsvc.TenantService{})
 	//	vpc.RegisterVpcServiceServer(rpcServer, &vpcsvc.VpcService{})
 	//	route.RegisterRouteServiceServer(rpcServer, &routesvc.RouteService{})
+	//	natgateway.RegisterNatGatewayServiceServer(rpcServer, &natgatewaysvc.NatGatewayService{})
 
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {

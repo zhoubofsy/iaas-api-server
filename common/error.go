@@ -21,6 +21,10 @@ var (
 
 	ESGNEWNETWORK  = &Error{Code: 20000, Msg: "security group new network v2 failed"}
 	ESGCREATEGROUP = &Error{Code: 20001, Msg: "security group create group failed"}
+	ESGGETGROUP    = &Error{Code: 20002, Msg: "security group get group failed"}
+	ESGDELGROUP    = &Error{Code: 20003, Msg: "security group delete group failed"}
+	ESGUPDATEGROUP = &Error{Code: 20004, Msg: "security group update group failed"}
+	ESGOPERGROUP   = &Error{Code: 20005, Msg: "security group operate group failed"}
 
 	ETTGETTENANT        = &Error{Code: 90000, Msg: "tenant get failed"}
 	ETTCREATETENANT     = &Error{Code: 90001, Msg: "tenant create failed"}
