@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func do_list_flavors() {
+func listFlavors() {
 	// Set up a connection to the server.
 	conn, err := grpc.Dial(*address, grpc.WithInsecure())
 	if err != nil {
@@ -41,7 +41,7 @@ func do_list_flavors() {
 	log.Printf("rpc result: %+v", res)
 }
 
-func do_get_flavor() {
+func getFlavor() {
 	// Set up a connection to the server.
 	conn, err := grpc.Dial(*address, grpc.WithInsecure())
 	if err != nil {
@@ -75,14 +75,14 @@ func main() {
 	flag.Parse()
 
 	if "" == *param {
-		log.Print("usage:\n    ./exe -address localhost:8080 -param '{\"xx\":\"123\"}' -timeout 1")
+		log.Print("usage:\n    ./cli.exe -address localhost:8080 -method GetFlavor -param '{\"xx\":\"123\"}' -timeout 1")
 		return
 	}
 
 	if *method == "ListFlavors" {
-		do_list_flavors()
+		listFlavors()
 	} else if *method == "GetFlavor" {
-		do_get_flavor()
+		getFlavor()
 	} else if *method == "" {
 		log.Fatalf("error: rpc method not found")
 	} else {
