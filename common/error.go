@@ -25,4 +25,8 @@ var (
 	ESGDELGROUP    = &Error{Code: 20003, Msg: "security group delete group failed"}
 	ESGUPDATEGROUP = &Error{Code: 20004, Msg: "security group update group failed"}
 	ESGOPERGROUP   = &Error{Code: 20005, Msg: "security group operate group failed"}
+
+	EOSSCREATEUSER   = &Error{Code: 31001, Msg: "OSS create user failed"}
+	EOSSCREATEBUCKET = &Error{Code: 31002, Msg: "OSS create bucket failed"}
+	EOSSSETQUOTAS    = &Error{Code: 31003, Msg: "OSS set quotas failed"}
 )
