@@ -34,8 +34,7 @@ message OssUser {
   int32 user_max_objects = 4;
   int32 user_use_size_in_g = 5;
   int32 user_use_objects = 6;
-  string user_created_time = 7;
-  int32 total_buckets = 8;
+  int32 total_buckets = 7;
 }
 
 message CreateUserAndBucketReq {
@@ -44,7 +43,7 @@ message CreateUserAndBucketReq {
   string platform_userid = 3;
   string region = 5;
   string bucket_name = 6;
-  string storege_type = 7;
+  string storage_type = 7;
   int32 user_max_size_in_g = 8;
   int32 user_max_objects = 9;
   string bucket_policy = 10;
