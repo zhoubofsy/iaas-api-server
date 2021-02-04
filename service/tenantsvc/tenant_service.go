@@ -9,17 +9,18 @@
 package tenantsvc
 
 import (
+	"database/sql"
+	"github.com/gophercloud/gophercloud/openstack/identity/v3/roles"
 	"iaas-api-server/common"
 	"iaas-api-server/proto/tenant"
 	"iaas-api-server/randpass"
-	"reflect"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/domains"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/projects"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/users" //导入连接MySQL数据库的驱动包
-	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
@@ -30,7 +31,16 @@ type TenantService struct {
 }
 
 // CreateTenant create tenant
-func (s *TenantService) CreateTenant(cxt context.Context, tenant *tenant.CreateTenantReq) (res *tenant.CreateTenantRes, Err error) {
+func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.CreateTenantReq) (*tenant.CreateTenantRes, error) {
+	res := &tenant.CreateTenantRes{}
+	var err error
+	db, err = sql.Open("mysql", DSN+"?charset=utf8")
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err": err,
+		}).Error("get mysql client failed.")
+		return nil, nil
+	}
 	//生成租户ID
 	tenantID := "t-" + randpass.GetRandomString(10)
 	//生成app_key，创建指定租户和appKey间的关系
@@ -42,22 +52,32 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenant *tenant.CreateT
 	var userResult *users.User
 	//获取provider
 	opts := gophercloud.AuthOptions{
-		IdentityEndpoint: "http://192.168.1.211/identity",
+		IdentityEndpoint: "http://10.0.2.4/identity",
 		Username:         "admin",
 		Password:         "password",
 		DomainName:       "default",
-		TenantID:         "6e60f8565fd54caa8b18f4e4cb501fb4",
+		TenantID:         "4708d6788f6846cd84691c859a8fd617",
 	}
+	log.Info("test:--------------------------", opts)
 	provider, err := openstack.AuthenticatedClient(opts)
 	if nil != err {
-		log.Error("call openstack, get openstack admin client error")
-		return
+		log.Error("call openstack, get openstack admin client error", err)
+		res.Apikey = ""
+		res.TenantId = ""
+		res.Code = 10002
+		res.Msg = "获取openStack连接异常"
+		return res, common.EGETOPSTACKCLIENT
 	}
 
 	//查询表里是否有该租户（校验租户名称的唯一性）
-	tenantInfo := queryTenantInfoByTenantName(tenant.TenantName)
-	if !tenantInfo.isEmpty() {
-		return nil, common.ETTISEMPTYTENANT
+	tid, _ := queryTenantInfoByTenantName(tenantReq.TenantName)
+	if tid != "" {
+		log.Info("tenant info :", tid)
+		res.Apikey = ""
+		res.TenantId = ""
+		res.Code = 90004
+		res.Msg = "租户信息已存在"
+		return res, common.ETTGETTENANTNOTNULL
 	}
 	//校验业务数据
 	for true {
@@ -65,17 +85,22 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenant *tenant.CreateT
 		case "createDomain":
 			//调用openStack添加域信息
 			domainResult, err = createDomain(provider, tenantID)
-			if err == nil {
+			if err == common.EOK {
 				FLAG = "createProject"
+				domainFlag = true
+				log.Info("create yewu flag:", FLAG)
 			} else {
+				log.Info("domainResult err:", err)
 				termianator = true
 				break
 			}
 		case "createProject":
 			//调用openStack创建租户到指定domain内，得到租户ID
-			projectResult, err = createProject(provider, tenant.TenantName, domainResult.ID)
-			if err == nil {
+			projectResult, err = createProject(provider, tenantReq.TenantName, domainResult.ID)
+			log.Info("projectResult err:", err)
+			if err == common.EOK {
 				FLAG = "createUser"
+				projectFlag = true
 			} else {
 				termianator = true
 				break
@@ -83,19 +108,32 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenant *tenant.CreateT
 		case "createUser":
 			//创建project下的admin用户，指定用户角色
 			userResult, err = createUser(provider, tenantID, domainResult.ID, projectResult.ID)
-			if err == nil {
-				FLAG = "createTenant"
+			log.Info("userResult err:", err)
+			if err == common.EOK {
+				FLAG = "createUserAndRoleR"
+				userFlag = true
 			} else {
 				termianator = true
 				break
 			}
+		case "createUserAndRoleR":
+			//建立用户和角色间的关系
+			err:=createUserAndRoleRelation(provider,projectResult.ID,userResult.ID)
+			if err == common.EOK {
+				FLAG = "createTenant"
+				userFlag = true
+			}else {
+				termianator = true
+				break
+			}
 		case "createTenant":
-			tenantInfoCreate := TenantInfo{tenantID: tenantID, tenantName: tenant.TenantName, openstackDomainname: domainResult.Name,
-				openstackDomainid: domainResult.ID, openstackProjectname: tenant.TenantName, openstackProjectid: projectResult.ID,
+			tenantInfoCreate := TenantInfo{tenantID: tenantID, tenantName: tenantReq.TenantName, openstackDomainname: domainResult.Name,
+				openstackDomainid: domainResult.ID, openstackProjectname: tenantReq.TenantName, openstackProjectid: projectResult.ID,
 				openstackUsername: userResult.Name, openstackUserid: userResult.ID, openstackPassword: PASSWORD,
-				openstackRolename: tenant.TenantName, openstackRoleid: tenantID, apiKey: apiKey}
+				openstackRolename: tenantReq.TenantName, openstackRoleid: tenantID, apiKey: apiKey}
 			//向数据库添加数据
 			createTenantFlag = createTenantInfo(tenantInfoCreate)
+			log.Info("createTenantFlag:", createTenantFlag)
 			if createTenantFlag {
 				break
 			} else {
@@ -103,39 +141,35 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenant *tenant.CreateT
 				break
 			}
 		}
-		break
+		if termianator {
+			break
+		}
+		if domainFlag && projectFlag && userFlag && createTenantFlag {
+			break
+		}
 	}
-	if termianator {
-		if createTenantFlag {
-			//删除租户信息
-			deleteTenant(tenantID)
-		}
-		if userFlag {
-			//删除用户信息
-			deleteUser(provider, userResult.ID)
-		}
-		if projectFlag {
-			// 删除项目信息
-			deleteProject(provider, projectResult.ID)
-		}
-		if domainFlag {
+	if !createTenantFlag || termianator {
+		//修改域的enabled属性
+		_, editErr := editDomain(provider, domainResult.ID)
+		log.Info("edit domain err:", editErr)
+		if editErr == common.EOK {
 			// 删除域信息
-			deleteDomain(provider, domainResult.ID)
+			err := deleteDomain(provider, domainResult.ID)
+			log.Info("delete domain err:", err)
 		}
-
 		res.TenantId = ""
 		res.Apikey = ""
 		res.Code = 500
 		res.Msg = "创建租户失败"
 		return res, common.ETTDELETETENANT
-	} else {
-		//返回租户ID和appKey
-		res.TenantId = projectResult.ID
-		res.Apikey = apiKey
-		res.Code = 200
-		res.Msg = "创建租户成功"
-		return res, common.ETTCREATETENANT
 	}
+	//返回租户ID和appKey
+	log.Info("project result id:", projectResult.ID)
+	res.TenantId = projectResult.ID
+	res.Apikey = apiKey
+	res.Code = 200
+	res.Msg = "创建租户成功"
+	return res, nil
 }
 
 //DB的信息
@@ -146,37 +180,31 @@ const (
 	DBName     = "iaas_api_server"
 	PASSWORD   = "password"
 	DSN        = DBUserName + ":" + DBPassWord + "@tcp(" + DBHostIP + ")/" + DBName
+	ROLEID     ="145d3db2002a439988ce4ffc546c2307"
 )
+
+//Db info
+var db = &sql.DB{}
 
 // TenantInfo for tenant
 type TenantInfo struct {
-	tenantID             string `db:"tenant_id"`
-	tenantName           string `db:"tenant_name"`
-	openstackDomainname  string `db:"openstack_domainname"`
-	openstackDomainid    string `db:"openstack_domainid"`
-	openstackProjectname string `db:"openstack_projectname"`
-	openstackProjectid   string `db:"openstack_projectid"`
-	openstackUsername    string `db:"openstack_username"`
-	openstackUserid      string `db:"openstack_userid"`
-	openstackPassword    string `db:"openstack_password"`
-	openstackRolename    string `db:"openstack_rolename"`
-	openstackRoleid      string `db:"openstack_roleid"`
-	apiKey               string `db:"apikey"`
+	tenantID             string
+	tenantName           string
+	openstackDomainname  string
+	openstackDomainid    string
+	openstackProjectname string
+	openstackProjectid   string
+	openstackUsername    string
+	openstackUserid      string
+	openstackPassword    string
+	openstackRolename    string
+	openstackRoleid      string
+	apiKey               string
 }
 
-func (tenantInfo TenantInfo) isEmpty() bool {
-	return reflect.DeepEqual(tenantInfo, TenantInfo{})
-}
-
-func getDBClient() (db *gorm.DB) {
-	db, err := gorm.Open("mysql", DSN+"?charset=utf8")
-	if nil != err {
-		log.Error("call db client, get mysql client error")
-		return
-	}
-	defer db.Close()
-	return db
-}
+// func (tenantInfo TenantInfo) isEmpty() bool {
+// 	return reflect.DeepEqual(tenantInfo, TenantInfo{})
+// }
 
 func getOpenstackClient(provider *gophercloud.ProviderClient) (*gophercloud.ServiceClient, *common.Error) {
 	sc, serviceErr := openstack.NewIdentityV3(provider, gophercloud.EndpointOpts{})
@@ -189,33 +217,78 @@ func getOpenstackClient(provider *gophercloud.ProviderClient) (*gophercloud.Serv
 	return sc, nil
 }
 
-func queryTenantInfoByTenantName(name string) (tenantInfo TenantInfo) {
-	db := getDBClient()
-	db.Find(&tenantInfo, "tenant_name=?", name)
-	return tenantInfo
+func queryTenantInfoByTenantName(name string) (string, *common.Error) {
+	sqlStr := "SELECT * FROM tenant_info where tenant_name =?"
+	var tenantInfo TenantInfo
+	err := db.QueryRow(sqlStr, name).Scan(&tenantInfo.tenantID, &tenantInfo.tenantName)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err": err,
+		}).Error("query tenantInfoByTenantName failed.")
+		return "", common.ETTGETTENANT
+	}
+	return tenantInfo.tenantID, nil
 }
 
 func createTenantInfo(tenantInfo TenantInfo) (createTenantFlag bool) {
-	db := getDBClient()
-	return !db.NewRecord(&tenantInfo)
+	log.Info("db insert tenantInfo :", tenantInfo)
+	log.Info("create tenant flag :", createTenantFlag)
+	sqlStr := "insert into tenant_info(tenant_id, tenant_name, openstack_domainname, openstack_domainid, openstack_projectname, openstack_projectid, openstack_username, openstack_userid, openstack_password, openstack_rolename, openstack_roleid, apikey) values (?,?,?,?,?,?,?,?,?,?,?,?)"
+	ret, err := db.Exec(sqlStr, tenantInfo.tenantID, tenantInfo.tenantName, tenantInfo.openstackDomainname, tenantInfo.openstackDomainid, tenantInfo.openstackProjectname, tenantInfo.openstackProjectid, tenantInfo.openstackUsername, tenantInfo.openstackUserid, tenantInfo.openstackPassword, tenantInfo.openstackRolename, tenantInfo.openstackRoleid, tenantInfo.apiKey)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err": err,
+		}).Error("createTenantInfo failed.")
+		return false
+	}
+	n, err := ret.RowsAffected()
+	if n > 0 {
+		return true
+	}
+	return false
 }
 
 func deleteTenant(tenantID string) {
-	db := getDBClient()
-	var tinfo = TenantInfo{tenantID: tenantID}
-	db.Delete(&tinfo)
+	sqlStr := "delete from tenant_info where tenant_id = ?"
+	_, err := db.Exec(sqlStr, tenantID)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err": err,
+		}).Error("createTenantInfo failed.")
+	}
+}
+
+func editDomain(provider *gophercloud.ProviderClient, domainID string) (*domains.Domain, *common.Error) {
+	sc, serviceErr := getOpenstackClient(provider)
+	if serviceErr != nil {
+		return nil, common.ETTGETIDENTITYCLIENT
+	}
+	var iFalse bool = false
+	updateOpts := domains.UpdateOpts{
+		Enabled: &iFalse,
+	}
+	log.Info("updateOpts:", updateOpts)
+	domain, err := domains.Update(sc, domainID, updateOpts).Extract()
+	log.Info("update domain err:", err)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err": err,
+		}).Error("edit project failed.")
+		return domain, common.ETTEDITDOMAIN
+	}
+	return domain, common.EOK
 }
 
 func deleteDomain(provider *gophercloud.ProviderClient, domainID string) *common.Error {
 	sc, serviceErr := getOpenstackClient(provider)
-	if serviceErr == nil {
+	if serviceErr != nil {
 		return common.ETTGETIDENTITYCLIENT
 	}
 	err := domains.Delete(sc, domainID).ExtractErr()
 	if err != nil {
 		return common.ETTDELETEDOMAIN
 	}
-	return nil
+	return common.EOK
 }
 
 func deleteProject(provider *gophercloud.ProviderClient, projectID string) *common.Error {
@@ -227,20 +300,20 @@ func deleteProject(provider *gophercloud.ProviderClient, projectID string) *comm
 	if err != nil {
 		return common.ETTDELETEPROJECT
 	}
-	return nil
+	return common.EOK
 
 }
 
 func deleteUser(provider *gophercloud.ProviderClient, userID string) *common.Error {
 	sc, serviceErr := getOpenstackClient(provider)
-	if serviceErr == nil {
+	if serviceErr != nil {
 		return common.ETTGETIDENTITYCLIENT
 	}
 	err := users.Delete(sc, userID).ExtractErr()
 	if err != nil {
 		return common.ETTDELETEUSER
 	}
-	return nil
+	return common.EOK
 
 }
 
@@ -251,15 +324,16 @@ func createDomain(provider *gophercloud.ProviderClient, name string) (*domains.D
 			Name:        name,
 			Description: name,
 		}
-
+		log.Info("createOpts:", createOpts)
 		domain, err := domains.Create(sc, createOpts).Extract()
+		log.Info("domain err:", err)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"err": err,
 			}).Error("create project failed.")
 			return domain, common.ETTCREATEDOMAIN
 		}
-		return domain, nil
+		return domain, common.EOK
 	}
 	return nil, common.ETTGETIDENTITYCLIENT
 
@@ -282,7 +356,7 @@ func createProject(provider *gophercloud.ProviderClient, name string, domainID s
 			}).Error("create project failed.")
 			return project, common.ETTCREATEPROJECT
 		}
-		return project, nil
+		return project, common.EOK
 	}
 	return nil, common.ETTGETIDENTITYCLIENT
 }
@@ -304,7 +378,25 @@ func createUser(provider *gophercloud.ProviderClient, name string, domainID stri
 			}).Error("create user failed.")
 			return nil, common.ETTCREATEUSER
 		}
-		return user, nil
+		return user, common.EOK
 	}
 	return nil, common.ETTGETIDENTITYCLIENT
+}
+
+func createUserAndRoleRelation(provider *gophercloud.ProviderClient,projectId string,userId string)(*common.Error)  {
+	sc, serviceErr := openstack.NewIdentityV3(provider, gophercloud.EndpointOpts{})
+	if serviceErr==nil {
+		err := roles.Assign(sc, ROLEID, roles.AssignOpts{
+			UserID:    userId,
+			ProjectID: projectId,
+		}).ExtractErr()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"err": err,
+			}).Error("create user and role relation failed.")
+			return common.ETTCREATEUSERANDROLER
+		}
+		return common.EOK
+	}
+	return common.ETTGETIDENTITYCLIENT
 }

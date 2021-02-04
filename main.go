@@ -3,8 +3,6 @@ package main
 import (
 	"os"
 
-	"google.golang.org/grpc"
-
 	//"iaas-api-server/proto/route"
 	"iaas-api-server/proto/securitygroup"
 	"iaas-api-server/proto/tenant"
@@ -13,6 +11,8 @@ import (
 	"net"
 
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+
 	//	"iaas-api-server/proto/tenant"
 	//	"iaas-api-server/proto/vpc"
 	//	"iaas-api-server/proto/route"
