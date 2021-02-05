@@ -10,10 +10,11 @@ package tenantsvc
 
 import (
 	"database/sql"
-	"github.com/gophercloud/gophercloud/openstack/identity/v3/roles"
 	"iaas-api-server/common"
 	"iaas-api-server/proto/tenant"
 	"iaas-api-server/randpass"
+
+	"github.com/gophercloud/gophercloud/openstack/identity/v3/roles"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gophercloud/gophercloud"
@@ -52,11 +53,11 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 	var userResult *users.User
 	//获取provider
 	opts := gophercloud.AuthOptions{
-		IdentityEndpoint: "http://10.0.2.4/identity",
+		IdentityEndpoint: "http://120.92.19.57:5000/identity",
 		Username:         "admin",
-		Password:         "password",
+		Password:         "ADMIN_PASS",
 		DomainName:       "default",
-		TenantID:         "4708d6788f6846cd84691c859a8fd617",
+		TenantID:         "b37bb68ac46943bdb134a7861553380a",
 	}
 	log.Info("test:--------------------------", opts)
 	provider, err := openstack.AuthenticatedClient(opts)
@@ -96,7 +97,7 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 			}
 		case "createProject":
 			//调用openStack创建租户到指定domain内，得到租户ID
-			projectResult, err = createProject(provider, tenantReq.TenantName, domainResult.ID)
+			projectResult, err = createProject(provider,tenantID,tenantReq.TenantName, domainResult.ID)
 			log.Info("projectResult err:", err)
 			if err == common.EOK {
 				FLAG = "createUser"
@@ -118,11 +119,11 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 			}
 		case "createUserAndRoleR":
 			//建立用户和角色间的关系
-			err:=createUserAndRoleRelation(provider,projectResult.ID,userResult.ID)
+			err := createUserAndRoleRelation(provider, projectResult.ID, userResult.ID)
 			if err == common.EOK {
 				FLAG = "createTenant"
 				userFlag = true
-			}else {
+			} else {
 				termianator = true
 				break
 			}
@@ -161,7 +162,7 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 		res.Apikey = ""
 		res.Code = 500
 		res.Msg = "创建租户失败"
-		return res, common.ETTDELETETENANT
+		return res, common.ETTCREATETENANT
 	}
 	//返回租户ID和appKey
 	log.Info("project result id:", projectResult.ID)
@@ -180,7 +181,7 @@ const (
 	DBName     = "iaas_api_server"
 	PASSWORD   = "password"
 	DSN        = DBUserName + ":" + DBPassWord + "@tcp(" + DBHostIP + ")/" + DBName
-	ROLEID     ="145d3db2002a439988ce4ffc546c2307"
+	ROLEID     = "717326b924e04133921719c9dc169c96"
 )
 
 //Db info
@@ -339,11 +340,11 @@ func createDomain(provider *gophercloud.ProviderClient, name string) (*domains.D
 
 }
 
-func createProject(provider *gophercloud.ProviderClient, name string, domainID string) (*projects.Project, *common.Error) {
+func createProject(provider *gophercloud.ProviderClient,tenantID string, name string, domainID string) (*projects.Project, *common.Error) {
 	sc, serviceErr := getOpenstackClient(provider)
 	if serviceErr == nil {
 		createOpts := projects.CreateOpts{
-			Name:        name,
+			Name:        tenantID,
 			DomainID:    domainID,
 			Description: name,
 			Enabled:     gophercloud.Enabled,
@@ -383,9 +384,9 @@ func createUser(provider *gophercloud.ProviderClient, name string, domainID stri
 	return nil, common.ETTGETIDENTITYCLIENT
 }
 
-func createUserAndRoleRelation(provider *gophercloud.ProviderClient,projectId string,userId string)(*common.Error)  {
+func createUserAndRoleRelation(provider *gophercloud.ProviderClient, projectId string, userId string) *common.Error {
 	sc, serviceErr := openstack.NewIdentityV3(provider, gophercloud.EndpointOpts{})
-	if serviceErr==nil {
+	if serviceErr == nil {
 		err := roles.Assign(sc, ROLEID, roles.AssignOpts{
 			UserID:    userId,
 			ProjectID: projectId,
