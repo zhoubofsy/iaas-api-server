@@ -15,3 +15,7 @@ func (o *OSSSimpleConfigure) GetEndpointByRegion(r string) string {
 func (o *OSSSimpleConfigure) GetRGWAdminAccessSecretKeys() (string, string) {
 	return "C3ZBITE3VS5AD4Y3YEZB", "3cZZ8D7mP0hNCiqUIYnxKmhEPmbzcCFBkr7Bz4ey"
 }
+
+func GetOSSConfigure() OSSConfigure {
+	return new(OSSSimpleConfigure)
+}

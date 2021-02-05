@@ -126,18 +126,15 @@ func (o *CreateUserAndBucketOp) Predo() error {
 		return common.EPARAM
 	}
 	o.Res = new(oss.CreateUserAndBucketRes)
-	o.conf = new(OSSSimpleConfigure)
+	o.conf = GetOSSConfigure()
 
 	return common.EOK
 }
 
 func (o *CreateUserAndBucketOp) Do() error {
 	// Get Endpoint via Region from config file
-	//endpoint := "http://120.48.27.190:80"
 	endpoint := o.conf.GetEndpointByRegion(o.Req.Region)
 	// Read Access & Secret keys
-	//access := "C3ZBITE3VS5AD4Y3YEZB"
-	//secret := "3cZZ8D7mP0hNCiqUIYnxKmhEPmbzcCFBkr7Bz4ey"
 	access, secret := o.conf.GetRGWAdminAccessSecretKeys()
 	maxObjs := o.Req.UserMaxObjects
 	quotaSize := o.Req.UserMaxSizeInG * 1024 * 1024
@@ -178,7 +175,7 @@ func (o *CreateUserAndBucketOp) Do() error {
 	o.Res.OssEndpoint = endpoint
 	o.Res.OssAccessKey = user.Keys[0].AccessKey
 	o.Res.OssSecretKey = user.Keys[0].SecretKey
-	o.Res.OssUser = &(oss.OssUser{OssUid: user.UserID, OssUserCreatedTime: "", UserMaxSizeInG: 0, UserMaxObjects: 0, UserUseSizeInG: 0, UserUseObjects: 0, UserCreatedTime: "", TotalBuckets: 0})
+	o.Res.OssUser = &(oss.OssUser{OssUid: user.UserID, OssUserCreatedTime: "", UserMaxSizeInG: 0, UserMaxObjects: 0, UserUseSizeInG: 0, UserUseObjects: 0, TotalBuckets: 0})
 	o.Res.OssBucket = &(oss.OssBucket{BucketName: o.Req.BucketName, BucketPolicy: "", BucketUseSizeInG: 0, BucketUseObjects: 0, BelongToUid: user.UserID, BucketCreatedTime: ""})
 	return common.EOK
 }
@@ -248,18 +245,47 @@ func (o *SetOssUserQuotaOp) Done(e error) (interface{}, error) {
 }
 
 type RecoverKeyOp struct {
+	BasicOp
 	Req *oss.RecoverKeyReq
 	Res *oss.RecoverKeyRes
 }
 
 func (o *RecoverKeyOp) Predo() error {
-	return nil
+	// check params
+	if o.Req == nil {
+		return common.EPARAM
+	}
+	o.Res = new(oss.RecoverKeyRes)
+	o.conf = GetOSSConfigure()
+
+	return common.EOK
 }
 
 func (o *RecoverKeyOp) Do() error {
-	return nil
+	// Get Endpoint via Region from config file
+	endpoint := o.conf.GetEndpointByRegion(o.Req.Region)
+	// Read Access & Secret keys
+	access, secret := o.conf.GetRGWAdminAccessSecretKeys()
+	rgw, err := radosAPI.New(endpoint, access, secret)
+	var user *radosAPI.User
+	if err == nil {
+		user, err = rgw.GetUser(o.Req.PlatformUserid)
+	}
+
+	if err != nil {
+		return common.EOSSGETUSER
+	}
+	o.Res.OssAccessKey = user.Keys[0].AccessKey
+	o.Res.OssSecretKey = user.Keys[0].SecretKey
+	return common.EOK
 }
 
 func (o *RecoverKeyOp) Done(e error) (interface{}, error) {
+	//Translate error code
+	o.Res.Msg = e.Error()
+	if e == common.EOK {
+		o.Res.Code = common.EOK.Code
+		return o.Res, nil
+	}
 	return o.Res, e
 }

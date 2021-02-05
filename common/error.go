@@ -29,4 +29,5 @@ var (
 	EOSSCREATEUSER   = &Error{Code: 31001, Msg: "OSS create user failed"}
 	EOSSCREATEBUCKET = &Error{Code: 31002, Msg: "OSS create bucket failed"}
 	EOSSSETQUOTAS    = &Error{Code: 31003, Msg: "OSS set quotas failed"}
+	EOSSGETUSER      = &Error{Code: 31003, Msg: "OSS get user failed"}
 )
