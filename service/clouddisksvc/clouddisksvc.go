@@ -21,7 +21,7 @@ type CloudDiskService struct {
 //创建云硬盘
 func (clouddisktask *CloudDiskService) CreateCloudDisk(req *clouddisk.CreateCloudDiskReq) (*clouddisk.CloudDiskRes, error) {
 
-	var res *clouddisk.CloudDiskRes
+	res := &clouddisk.CloudDiskRes{}
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
 	if nil != err {
@@ -32,7 +32,7 @@ func (clouddisktask *CloudDiskService) CreateCloudDisk(req *clouddisk.CreateClou
 	}
 
 	client, err := openstack.NewBlockStorageV3(provider, gophercloud.EndpointOpts{
-		Region: res.CloudDisk.Region,
+		Region: req.Region,
 	})
 
 	if nil != err {
@@ -66,16 +66,16 @@ func (clouddisktask *CloudDiskService) CreateCloudDisk(req *clouddisk.CreateClou
 	res.CloudDisk.VolumeStatus = ret.Status
 	res.CloudDisk.CreatedTime = ret.CreatedAt.String()
 	res.CloudDisk.UpdatedTime = ret.UpdatedAt.String()
-	//  res.CloudDisk.AttachInstanceId = ret.Attachments //类型不一致
-	//	res.CloudDisk.AttachInstanceDevice = ret.Attachments
-	//	res.CloudDisk.AttachedTime =
+	res.CloudDisk.AttachInstanceId = ret.Attachments[0].ServerID
+	res.CloudDisk.AttachInstanceDevice = ret.Attachments[0].Device
+	res.CloudDisk.AttachedTime = ret.Attachments[0].AttachedAt.String()
 
 	return res, err
 }
 
 //删除云硬盘
 func (clouddisktask *CloudDiskService) DeleteCloudDisk(req *clouddisk.DeleteCloudDiskReq) (*clouddisk.DeleteCloudDiskRes, error) {
-	var res *clouddisk.DeleteCloudDiskRes
+	res := &clouddisk.DeleteCloudDiskRes{}
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
 	if nil != err {
@@ -116,7 +116,7 @@ func (clouddisktask *CloudDiskService) DeleteCloudDisk(req *clouddisk.DeleteClou
 //获取云硬盘信息
 func (clouddisktask *CloudDiskService) GetCloudDisk(req *clouddisk.GetCloudDiskReq) (*clouddisk.CloudDiskRes, error) {
 
-	var res *clouddisk.CloudDiskRes
+	res := &clouddisk.CloudDiskRes{}
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
 	if nil != err {
@@ -135,43 +135,35 @@ func (clouddisktask *CloudDiskService) GetCloudDisk(req *clouddisk.GetCloudDiskR
 		return res, err
 	}
 
-	allPages, err := cinder.List(client, cinder.ListOpts{
-		TenantID: req.TenantId,
-	}).AllPages()
+	ret, err := cinder.Get(client, req.VolumeId).Extract()
 
-	allBlocks, err := cinder.ExtractVolumes(allPages)
 	if nil != err {
 		res.Code = xxx //todo 错误码待定义
-		res.Msg = "openstack cinder volume extract failed"
+		res.Msg = "openstack get clouddisk info failed"
+
 		return res, err
 	}
 
-	for _, blk := range allBlocks {
-		if blk.ID == req.VolumeId {
-			res.CloudDisk.VolumeId = blk.ID
-			res.CloudDisk.VolumeName = blk.Name
-			res.CloudDisk.VolumeDesc = blk.Description
-			res.CloudDisk.VolumeStatus = blk.Status
-			res.CloudDisk.AvailabilityZone = blk.AvailabilityZone
-			//res.CloudDisk.AttachInstanceId = blk.Attachments
-			break
-		}
-	}
+	res.CloudDisk.VolumeId = ret.ID
+	res.CloudDisk.VolumeName = ret.Name
+	res.CloudDisk.VolumeDesc = ret.Description
+	res.CloudDisk.VolumeStatus = ret.Status
+	res.CloudDisk.CreatedTime = ret.CreatedAt.String()
+	res.CloudDisk.AvailabilityZone = ret.AvailabilityZone
+	res.CloudDisk.CloudDiskConf.VolumeType	= ret.VolumeType
+	res.CloudDisk.CloudDiskConf.SizeInG = int32(ret.Size) //使用强转
+	res.CloudDisk.UpdatedTime = ret.UpdatedAt.String()
+	res.CloudDisk.AttachInstanceId = ret.Attachments[0].ServerID
+	res.CloudDisk.AttachInstanceDevice = ret.Attachments[0].Device
+	res.CloudDisk.AttachedTime = ret.Attachments[0].AttachedAt.String()
 
-	if len(res.CloudDisk.VolumeId) != 0 {
-		return res, err
-	} else {
-		res.Code = xxx //todo 错误码未定义
-		res.Msg = "openstack cinder volume info list failed"
-		return res, err
-	}
-
+	return res, err
 }
 
 //云硬盘扩容
 func (clouddisktask *CloudDiskService) ReqizeCloudDisk(req *clouddisk.ReqizeCloudDiskReq) (*clouddisk.CloudDiskRes, error) {
 
-	var res *clouddisk.CloudDiskRes
+	res := &clouddisk.CloudDiskRes{}
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
 	if nil != err {
@@ -208,7 +200,7 @@ func (clouddisktask *CloudDiskService) ReqizeCloudDisk(req *clouddisk.ReqizeClou
 //更新云硬盘信息
 func (clouddisktask *CloudDiskService) ModifyCloudDiskInfo(req *clouddisk.ModifyCloudDiskInfoReq) (*clouddisk.CloudDiskRes, error) {
 
-	var res *clouddisk.CloudDiskRes
+	res := &clouddisk.CloudDiskRes{}
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
 	if nil != err {
@@ -247,7 +239,7 @@ func (clouddisktask *CloudDiskService) ModifyCloudDiskInfo(req *clouddisk.Modify
 //云主机挂载、卸载
 func (clouddisktask *CloudDiskService) OperateCloudDisk(req *clouddisk.OperateCloudDiskReq) (*clouddisk.CloudDiskRes, error) {
 
-	var res *clouddisk.CloudDiskRes
+	res := &clouddisk.CloudDiskRes{}
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
 	if nil != err {
