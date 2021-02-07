@@ -11,7 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
-<<<<<<< HEAD
 	//	"iaas-api-server/proto/clouddisk"
 	//	"iaas-api-server/proto/flavor"
 	//	"iaas-api-server/proto/image"
@@ -33,9 +32,7 @@ import (
 	//	"iaas-api-server/service/routesvc"
 	"iaas-api-server/service/securitygroupsvc"
 	//	"iaas-api-server/service/tenantsvc"
-=======
 	"iaas-api-server/service/tenantsvc"
->>>>>>> master
 	//	"iaas-api-server/service/vpcsvc"
 	//	"iaas-api-server/service/routesvc"
 	"iaas-api-server/service/natgatewaysvc"
@@ -59,7 +56,7 @@ func main() {
 	//	instance.RegisterInstanceServiceServer(rpcServer, &instancesvc.InstanceService{})
 	//	nasdisk.RegisterNasDiskServiceServer(rpcServer, &nasdisksvc.NasDiskService{})
 	//	oss.RegisterOSSServiceServer(rpcServer, &osssvc.OssService{})
-	//securitygroup.RegisterSecurityGroupServiceServer(rpcServer, &securitygroupsvc.SecurityGroupService{})
+	securitygroup.RegisterSecurityGroupServiceServer(rpcServer, &securitygroupsvc.SecurityGroupService{})
 	tenant.RegisterTenantServiceServer(rpcServer, &tenantsvc.TenantService{})
 	//	vpc.RegisterVpcServiceServer(rpcServer, &vpcsvc.VpcService{})
 	//	route.RegisterRouteServiceServer(rpcServer, &routesvc.RouteService{})
