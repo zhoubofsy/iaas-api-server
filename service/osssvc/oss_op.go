@@ -269,7 +269,7 @@ func (o *RecoverKeyOp) Do() error {
 	rgw, err := radosAPI.New(endpoint, access, secret)
 	var user *radosAPI.User
 	if err == nil {
-		user, err = rgw.GetUser(o.Req.PlatformUserid)
+		user, err = rgw.GetUser(o.Req.OssUid)
 	}
 
 	if err != nil {
@@ -277,6 +277,7 @@ func (o *RecoverKeyOp) Do() error {
 	}
 	o.Res.OssAccessKey = user.Keys[0].AccessKey
 	o.Res.OssSecretKey = user.Keys[0].SecretKey
+	o.Res.OssEndpoint = endpoint
 	return common.EOK
 }
 
