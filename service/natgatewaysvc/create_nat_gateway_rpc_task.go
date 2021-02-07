@@ -91,6 +91,7 @@ func (rpctask *CreateNatGatewayRPCTask) execute(providers *gophercloud.ProviderC
 		CreatedTime:       getCurTime(),
 	}
 
+	// TODO ExternalFixedIPs 可能有多个，通常只会有一个，但是不能排除多个的情况
 	if len(router.GatewayInfo.ExternalFixedIPs) > 0 {
 		rpctask.Res.NatGateway.ExternalFixedIp = router.GatewayInfo.ExternalFixedIPs[0].IPAddress
 		rpctask.Res.NatGateway.GatewayId = router.GatewayInfo.ExternalFixedIPs[0].SubnetID
