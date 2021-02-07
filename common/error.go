@@ -25,4 +25,8 @@ var (
 	ESGDELGROUP    = &Error{Code: 20003, Msg: "security group delete group failed"}
 	ESGUPDATEGROUP = &Error{Code: 20004, Msg: "security group update group failed"}
 	ESGOPERGROUP   = &Error{Code: 20005, Msg: "security group operate group failed"}
+
+	ENGCREATE = &Error{Code: 30000, Msg: "nat gateway create failed"}
+	ENGDELETE = &Error{Code: 30001, Msg: "nat gateway delete failed"}
+	ENGGET    = &Error{Code: 30002, Msg: "nat gateway get failed"}
 )

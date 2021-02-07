@@ -1,39 +1,36 @@
 /*================================================================
 *
-*  文件名称：delete_security_group_rpc_task.go
+*  文件名称：get_nat_gateway_rpc_task.go
 *  创 建 者: mongia
-*  创建日期：2021年01月29日
+*  创建日期：2021年02月03日
 *
 ================================================================*/
-
-package securitygroupsvc
+package natgatewaysvc
 
 import (
 	"errors"
-	"time"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 
-	sg "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups"
+	routers "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 
+	"golang.org/x/net/context"
 	"iaas-api-server/common"
-	"iaas-api-server/proto/securitygroup"
+	"iaas-api-server/proto/natgateway"
 )
 
-// DeleteSecurityGroupRPCTask use for get security group
-type DeleteSecurityGroupRPCTask struct {
-	Req *securitygroup.DeleteSecurityGroupReq
-	Res *securitygroup.DeleteSecurityGroupRes
+// GetNatGatewayRPCTask create nat gateway
+type GetNatGatewayRPCTask struct {
+	Req *natgateway.GetNatGatewayReq
+	Res *natgateway.NatGatewayRes
 	Err *common.Error
 }
 
-// Run call this func in DeleteSecurityGroupRPCTask object
-func (rpctask *DeleteSecurityGroupRPCTask) Run(context.Context) {
+// Run call this func
+func (rpctask *GetNatGatewayRPCTask) Run(context.Context) {
 	defer rpctask.setResult()
-
 	if err := rpctask.checkParam(); nil != err {
 		log.WithFields(log.Fields{
 			"err": err,
@@ -56,7 +53,7 @@ func (rpctask *DeleteSecurityGroupRPCTask) Run(context.Context) {
 	rpctask.Err = rpctask.execute(providers)
 }
 
-func (rpctask *DeleteSecurityGroupRPCTask) execute(providers *gophercloud.ProviderClient) *common.Error {
+func (rpctask *GetNatGatewayRPCTask) execute(providers *gophercloud.ProviderClient) *common.Error {
 	client, err := openstack.NewNetworkV2(providers, gophercloud.EndpointOpts{})
 
 	if nil != err {
@@ -67,40 +64,44 @@ func (rpctask *DeleteSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 		return common.ESGNEWNETWORK
 	}
 
-	defer func(start time.Time) {
-		tc := time.Since(start)
-		log.WithFields(log.Fields{
-			"cost": tc / (1000 * 1000),
-		}).Info("")
-	}(time.Now())
-	err = sg.Delete(client, rpctask.Req.GetSecurityGroupId()).ExtractErr()
+	router, err := routers.Get(client, rpctask.Req.GetRouterId()).Extract()
 	if nil != err {
 		log.WithFields(log.Fields{
 			"err": err,
-			"req": rpctask.Req.String(),
-		}).Error("delete security group failed")
+		}).Error("get router failed.")
 		return &common.Error{
-			Code: common.ESGDELGROUP.Code,
+			Code: common.ENGGET.Code,
 			Msg:  err.Error(),
 		}
+	}
+
+	rpctask.Res.NatGateway = &natgateway.NatGatewayRes_NatGateway{
+		GatewayId:         rpctask.Req.GetGatewayId(),
+		RouterId:          rpctask.Req.GetRouterId(),
+		ExternalNetworkId: router.GatewayInfo.NetworkID,
+		EnableSnat:        *(router.GatewayInfo.EnableSNAT),
+		CreatedTime:       getCurTime(),
+	}
+
+	if len(router.GatewayInfo.ExternalFixedIPs) > 0 {
+		rpctask.Res.NatGateway.ExternalFixedIp = router.GatewayInfo.ExternalFixedIPs[0].IPAddress
 	}
 
 	return common.EOK
 }
 
-func (rpctask *DeleteSecurityGroupRPCTask) checkParam() error {
+func (rpctask *GetNatGatewayRPCTask) checkParam() error {
 	if "" == rpctask.Req.GetApikey() ||
 		"" == rpctask.Req.GetTenantId() ||
 		"" == rpctask.Req.GetPlatformUserid() ||
-		"" == rpctask.Req.GetSecurityGroupId() {
+		"" == rpctask.Req.GetRouterId() ||
+		"" == rpctask.Req.GetGatewayId() {
 		return errors.New("input params is wrong")
 	}
 	return nil
 }
 
-func (rpctask *DeleteSecurityGroupRPCTask) setResult() {
+func (rpctask *GetNatGatewayRPCTask) setResult() {
 	rpctask.Res.Code = rpctask.Err.Code
 	rpctask.Res.Msg = rpctask.Err.Msg
-	rpctask.Res.SecurityGroupId = rpctask.Req.GetSecurityGroupId()
-	rpctask.Res.DeletedTime = getCurTime()
 }

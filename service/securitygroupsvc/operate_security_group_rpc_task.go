@@ -37,13 +37,7 @@ var (
 
 // Run call this func
 func (rpctask *OperateSecurityGroupRPCTask) Run(context.Context) {
-	defer func() {
-		rpctask.Res.Code = rpctask.Err.Code
-		rpctask.Res.Msg = rpctask.Err.Msg
-		rpctask.Res.OperateedTime = getCurTime()
-		rpctask.Res.OpsType = rpctask.Req.GetOpsType()
-		rpctask.Res.SecurityGroupId = rpctask.Req.GetSecurityGroupId()
-	}()
+	defer rpctask.setResult()
 
 	if err := rpctask.checkParam(); nil != err {
 		log.WithFields(log.Fields{
@@ -134,4 +128,12 @@ func (rpctask *OperateSecurityGroupRPCTask) checkParam() error {
 		return errors.New("input param is wrong")
 	}
 	return nil
+}
+
+func (rpctask *OperateSecurityGroupRPCTask) setResult() {
+	rpctask.Res.Code = rpctask.Err.Code
+	rpctask.Res.Msg = rpctask.Err.Msg
+	rpctask.Res.OperateedTime = getCurTime()
+	rpctask.Res.OpsType = rpctask.Req.GetOpsType()
+	rpctask.Res.SecurityGroupId = rpctask.Req.GetSecurityGroupId()
 }

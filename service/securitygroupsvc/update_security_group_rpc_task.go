@@ -32,10 +32,7 @@ type UpdateSecurityGroupRPCTask struct {
 
 // Run first input
 func (rpctask *UpdateSecurityGroupRPCTask) Run(context.Context) {
-	defer func() {
-		rpctask.Res.Code = rpctask.Err.Code
-		rpctask.Res.Msg = rpctask.Err.Msg
-	}()
+	defer rpctask.setResult()
 
 	if err := rpctask.checkParam(); nil != err {
 		log.WithFields(log.Fields{
@@ -176,4 +173,9 @@ func (rpctask *UpdateSecurityGroupRPCTask) checkParam() error {
 		errors.New("input param is wrong")
 	}
 	return nil
+}
+
+func (rpctask *UpdateSecurityGroupRPCTask) setResult() {
+	rpctask.Res.Code = rpctask.Err.Code
+	rpctask.Res.Msg = rpctask.Err.Msg
 }

@@ -10,7 +10,6 @@ package securitygroupsvc
 
 import (
 	"errors"
-	"sync"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
@@ -28,15 +27,11 @@ type CreateSecurityGroupRPCTask struct {
 	Req *securitygroup.CreateSecurityGroupReq
 	Res *securitygroup.SecurityGroupRes
 	Err *common.Error
-	wg  *sync.WaitGroup
 }
 
 // Run call this func for doing task
 func (rpctask *CreateSecurityGroupRPCTask) Run(context.Context) {
-	defer func() {
-		rpctask.Res.Code = rpctask.Err.Code
-		rpctask.Res.Msg = rpctask.Err.Msg
-	}()
+	defer rpctask.setResult()
 
 	if err := rpctask.checkParam(); nil != err {
 		log.WithFields(log.Fields{
@@ -56,12 +51,7 @@ func (rpctask *CreateSecurityGroupRPCTask) Run(context.Context) {
 		rpctask.Err = common.EGETOPSTACKCLIENT
 		return
 	}
-
 	rpctask.Err = rpctask.execute(providers)
-
-	log.WithFields(log.Fields{
-		"rpctask": rpctask,
-	}).Error("over")
 }
 
 func (rpctask *CreateSecurityGroupRPCTask) execute(providers *gophercloud.ProviderClient) *common.Error {
@@ -122,7 +112,6 @@ func (rpctask *CreateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 	}
 
 	// 创建安全组规则
-	log.Error("execute 4")
 	if nil != rpctask.Req.GetSecurityGroupRuleSets() {
 		for _, rule := range rpctask.Req.GetSecurityGroupRuleSets() {
 			ropts := sr.CreateOpts{
@@ -174,4 +163,9 @@ func (rpctask *CreateSecurityGroupRPCTask) checkParam() error {
 		return errors.New("input params is wrong")
 	}
 	return nil
+}
+
+func (rpctask *CreateSecurityGroupRPCTask) setResult() {
+	rpctask.Res.Code = rpctask.Err.Code
+	rpctask.Res.Msg = rpctask.Err.Msg
 }
