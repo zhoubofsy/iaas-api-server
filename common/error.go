@@ -44,4 +44,7 @@ var (
 	ETTDELETEUSER    = &Error{Code: 96003, Msg: "openstack delete user failed"}
 
 	ETTGETIDENTITYCLIENT = &Error{Code: 97001, Msg: "openstack get client failed"}
+
+	EIGGETIMAGE = &Error{Code: 98000, Msg: "openstack get image failed"}
+	EIGLISTIMAGES =&Error{Code: 98001, Msg: "openstack list image failed"}
 )
