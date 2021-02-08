@@ -21,12 +21,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-var (
-	address = flag.String("address", "localhost:8080", "grpc server address, localhost:8080")
-	param   = flag.String("param", "", "grpc request param")
-	method  = flag.String("method", "", "grpc method short name")
-)
-
 func sgOperate(conn grpc.ClientConnInterface, data []byte) {
 	c := sgpb.NewSecurityGroupServiceClient(conn)
 
