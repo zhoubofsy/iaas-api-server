@@ -10,7 +10,6 @@ package securitygroupsvc
 
 import (
 	"errors"
-	"sync"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
@@ -28,15 +27,11 @@ type CreateSecurityGroupRPCTask struct {
 	Req *securitygroup.CreateSecurityGroupReq
 	Res *securitygroup.SecurityGroupRes
 	Err *common.Error
-	wg  *sync.WaitGroup
 }
 
 // Run call this func for doing task
 func (rpctask *CreateSecurityGroupRPCTask) Run(context.Context) {
-	defer func() {
-		rpctask.Res.Code = rpctask.Err.Code
-		rpctask.Res.Msg = rpctask.Err.Msg
-	}()
+	defer rpctask.setResult()
 
 	if err := rpctask.checkParam(); nil != err {
 		log.WithFields(log.Fields{
@@ -56,7 +51,6 @@ func (rpctask *CreateSecurityGroupRPCTask) Run(context.Context) {
 		rpctask.Err = common.EGETOPSTACKCLIENT
 		return
 	}
-
 	rpctask.Err = rpctask.execute(providers)
 }
 
@@ -90,11 +84,14 @@ func (rpctask *CreateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 	}
 
 	//TODO 根据返回要求的时间格式返回
-	rpctask.Res.SecurityGroup.SecurityGroupId = group.ID
-	rpctask.Res.SecurityGroup.SecurityGroupName = group.Name
-	rpctask.Res.SecurityGroup.SecurityGroupDesc = group.Description
-	rpctask.Res.SecurityGroup.CreatedTime = group.CreatedAt.String()
-	rpctask.Res.SecurityGroup.UpdatedTime = group.UpdatedAt.String()
+	rpctask.Res.SecurityGroup = &securitygroup.SecurityGroupRes_SecurityGroup{
+		SecurityGroupId:    group.ID,
+		SecurityGroupName:  group.Name,
+		SecurityGroupDesc:  group.Description,
+		CreatedTime:        group.CreatedAt.String(),
+		UpdatedTime:        group.UpdatedAt.String(),
+		SecurityGroupRules: make([]*securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule, 1),
+	}
 
 	if len(group.Rules) > 0 {
 		cur := getCurTime()
@@ -166,4 +163,9 @@ func (rpctask *CreateSecurityGroupRPCTask) checkParam() error {
 		return errors.New("input params is wrong")
 	}
 	return nil
+}
+
+func (rpctask *CreateSecurityGroupRPCTask) setResult() {
+	rpctask.Res.Code = rpctask.Err.Code
+	rpctask.Res.Msg = rpctask.Err.Msg
 }

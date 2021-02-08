@@ -37,13 +37,7 @@ var (
 
 // Run call this func
 func (rpctask *OperateSecurityGroupRPCTask) Run(context.Context) {
-	defer func() {
-		rpctask.Res.Code = rpctask.Err.Code
-		rpctask.Res.Msg = rpctask.Err.Msg
-		rpctask.Res.OperateedTime = getCurTime()
-		rpctask.Res.OpsType = rpctask.Req.GetOpsType()
-		rpctask.Res.SecurityGroupId = rpctask.Req.GetSecurityGroupId()
-	}()
+	defer rpctask.setResult()
 
 	if err := rpctask.checkParam(); nil != err {
 		log.WithFields(log.Fields{
@@ -81,7 +75,7 @@ func (rpctask *OperateSecurityGroupRPCTask) execute(providers *gophercloud.Provi
 	}
 
 	// 获取安全组，保证要操作的安全组存在
-	_, err = sg.Get(netclient, rpctask.Req.GetSecurityGroupId()).Extract()
+	_, err := sg.Get(netclient, rpctask.Req.GetSecurityGroupId()).Extract()
 	if nil != err {
 		log.WithFields(log.Fields{
 			"err": err,
@@ -134,4 +128,12 @@ func (rpctask *OperateSecurityGroupRPCTask) checkParam() error {
 		return errors.New("input param is wrong")
 	}
 	return nil
+}
+
+func (rpctask *OperateSecurityGroupRPCTask) setResult() {
+	rpctask.Res.Code = rpctask.Err.Code
+	rpctask.Res.Msg = rpctask.Err.Msg
+	rpctask.Res.OperateedTime = getCurTime()
+	rpctask.Res.OpsType = rpctask.Req.GetOpsType()
+	rpctask.Res.SecurityGroupId = rpctask.Req.GetSecurityGroupId()
 }
