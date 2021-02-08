@@ -2,6 +2,7 @@ package common
 
 import (
 	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	log "github.com/sirupsen/logrus"
@@ -71,7 +72,9 @@ func CreateJsonByTmpl(jstmpl string, mp map[string]string) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	return buf.Bytes(), err
+	m := make(map[string]interface{})
+	_ = json.Unmarshal(buf.Bytes(), &m)
+	return json.Marshal(m)
 }
 
 // AuthAndGetToken 先利用 apikey, tenantID 等进行认证，然后返回一个 token

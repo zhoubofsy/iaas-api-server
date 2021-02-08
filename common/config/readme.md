@@ -4,7 +4,7 @@
 
 在 main() 函数中调用 config.InitConfig() 初始化:
 ```go
-import "common/config"
+import "iaas-api-server/common/config"
 
 config.InitConfig("xx.conf")
 ```
@@ -28,7 +28,7 @@ i = 32
 - 用法
 
 ```go
-import "common/config"
+import "iaas-api-server/common/config"
 
 b, err := config.GetBool("boo")
 s, err := config.GetString("s")
