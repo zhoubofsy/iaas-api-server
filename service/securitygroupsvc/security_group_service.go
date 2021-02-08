@@ -9,7 +9,12 @@
 package securitygroupsvc
 
 import (
+	"time"
+
 	"golang.org/x/net/context"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
+
 	"iaas-api-server/proto/securitygroup"
 )
 
@@ -26,7 +31,7 @@ func (sgs *SecurityGroupService) CreateSecurityGroup(ctx context.Context, req *s
 		Err: nil,
 	}
 	task.Run(ctx)
-	return task.Res, task.Err
+	return task.Res, status.Error(codes.OK, "success")
 }
 
 // GetSecurityGroup get security group
@@ -37,7 +42,7 @@ func (sgs *SecurityGroupService) GetSecurityGroup(ctx context.Context, req *secu
 		Err: nil,
 	}
 	task.Run(ctx)
-	return task.Res, task.Err
+	return task.Res, status.Error(codes.OK, "success")
 }
 
 // UpdateSecurityGroup update security group
@@ -48,7 +53,7 @@ func (sgs *SecurityGroupService) UpdateSecurityGroup(ctx context.Context, req *s
 		Err: nil,
 	}
 	task.Run(ctx)
-	return task.Res, task.Err
+	return task.Res, status.Error(codes.OK, "success")
 }
 
 // DeleteSecurityGroup delete security group
@@ -59,7 +64,7 @@ func (sgs *SecurityGroupService) DeleteSecurityGroup(ctx context.Context, req *s
 		Err: nil,
 	}
 	task.Run(ctx)
-	return task.Res, task.Err
+	return task.Res, status.Error(codes.OK, "success")
 }
 
 // OperateSecurityGroup operate security group
@@ -70,5 +75,9 @@ func (sgs *SecurityGroupService) OperateSecurityGroup(ctx context.Context, req *
 		Err: nil,
 	}
 	task.Run(ctx)
-	return task.Res, task.Err
+	return task.Res, status.Error(codes.OK, "success")
+}
+
+func getCurTime() string {
+	return time.Now().Format("2006-01-02 15:04:05")
 }

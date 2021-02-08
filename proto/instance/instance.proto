@@ -47,7 +47,7 @@ message InstanceRes {
     string network_uuid = 10;
     repeated string security_group_name = 11;
     string instance_name = 12;
-    string hypervisor_hostname = 13;
+    string guest_os_hostname = 13;
     string created_time = 14;
     string updated_time = 15;
   }
@@ -67,7 +67,8 @@ message CreateInstanceReq {
   string network_uuid = 10;
   repeated string security_group_name = 11;
   string instance_name = 12;
-  string hypervisor_hostname = 13;
+  string guest_os_hostname = 13;
+  string root_pass = 14;
 }
 
 message GetInstanceReq {
