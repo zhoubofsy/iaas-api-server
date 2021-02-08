@@ -32,10 +32,7 @@ type UpdateSecurityGroupRPCTask struct {
 
 // Run first input
 func (rpctask *UpdateSecurityGroupRPCTask) Run(context.Context) {
-	defer func() {
-		rpctask.Res.Code = rpctask.Err.Code
-		rpctask.Res.Msg = rpctask.Err.Msg
-	}()
+	defer rpctask.setResult()
 
 	if err := rpctask.checkParam(); nil != err {
 		log.WithFields(log.Fields{
@@ -139,12 +136,13 @@ func (rpctask *UpdateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 	}
 
 	//TODO 时间返回后续修改为接口需要的格式
-	rpctask.Res.SecurityGroup.UpdatedTime = newgroup.UpdatedAt.String()
-	rpctask.Res.SecurityGroup.CreatedTime = newgroup.CreatedAt.String()
-	rpctask.Res.SecurityGroup.SecurityGroupId = newgroup.ID
-	rpctask.Res.SecurityGroup.SecurityGroupName = newgroup.Name
-	rpctask.Res.SecurityGroup.SecurityGroupDesc = newgroup.Description
-
+	rpctask.Res.SecurityGroup = &securitygroup.SecurityGroupRes_SecurityGroup{
+		SecurityGroupId:   newgroup.ID,
+		SecurityGroupName: newgroup.Name,
+		SecurityGroupDesc: newgroup.Description,
+		CreatedTime:       newgroup.CreatedAt.String(),
+		UpdatedTime:       newgroup.UpdatedAt.String(),
+	}
 	if len(newgroup.Rules) > 0 {
 		rpctask.Res.SecurityGroup.SecurityGroupRules = make([]*securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule, len(newgroup.Rules))
 		for index, rule := range newgroup.Rules {
@@ -175,4 +173,9 @@ func (rpctask *UpdateSecurityGroupRPCTask) checkParam() error {
 		errors.New("input param is wrong")
 	}
 	return nil
+}
+
+func (rpctask *UpdateSecurityGroupRPCTask) setResult() {
+	rpctask.Res.Code = rpctask.Err.Code
+	rpctask.Res.Msg = rpctask.Err.Msg
 }

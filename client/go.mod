@@ -1,4 +1,4 @@
-module iaas-api-client
+module client
 
 go 1.15
 
