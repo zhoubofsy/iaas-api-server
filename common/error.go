@@ -36,6 +36,8 @@ var (
 	ETTISEMPTYTENANT    = &Error{Code: 90003, Msg: "tenant info is empty"}
 	ETTGETTENANTNOTNULL = &Error{Code: 90004, Msg: "tenant info exits"}
 
+	ETTGETMYSQLCLIENT = &Error{Code: 91001, Msg: "mysql client get failed"}
+
 	ETTEDITDOMAIN = &Error{Code: 95001, Msg: "openstack uodate domain failed"}
 
 	ETTCREATEDOMAIN       = &Error{Code: 95001, Msg: "openstack create domain failed"}

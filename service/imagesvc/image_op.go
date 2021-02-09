@@ -59,7 +59,6 @@ type GetImageInfoOp struct {
 	BasicOp
 	Req *image.GetImageReq
 	Res *image.GetImageRes
-	provider *sdk.ProviderClient
 }
 func (o *GetImageInfoOp) Predo() error {
 	// check params
@@ -168,7 +167,7 @@ func (o *ListImageInfoOp) Do() error {
 	var listOpts = images.ListOpts{
 		//Owner:  projectID,
 		Marker: id,
-		Limit:  int(pageSize * (pageNum - 1)),
+		Limit:  int(pageSize),
 	}
 	lastAllImages, err3, done1 := getListImages(err, sc, listOpts)
 	if done1 {
