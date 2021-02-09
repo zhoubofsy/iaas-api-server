@@ -95,27 +95,26 @@ func (*FlavorService) GetFlavor(ctx context.Context, req *flavor.GetFlavorReq) (
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
 	if provider == nil {
-		res.Code = common.EUNAUTHORED.Code
-		res.Msg = common.EUNAUTHORED.Msg
-		log.Error("GetOpenstackClient failed: ", err)
+		res.Code = common.EGETOPSTACKCLIENT.Code
+		res.Msg = common.EGETOPSTACKCLIENT.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
 	client, err := openstack.NewComputeV2(provider, gophercloud.EndpointOpts{})
 
-	// TODO: 后续在 common/error.go 中定义错误码
 	if err != nil {
-		res.Code = 20000
-		res.Msg = "openstack NewComputeV2 failed"
-		log.Error("openstack NewComputeV2 failed: ", err)
+		res.Code = common.ENEWCPU.Code
+		res.Msg = common.ENEWCPU.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
 	x, err := flavors.Get(client, req.FlavorId).Extract()
 	if err != nil {
-		res.Code = 20103
-		res.Msg = "openstack get flavor failed"
-		log.Error("openstack get flavor failed: ", err)
+		res.Code = common.ENFLVGET.Code
+		res.Msg = common.ENFLVGET.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
