@@ -7,7 +7,6 @@ import (
 	"iaas-api-server/proto/tenant"
 	"iaas-api-server/service/imagesvc"
 	"iaas-api-server/service/natgatewaysvc"
-	"iaas-api-server/service/tenantsvc"
 	"os"
 
 	//"iaas-api-server/service/routesvc"
