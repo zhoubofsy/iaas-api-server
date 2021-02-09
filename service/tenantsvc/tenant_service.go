@@ -14,6 +14,7 @@ import (
 	_ "iaas-api-server/common/dbutils"
 	"iaas-api-server/proto/tenant"
 	"iaas-api-server/randpass"
+	"os"
 
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/roles"
 
@@ -31,6 +32,17 @@ type TenantService struct {
 	tenant.UnimplementedTenantServiceServer
 }
 
+var identityEndPoint,adminUserName,adminPassword,adminProjectId,defaultPwd,adminRoleId string
+
+func getEnvValue()  {
+	identityEndPoint=os.Getenv("OPENSTACKIDENTITYENDPOINT")
+	adminUserName =os.Getenv("OPENSTACKADMIN")
+	adminPassword=os.Getenv("OPENSTACKADMINPWD")
+	defaultPwd=os.Getenv("OPENSTACKDEFAULTPROJECTPWD")
+	adminRoleId=os.Getenv("OPENSTACKADMINROLEID")
+	adminProjectId=os.Getenv("OPENSTACKADMINPROJECTID")
+}
+
 // CreateTenant create tenant
 func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.CreateTenantReq) (*tenant.CreateTenantRes, error) {
 	res := &tenant.CreateTenantRes{}
@@ -41,8 +53,8 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 	if !clientFlag {
 		res.Apikey = ""
 		res.TenantId = ""
-		res.Code = 91001
-		res.Msg = "获取openStack连接异常"
+		res.Code = common.ETTGETMYSQLCLIENT.Code
+		res.Msg = common.ETTGETMYSQLCLIENT.Msg
 		return res, common.ETTGETMYSQLCLIENT
 	}
 	//生成app_key，创建指定租户和appKey间的关系
@@ -52,13 +64,15 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 	var domainResult *domains.Domain
 	var projectResult *projects.Project
 	var userResult *users.User
+	//获取环境变量
+	getEnvValue()
 	//获取provider
 	opts := gophercloud.AuthOptions{
-		IdentityEndpoint: "http://120.92.19.57:5000/identity",
-		Username:         "admin",
-		Password:         "ADMIN_PASS",
+		IdentityEndpoint:identityEndPoint,
+		Username:        adminUserName,
+		Password:        adminPassword,
 		DomainName:       "default",
-		TenantID:         "b37bb68ac46943bdb134a7861553380a",
+		TenantID:        adminProjectId,
 	}
 	log.Info("test:--------------------------", opts)
 	provider, err := openstack.AuthenticatedClient(opts)
@@ -66,8 +80,8 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 		log.Error("call openstack, get openstack admin client error", err)
 		res.Apikey = ""
 		res.TenantId = ""
-		res.Code = 10002
-		res.Msg = "获取openStack连接异常"
+		res.Code = common.EGETOPSTACKCLIENT.Code
+		res.Msg = common.EGETOPSTACKCLIENT.Msg
 		return res, common.EGETOPSTACKCLIENT
 	}
 
@@ -77,8 +91,8 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 		log.Info("tenant info :", tid)
 		res.Apikey = ""
 		res.TenantId = ""
-		res.Code = 90004
-		res.Msg = "租户信息已存在"
+		res.Code = common.ETTGETTENANTNOTNULL.Code
+		res.Msg = common.ETTGETTENANTNOTNULL.Msg
 		return res, common.ETTGETTENANTNOTNULL
 	}
 	//校验业务数据
@@ -131,9 +145,9 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 		case "createTenant":
 			var tenantInfoCreate = dbutils.TenantInfo{
 				TenantID: tenantID, TenantName: tenantReq.TenantName, OpenstackDomainname: domainResult.Name,
-				OpenstackDomainid: domainResult.ID, OpenstackProjectname: tenantReq.TenantName, OpenstackProjectid: projectResult.ID,
-				OpenstackUsername: userResult.Name, OpenstackUserid: userResult.ID, OpenstackPassword: PASSWORD,
-				OpenstackRolename: tenantReq.TenantName, OpenstackRoleid: tenantID, ApiKey: apiKey,
+				OpenstackDomainid: domainResult.ID, OpenstackProjectname:projectResult.Name, OpenstackProjectid: projectResult.ID,
+				OpenstackUsername: userResult.Name, OpenstackUserid: userResult.ID, OpenstackPassword: defaultPwd,
+				OpenstackRolename: "admin", OpenstackRoleid: adminRoleId, ApiKey: apiKey,
 			} //向数据库添加数据
 			createTenantFlag = dbutils.CreateTenantInfo(tenantInfoCreate)
 			log.Info("createTenantFlag:", createTenantFlag)
@@ -162,24 +176,18 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 		}
 		res.TenantId = ""
 		res.Apikey = ""
-		res.Code = 500
-		res.Msg = "创建租户失败"
+		res.Code = common.ETTCREATETENANT.Code
+		res.Msg = common.ETTCREATETENANT.Msg
 		return res, common.ETTCREATETENANT
 	}
 	//返回租户ID和appKey
 	log.Info("project result id:", projectResult.ID)
 	res.TenantId = tenantID
 	res.Apikey = apiKey
-	res.Code = 200
-	res.Msg = "创建租户成功"
+	res.Code = common.EOK.Code
+	res.Msg = common.EOK.Msg
 	return res, nil
 }
-
-//DB的信息
-const (
-	PASSWORD = "password"
-	ROLEID   = "717326b924e04133921719c9dc169c96"
-)
 
 func getOpenstackClient(provider *gophercloud.ProviderClient) (*gophercloud.ServiceClient, *common.Error) {
 	sc, serviceErr := openstack.NewIdentityV3(provider, gophercloud.EndpointOpts{})
@@ -303,7 +311,7 @@ func createUser(provider *gophercloud.ProviderClient, name string, domainID stri
 			DomainID:         domainID,
 			DefaultProjectID: projectID,
 			Enabled:          gophercloud.Enabled,
-			Password:         PASSWORD,
+			Password:         defaultPwd,
 		}
 		user, err := users.Create(sc, createOpts).Extract()
 		if err != nil {
@@ -320,7 +328,7 @@ func createUser(provider *gophercloud.ProviderClient, name string, domainID stri
 func createUserAndRoleRelation(provider *gophercloud.ProviderClient, projectId string, userId string) *common.Error {
 	sc, serviceErr := openstack.NewIdentityV3(provider, gophercloud.EndpointOpts{})
 	if serviceErr == nil {
-		err := roles.Assign(sc, ROLEID, roles.AssignOpts{
+		err := roles.Assign(sc, adminRoleId, roles.AssignOpts{
 			UserID:    userId,
 			ProjectID: projectId,
 		}).ExtractErr()

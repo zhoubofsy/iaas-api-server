@@ -16,21 +16,6 @@ import (
 	"iaas-api-server/proto/image"
 )
 
-type Authorization interface {
-	Auth() bool
-}
-
-type OpenstackAPIAuthorization struct {
-	Apikey         string
-	TenantId       string
-	PlatformUserid string
-}
-
-func (o *OpenstackAPIAuthorization) Auth() bool {
-	//common.APIAuth(o.Apikey, o.TenantId, o.PlantformUserid)
-	return true
-}
-
 type Op interface {
 	// Predo
 	Predo() error
@@ -63,6 +48,8 @@ type GetImageInfoOp struct {
 func (o *GetImageInfoOp) Predo() error {
 	// check params
 	if o.Req == nil {
+		o.Res.Code=common.EPARAM.Code
+		o.Res.Msg=common.EPARAM.Msg
 		return common.EPARAM
 	}
 	o.Res=&image.GetImageRes{}
@@ -72,6 +59,8 @@ func (o *GetImageInfoOp) Predo() error {
 		log.WithFields(log.Fields{
 			"err": err,
 		}).Error("get identity auth failed.")
+		o.Res.Msg=common.ETTGETIDENTITYCLIENT.Msg
+		o.Res.Code=common.ETTGETIDENTITYCLIENT.Code
 		return common.ETTGETIDENTITYCLIENT
 	}
 	return common.EOK
@@ -86,6 +75,8 @@ func (o *GetImageInfoOp) Do() error {
 		log.WithFields(log.Fields{
 			"err": err,
 		}).Error("get image info  failed.")
+		o.Res.Code=common.EIGGETIMAGE.Code
+		o.Res.Msg=common.EIGLISTIMAGES.Msg
 		return common.EIGGETIMAGE
 	}
 	o.Res.Image = &image.Image{}
@@ -93,8 +84,8 @@ func (o *GetImageInfoOp) Do() error {
 	o.Res.Image.ImageContainerformat=imageResult.ContainerFormat
 	o.Res.Image.ImageDiskformat=imageResult.DiskFormat
 	o.Res.Image.ImageName=imageResult.Name
-	o.Res.Code=200
-	o.Res.Msg="获取镜像信息成功"
+	o.Res.Code=common.EOK.Code
+	o.Res.Msg=common.EOK.Msg
 	return common.EOK
 }
 
@@ -111,6 +102,8 @@ type ListImageInfoOp struct {
 	Req  *image.ListImagesReq
 	Res *image.ListImagesRes
 }
+
+//Predo
 func (o *ListImageInfoOp) Predo() error {
 	// check params
 	if o.Req == nil {
@@ -128,49 +121,28 @@ func (o *ListImageInfoOp) Predo() error {
 	return common.EOK
 }
 func (o *ListImageInfoOp) Do() error {
-	pageNum:=o.Req.PageNumber
+	startImageId:=o.Req.StartImageId
 	pageSize:=o.Req.PageSize
 	sc,err:=getImageOpenStackClient(o.provider)
 	if err!=common.EOK {
+		o.Res.Code=common.ETTGETIDENTITYCLIENT.Code
+		o.Res.Msg=common.ETTGETIDENTITYCLIENT.Msg
 		return common.ETTGETIDENTITYCLIENT
 	}
 	//TODO 根据租户ID获取projectID
 	//projectID:=o.Req.TenantId
-	//当页数为1时，直接取数据
-	if pageNum==1 {
-		var listOpts = images.ListOpts{
-			//Owner: projectID,
-			Marker: "",
-			Limit: int(pageSize),
-		}
-		lastAllImages, err, done := getListImages(err, sc, listOpts)
-		if done {
-			return err
-		}
-		getResult(lastAllImages, o)
-		return common.EOK
-	}
-	//当页数大于1时，需要分两步获取数据
-	//获取maker
-	var listOptsGetMaker = images.ListOpts{
-		//Owner:  projectID,
-		Marker: "",
-		Limit:  int(pageSize * (pageNum - 1)),
-	}
-	allImages, err2, done := getListImages(err, sc, listOptsGetMaker)
-	if done {
-		return err2
-	}
-	size := len(allImages)
-	id := allImages[size-1].ID
-
 	var listOpts = images.ListOpts{
 		//Owner:  projectID,
-		Marker: id,
+		Marker:startImageId,
 		Limit:  int(pageSize),
+	}
+	if listOpts.Limit>1000 {
+		listOpts.Limit=1000
 	}
 	lastAllImages, err3, done1 := getListImages(err, sc, listOpts)
 	if done1 {
+		o.Res.Code=common.EIGLISTIMAGES.Code
+		o.Res.Msg=common.EIGLISTIMAGES.Msg
 		return err3
 	}
 	getResult(lastAllImages,o)
@@ -178,15 +150,13 @@ func (o *ListImageInfoOp) Do() error {
 }
 
 func getResult(lastAllImages []images.Image, o *ListImageInfoOp) {
-	var imageSlice = []*image.Image{}
+	o.Res.Images = []*image.Image{}
 	for _, img := range lastAllImages {
 		imageRes := &image.Image{ImageId: img.ID, ImageName: img.Name, ImageDiskformat: img.DiskFormat, ImageContainerformat: img.ContainerFormat}
-		imageSlice = append(imageSlice, imageRes)
+		o.Res.Images = append(o.Res.Images, imageRes)
 	}
-	o.Res.Images = []*image.Image{}
-	o.Res.Images = imageSlice
-	o.Res.Code = 200
-	o.Res.Msg = "获取镜像列表成功"
+	o.Res.Code = common.EOK.Code
+	o.Res.Msg = common.EOK.Msg
 }
 
 func getListImages(err error, sc *sdk.ServiceClient, listOpts images.ListOpts) ([]images.Image, error, bool) {

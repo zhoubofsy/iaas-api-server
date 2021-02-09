@@ -12,22 +12,20 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 	"iaas-api-server/common"
+	"os"
 )
-
-const (
-	DBHostIP   = "localhost:3306"
-	DBUserName = "root"
-	DBPassWord = "root"
-	DBName     = "iaas_api_server"
-	DSN        = DBUserName + ":" + DBPassWord + "@tcp(" + DBHostIP + ")/" + DBName
-)
-
 //Db info
 var db = &sql.DB{}
 
 func InitDb() (bool) {
+	driverName:=os.Getenv("DRIVERNAME")
+	dbBHostIP:=os.Getenv("DBHOSTIP")
+	dbUserName:=os.Getenv("DBUSERNAME")
+	dbPassWord:=os.Getenv("DBPASSWORD")
+	dbName:=os.Getenv("DBNAME")
+	dns:= dbUserName + ":" + dbPassWord + "@tcp(" + dbBHostIP + ")/" + dbName
 	var err error
-	db, err = sql.Open("mysql", DSN+"?charset=utf8")
+	db, err = sql.Open(driverName, dns+"?charset=utf8")
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
@@ -38,7 +36,7 @@ func InitDb() (bool) {
 }
 
 func QueryTenantInfoByTenantName(name string) (string, *common.Error) {
-	sqlStr := "SELECT * FROM tenant_info where tenant_name =?"
+	sqlStr := "SELECT tenant_id，tenant_name FROM tenant_info where tenant_name =?"
 	var tenantInfo TenantInfo
 	err := db.QueryRow(sqlStr, name).Scan(&tenantInfo.TenantID, &tenantInfo.TenantName)
 	if err != nil {

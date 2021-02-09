@@ -18,31 +18,23 @@ type ImageService struct{
 }
 
 func (is *ImageService) GetImage(cxt context.Context,r *image.GetImageReq) (*image.GetImageRes, error) {
-	auth := &OpenstackAPIAuthorization{Apikey: r.Apikey, TenantId: r.TenantId, PlatformUserid: r.PlatformUserid}
 	op := new(GetImageInfoOp)
-
 	op.Req = r
-	res, err := is.Process(auth, op)
+	res, err := is.Process(op)
 	return res.(*image.GetImageRes), err
 }
 
 func (is *ImageService) ListImages(cxt context.Context,r *image.ListImagesReq) (*image.ListImagesRes, error) {
-	auth := &OpenstackAPIAuthorization{Apikey: r.Apikey, TenantId: r.TenantId, PlatformUserid: r.PlatformUserid}
 	op := new(ListImageInfoOp)
-
 	op.Req = r
-	res, err := is.Process(auth, op)
+	res, err := is.Process(op)
 	return res.(*image.ListImagesRes), err
 }
 
-func (o *ImageService) Process(auth Authorization, op Op) (interface{}, error) {
+func (o *ImageService) Process( op Op) (interface{}, error) {
 	err := op.Predo()
 	if err == common.EOK {
-		if auth.Auth() == false {
-			err = common.EUNAUTHORED
-		} else {
-			err = op.Do()
-		}
+		err = op.Do()
 	}
 	return op.Done(err)
 }
