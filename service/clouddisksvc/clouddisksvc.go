@@ -1,14 +1,14 @@
 package clouddisksvc
 
 import (
+	"configmap"
 	//"fmt"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	cinder_op "github.com/gophercloud/gophercloud/openstack/blockstorage/extensions/volumeactions"
 	cinder "github.com/gophercloud/gophercloud/openstack/blockstorage/v3/volumes"
 	nova_op "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach"
-
-	"configmap"
+	log "github.com/sirupsen/logrus"
 	//"golang.org/x/net/context"
 	"iaas-api-server/common"
 	"iaas-api-server/proto/clouddisk"
@@ -27,7 +27,7 @@ func (clouddisktask *CloudDiskService) CreateCloudDisk(req *clouddisk.CreateClou
 	if nil != err {
 		res.Code = common.EUNAUTHORED.Code
 		res.Msg = common.EUNAUTHORED.Msg
-
+		log.Error("GetOpenstackClient failed: ", err)
 		return res, err
 	}
 
@@ -38,7 +38,7 @@ func (clouddisktask *CloudDiskService) CreateCloudDisk(req *clouddisk.CreateClou
 	if nil != err {
 		res.Code = xxx //todo 错误码待定义
 		res.Msg = "openstack NewBlockStorageV3 failed"
-
+		log.Error("openstack NewBlockStorageV3 failed: ", err)
 		return res, err
 	}
 
@@ -53,6 +53,7 @@ func (clouddisktask *CloudDiskService) CreateCloudDisk(req *clouddisk.CreateClou
 	if err != nil {
 		res.Code = xxx //todo 错误码待定义
 		res.Msg = "openstack cinder create failed"
+		log.Error("openstack cinder create failed: ", err)
 		return res, err
 	}
 
@@ -81,7 +82,7 @@ func (clouddisktask *CloudDiskService) DeleteCloudDisk(req *clouddisk.DeleteClou
 	if nil != err {
 		res.Code = common.EUNAUTHORED.Code
 		res.Msg = common.EUNAUTHORED.Msg
-
+		log.Error("GetOpenstackClient failed: ", err)
 		return res, err
 	}
 
@@ -90,7 +91,7 @@ func (clouddisktask *CloudDiskService) DeleteCloudDisk(req *clouddisk.DeleteClou
 	if nil != err {
 		res.Code = xxx //todo 错误码待定义
 		res.Msg = "openstack NewBlockStorageV3 failed"
-
+		log.Error("openstack NewBlockStorageV3 failed: ", err)
 		return res, err
 	}
 
@@ -104,6 +105,7 @@ func (clouddisktask *CloudDiskService) DeleteCloudDisk(req *clouddisk.DeleteClou
 	if nil != err {
 		res.Code = xxx //todo 错误码待定义
 		res.Msg = "openstack cinder delete failed"
+		log.Error("openstack cinder delete failed: ", err)
 		return res, err
 	}
 
@@ -122,7 +124,7 @@ func (clouddisktask *CloudDiskService) GetCloudDisk(req *clouddisk.GetCloudDiskR
 	if nil != err {
 		res.Code = common.EUNAUTHORED.Code
 		res.Msg = common.EUNAUTHORED.Msg
-
+		log.Error("GetOpenstackClient failed: ", err)
 		return res, err
 	}
 
@@ -131,7 +133,7 @@ func (clouddisktask *CloudDiskService) GetCloudDisk(req *clouddisk.GetCloudDiskR
 	if nil != err {
 		res.Code = xxx //todo 错误码待定义
 		res.Msg = "openstack NewBlockStorageV3 failed"
-
+		log.Error("openstack NewBlockStorageV3 failed: ", err)
 		return res, err
 	}
 
@@ -140,7 +142,7 @@ func (clouddisktask *CloudDiskService) GetCloudDisk(req *clouddisk.GetCloudDiskR
 	if nil != err {
 		res.Code = xxx //todo 错误码待定义
 		res.Msg = "openstack get clouddisk info failed"
-
+		log.Error("openstack get clouddisk info failed: ", err)
 		return res, err
 	}
 
@@ -150,7 +152,7 @@ func (clouddisktask *CloudDiskService) GetCloudDisk(req *clouddisk.GetCloudDiskR
 	res.CloudDisk.VolumeStatus = ret.Status
 	res.CloudDisk.CreatedTime = ret.CreatedAt.String()
 	res.CloudDisk.AvailabilityZone = ret.AvailabilityZone
-	res.CloudDisk.CloudDiskConf.VolumeType	= ret.VolumeType
+	res.CloudDisk.CloudDiskConf.VolumeType = ret.VolumeType
 	res.CloudDisk.CloudDiskConf.SizeInG = int32(ret.Size) //使用强转
 	res.CloudDisk.UpdatedTime = ret.UpdatedAt.String()
 	res.CloudDisk.AttachInstanceId = ret.Attachments[0].ServerID
@@ -169,7 +171,7 @@ func (clouddisktask *CloudDiskService) ReqizeCloudDisk(req *clouddisk.ReqizeClou
 	if nil != err {
 		res.Code = common.EUNAUTHORED.Code
 		res.Msg = common.EUNAUTHORED.Msg
-
+		log.Error("GetOpenstackClient failed: ", err)
 		return res, err
 	}
 
@@ -178,7 +180,7 @@ func (clouddisktask *CloudDiskService) ReqizeCloudDisk(req *clouddisk.ReqizeClou
 	if nil != err {
 		res.Code = xxx //todo 错误码待定义
 		res.Msg = "openstack NewBlockStorageV3 failed"
-
+		log.Error("openstack NewBlockStorageV3 failed: ", err)
 		return res, err
 	}
 
@@ -189,6 +191,7 @@ func (clouddisktask *CloudDiskService) ReqizeCloudDisk(req *clouddisk.ReqizeClou
 	if nil != err {
 		res.Code = xxx //todo 错误码待定义
 		res.Msg = "openstack cinder volume extract failed"
+		log.Error("openstack cinder volume extract failed: ", err)
 		return res, err
 	}
 
@@ -206,7 +209,7 @@ func (clouddisktask *CloudDiskService) ModifyCloudDiskInfo(req *clouddisk.Modify
 	if nil != err {
 		res.Code = common.EUNAUTHORED.Code
 		res.Msg = common.EUNAUTHORED.Msg
-
+		log.Error("GetOpenstackClient failed: ", err)
 		return res, err
 	}
 
@@ -215,7 +218,7 @@ func (clouddisktask *CloudDiskService) ModifyCloudDiskInfo(req *clouddisk.Modify
 	if nil != err {
 		res.Code = xxx //todo 错误码待定义
 		res.Msg = "openstack NewBlockStorageV3 failed"
-
+		log.Error("openstack NewBlockStorageV3 failed: ", err)
 		return res, err
 	}
 
@@ -227,6 +230,7 @@ func (clouddisktask *CloudDiskService) ModifyCloudDiskInfo(req *clouddisk.Modify
 	if nil != err {
 		res.Code = xxx //todo 错误码待定义
 		res.Msg = "openstack cinder volume info update failed"
+		log.Error("openstack cinder volume info update failed: ", err)
 		return res, err
 	}
 
@@ -245,6 +249,7 @@ func (clouddisktask *CloudDiskService) OperateCloudDisk(req *clouddisk.OperateCl
 	if nil != err {
 		res.Code = common.EUNAUTHORED.Code
 		res.Msg = common.EUNAUTHORED.Msg
+		log.Error("GetOpenstackClient failed: ", err)
 		return res, err
 	}
 
@@ -253,6 +258,7 @@ func (clouddisktask *CloudDiskService) OperateCloudDisk(req *clouddisk.OperateCl
 	if nil != err {
 		res.Code = xxx //todo 错误码待定义
 		res.Msg = "openstack NewComputeV2 failed"
+		log.Error("openstack NewComputeV2 failed: ", err)
 		return res, err
 	}
 
@@ -265,7 +271,7 @@ func (clouddisktask *CloudDiskService) OperateCloudDisk(req *clouddisk.OperateCl
 		if err != nil {
 			res.Code = xxx //todo 错误码待定义
 			res.Msg = "openstack nova attach failed"
-
+			log.Error("openstack nova attach failed: ", err)
 			return res, err
 		}
 
@@ -280,7 +286,7 @@ func (clouddisktask *CloudDiskService) OperateCloudDisk(req *clouddisk.OperateCl
 		if err != nil {
 			res.Code = xxx //todo 错误码待定义
 			res.Msg = "openstack nova detach failed"
-
+			log.Error("openstack nova detach failed: ", err)
 			return res, err
 		}
 
