@@ -26,8 +26,14 @@ var (
 	ESGUPDATEGROUP = &Error{Code: 20004, Msg: "security group update group failed"}
 	ESGOPERGROUP   = &Error{Code: 20005, Msg: "security group operate group failed"}
 
-	EOSSCREATEUSER   = &Error{Code: 31001, Msg: "OSS create user failed"}
-	EOSSCREATEBUCKET = &Error{Code: 31002, Msg: "OSS create bucket failed"}
-	EOSSSETQUOTAS    = &Error{Code: 31003, Msg: "OSS set quotas failed"}
-	EOSSGETUSER      = &Error{Code: 31003, Msg: "OSS get user failed"}
+	EOSSCREATEUSER      = &Error{Code: 31001, Msg: "OSS create user failed"}
+	EOSSCREATEBUCKET    = &Error{Code: 31002, Msg: "OSS create bucket failed"}
+	EOSSSETQUOTAS       = &Error{Code: 31003, Msg: "OSS set quotas failed"}
+	EOSSGETUSER         = &Error{Code: 31004, Msg: "OSS get user failed"}
+	EOSSSETBUCKETPOLICY = &Error{Code: 31005, Msg: "OSS set bucket policy failed"}
+	EOSSUNKNOWQUOTATYPE = &Error{Code: 31006, Msg: "OSS unknow quota type"}
+	EOSSGETQUOTAS       = &Error{Code: 31007, Msg: "OSS get quotas failed"}
+	EOSSGETBUCKET       = &Error{Code: 31008, Msg: "OSS get bucket failed"}
+	EOSSNOPAGE          = &Error{Code: 31009, Msg: "OSS no page failed"}
+	EOSSLISTBUCKETS     = &Error{Code: 31010, Msg: "OSS list buckets failed"}
 )
