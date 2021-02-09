@@ -77,9 +77,28 @@ type BucketOp struct {
 	Access       string
 	Secret       string
 	S3Handler    *s3.S3
+	AdmAccess    string
+	AdmSecret    string
+	RGWHandler   *radosAPI.API
+	buckets      []*s3.Bucket
 }
 
-func (o *BucketOp) init() error {
+type Quota struct {
+	Enabled    bool
+	MaxSize    int
+	MaxObjects int
+}
+type BucketInfo struct {
+	Name        string
+	UsedSize    int // kb
+	UsedObjects int
+	Owner       string
+	CreatedTime string
+	BucketQuota Quota
+}
+
+func (o *BucketOp) Init() error {
+	var err error
 	pathStyle := true
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
@@ -90,11 +109,11 @@ func (o *BucketOp) init() error {
 		},
 	}))
 	o.S3Handler = s3.New(sess)
-	return nil
+	o.RGWHandler, err = radosAPI.New(o.EndpointAddr, o.AdmAccess, o.AdmSecret)
+	return err
 }
 
 func (o *BucketOp) CreateBucket(name string) error {
-	o.init()
 	/*
 		_, err := o.S3Handler.CreateBucket(&s3.CreateBucketInput{
 			Bucket: aws.String(name),
@@ -109,9 +128,193 @@ func (o *BucketOp) CreateBucket(name string) error {
 	return err
 }
 
-func (o *BucketOp) GetBucketInfo(name string) error {
-	// Todo...
+func (o *BucketOp) GetBucketInfo(name string) (*BucketInfo, error) {
+	// Get Bucket Info , Include : CreateTime, Size of used, Objects os used, Owner
+	buckets, err := o.RGWHandler.GetBucket(radosAPI.BucketConfig{Bucket: name, Stats: true})
+	if err != nil {
+		return nil, err
+	}
+	bkt := buckets[0]
+	return &BucketInfo{
+		Name:        bkt.Stats.Bucket,
+		Owner:       bkt.Stats.Owner,
+		CreatedTime: bkt.Stats.Mtime,
+		UsedSize:    bkt.Stats.Usage.RgwMain.SizeKb,
+		UsedObjects: bkt.Stats.Usage.RgwMain.NumObjects,
+		BucketQuota: Quota{
+			Enabled:    bkt.Stats.BucketQuota.Enabled,
+			MaxSize:    bkt.Stats.BucketQuota.MaxSizeKb,
+			MaxObjects: bkt.Stats.BucketQuota.MaxObjects,
+		},
+	}, err
+}
+
+func (o *BucketOp) GetPolicy(name string) (string, error) {
+	res, err := o.S3Handler.GetBucketPolicy(&s3.GetBucketPolicyInput{Bucket: aws.String(name)})
+	if err != nil {
+		return "", err
+	}
+	return *(res.Policy), err
+}
+
+func (o *BucketOp) SetPolicy(name string, policy string) error {
+	_, err := o.S3Handler.PutBucketPolicy(&s3.PutBucketPolicyInput{
+		Bucket: aws.String(name),
+		Policy: aws.String(policy),
+	})
+	return err
+}
+
+func (o *BucketOp) ListBucketsInit() error {
+	output, err := o.S3Handler.ListBuckets(&s3.ListBucketsInput{})
+	if err == nil {
+		o.buckets = output.Buckets
+	}
+	return err
+}
+
+func (o *BucketOp) ListBucketsCount() int {
+	if o.buckets == nil {
+		return 0
+	}
+	return len(o.buckets)
+}
+
+func (o *BucketOp) ListBucketsPage(num int, size int) ([]*s3.Bucket, error) {
+	startIdx := (num - 1) * size
+	endIdx := startIdx + size
+	if startIdx >= len(o.buckets) {
+		return nil, common.EOSSNOPAGE
+	}
+	return o.buckets[startIdx:endIdx], nil
+}
+
+type UserOp struct {
+	Access       string
+	Secret       string
+	EndpointAddr string
+	RGWHandler   *radosAPI.API
+}
+
+type UserInfo struct {
+	Uid          string
+	Display      string
+	AccessKey    string
+	SecretKey    string
+	UsedSize     int //kb
+	UsedObjects  int
+	BucketsQuota Quota
+	UserQuota    Quota
+	CreatedTime  string
+}
+
+func (o *UserOp) Init() error {
+	var err error
+	o.RGWHandler, err = radosAPI.New(o.EndpointAddr, o.Access, o.Secret)
+	return err
+}
+
+func (o *UserOp) CreateUser(uid string, display string) (error, int) {
+	_, err, status := o.RGWHandler.CreateUser(radosAPI.UserConfig{UID: uid, DisplayName: display})
+	if err != nil {
+		if status != 409 {
+			return common.EOSSCREATEUSER, status
+		}
+	}
+
+	return err, status
+}
+
+func (o *UserOp) GetUserInfo(uid string) (*UserInfo, error) {
+	var userInfo UserInfo
+	user, err := o.RGWHandler.GetUser(uid)
+	if err != nil {
+		return nil, common.EOSSGETUSER
+	}
+	bktQuota, err := o.GetQuota(uid, "bucket")
+	if err != nil {
+		return nil, common.EOSSGETQUOTAS
+	}
+	userQuota, err := o.GetQuota(uid, "user")
+	if err != nil {
+		return nil, common.EOSSGETQUOTAS
+	}
+
+	userInfo.Uid = user.UserID
+	userInfo.Display = user.DisplayName
+	userInfo.AccessKey = user.Keys[0].AccessKey
+	userInfo.SecretKey = user.Keys[0].SecretKey
+	userInfo.UsedSize = 0
+	userInfo.UsedObjects = 0
+	userInfo.BucketsQuota = *bktQuota
+	userInfo.UserQuota = *userQuota
+	userInfo.CreatedTime = ""
+	return &userInfo, nil
+}
+
+func (o *UserOp) setQuota(uid string, qtype string, sizeKB int, numObjects int) error {
+	if qtype != "user" && qtype != "bucket" {
+		return common.EOSSUNKNOWQUOTATYPE
+	}
+	needUpdate := false
+	var quotaConfig radosAPI.QuotaConfig
+	quotaConfig.UID = uid
+	quotaConfig.QuotaType = qtype
+
+	if sizeKB != 0 {
+		quotaConfig.MaxSizeKB = strconv.Itoa(sizeKB)
+		needUpdate = true
+	}
+
+	if numObjects != 0 {
+		quotaConfig.MaxObjects = strconv.Itoa(numObjects)
+		needUpdate = true
+	}
+
+	if needUpdate {
+		quotaConfig.Enabled = "True"
+		o.RGWHandler.UpdateQuota(quotaConfig)
+	}
+
 	return nil
+}
+
+func (o *UserOp) GetQuota(uid string, qtype string) (*Quota, error) {
+	var quota Quota
+	var quotaConfig radosAPI.QuotaConfig
+	quotaConfig.UID = uid
+	quotaConfig.QuotaType = qtype
+
+	q, err := o.RGWHandler.GetQuotas(quotaConfig)
+	if err != nil {
+		return nil, err
+	}
+	if qtype == "user" {
+		quota.Enabled = q.UserQuota.Enabled
+		quota.MaxSize = q.UserQuota.MaxSizeKb
+		quota.MaxObjects = q.UserQuota.MaxObjects
+	} else {
+		quota.Enabled = q.BucketQuota.Enabled
+		quota.MaxSize = q.BucketQuota.MaxSizeKb
+		quota.MaxObjects = q.BucketQuota.MaxObjects
+	}
+	return &quota, err
+}
+
+func (o *UserOp) SetUserSizeQuota(uid string, sizeKB int) error {
+	return o.setQuota(uid, "user", sizeKB, 0)
+}
+
+func (o *UserOp) SetUserObjectsQuota(uid string, numObjects int) error {
+	return o.setQuota(uid, "user", 0, numObjects)
+}
+
+func (o *UserOp) SetBucketsSizeQuotaInUser(uid string, sizeKB int) error {
+	return o.setQuota(uid, "bucket", sizeKB, 0)
+}
+
+func (o *UserOp) SetBucketsObjectsQuotaInUser(uid string, numObjects int) error {
+	return o.setQuota(uid, "bucket", 0, numObjects)
 }
 
 type CreateUserAndBucketOp struct {
@@ -135,48 +338,48 @@ func (o *CreateUserAndBucketOp) Do() error {
 	// Get Endpoint via Region from config file
 	endpoint := o.conf.GetEndpointByRegion(o.Req.Region)
 	// Read Access & Secret keys
-	access, secret := o.conf.GetRGWAdminAccessSecretKeys()
+	access, secret := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
 	maxObjs := o.Req.UserMaxObjects
-	quotaSize := o.Req.UserMaxSizeInG * 1024 * 1024
-	rgw, err := radosAPI.New(endpoint, access, secret)
-	var user *radosAPI.User
-	var statusCode int
-	if err == nil {
-		//create s3 user
-		user, err, statusCode = rgw.CreateUser(radosAPI.UserConfig{Tenant: o.Req.TenantId, UID: o.Req.PlatformUserid, DisplayName: o.Req.PlatformUserid})
-		if err == nil {
-			//	set user quota(size)
-			err = rgw.UpdateQuota(radosAPI.QuotaConfig{UID: o.Req.PlatformUserid, QuotaType: "user", MaxSizeKB: strconv.FormatInt(int64(quotaSize), 10), Enabled: "True"})
-			if err != nil {
-				return common.EOSSSETQUOTAS
-			}
-			// set bucket quota(object count)
-			err = rgw.UpdateQuota(radosAPI.QuotaConfig{UID: o.Req.PlatformUserid, QuotaType: "bucket", MaxObjects: strconv.FormatInt(int64(maxObjs), 10), Enabled: "True"})
-			if err != nil {
-				return common.EOSSSETQUOTAS
-			}
-		}
-	}
+	maxSize := o.Req.UserMaxSizeInG * 1024 * 1024
+
+	userOperator := UserOp{EndpointAddr: endpoint, Access: access, Secret: secret}
+	userOperator.Init()
+	err, status := userOperator.CreateUser(o.Req.PlatformUserid, o.Req.PlatformUserid)
 	if err != nil {
-		if statusCode == 409 {
-			// Read user info
-			user, err = rgw.GetUser(o.Req.PlatformUserid)
-		} else {
-			return common.EOSSCREATEUSER
+		return err
+	}
+	if status != 409 {
+		err = userOperator.SetUserSizeQuota(o.Req.PlatformUserid, int(maxSize))
+		if err != nil {
+			return err
+		}
+		err = userOperator.SetBucketsSizeQuotaInUser(o.Req.PlatformUserid, int(maxObjs))
+		if err != nil {
+			return err
 		}
 	}
 
+	// Get User Info
+	userInfo, err := userOperator.GetUserInfo(o.Req.PlatformUserid)
+	if err != nil {
+		return err
+	}
 	//	create bucket
-	bucketOperator := BucketOp{EndpointAddr: endpoint, Access: user.Keys[0].AccessKey, Secret: user.Keys[0].SecretKey}
+	bucketOperator := BucketOp{EndpointAddr: endpoint, Access: userInfo.AccessKey, Secret: userInfo.SecretKey, AdmAccess: access, AdmSecret: secret}
+	bucketOperator.Init()
 	err = bucketOperator.CreateBucket(o.Req.BucketName)
 	if err != nil {
 		return common.EOSSCREATEBUCKET
+	} else {
+		if nil != bucketOperator.SetPolicy(o.Req.BucketName, o.Req.BucketPolicy) {
+			return common.EOSSSETBUCKETPOLICY
+		}
 	}
 	o.Res.OssEndpoint = endpoint
-	o.Res.OssAccessKey = user.Keys[0].AccessKey
-	o.Res.OssSecretKey = user.Keys[0].SecretKey
-	o.Res.OssUser = &(oss.OssUser{OssUid: user.UserID, OssUserCreatedTime: "", UserMaxSizeInG: 0, UserMaxObjects: 0, UserUseSizeInG: 0, UserUseObjects: 0, TotalBuckets: 0})
-	o.Res.OssBucket = &(oss.OssBucket{BucketName: o.Req.BucketName, BucketPolicy: "", BucketUseSizeInG: 0, BucketUseObjects: 0, BelongToUid: user.UserID, BucketCreatedTime: ""})
+	o.Res.OssAccessKey = userInfo.AccessKey
+	o.Res.OssSecretKey = userInfo.SecretKey
+	o.Res.OssUser = &(oss.OssUser{OssUid: userInfo.Uid, OssUserCreatedTime: "", UserMaxSizeInG: 0, UserMaxObjects: 0, UserUseSizeInG: 0, UserUseObjects: 0, TotalBuckets: 0})                      // Todo...
+	o.Res.OssBucket = &(oss.OssBucket{BucketName: o.Req.BucketName, BucketPolicy: o.Req.BucketPolicy, BucketUseSizeInG: 0, BucketUseObjects: 0, BelongToUid: userInfo.Uid, BucketCreatedTime: ""}) // Todo...
 	return common.EOK
 }
 
@@ -197,14 +400,55 @@ type GetBucketInfoOp struct {
 }
 
 func (o *GetBucketInfoOp) Predo() error {
-	return nil
+	// check params
+	if o.Req == nil {
+		return common.EPARAM
+	}
+	o.Res = new(oss.GetBucketInfoRes)
+	o.Res.OssBucket = new(oss.OssBucket)
+	o.conf = GetOSSConfigure()
+
+	return common.EOK
 }
 
 func (o *GetBucketInfoOp) Do() error {
-	return nil
+	// Get Endpoint via Region from config file
+	endpoint := o.conf.GetEndpointByRegion(o.Req.Region)
+	// Read Access & Secret keys
+	access, secret := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
+
+	userOperator := UserOp{EndpointAddr: endpoint, Access: access, Secret: secret}
+	userOperator.Init()
+
+	userInfo, err := userOperator.GetUserInfo(o.Req.PlatformUserid)
+	if err != nil {
+		return common.EOSSGETUSER
+	}
+	bucketOperator := BucketOp{EndpointAddr: endpoint, Access: userInfo.AccessKey, Secret: userInfo.SecretKey, AdmAccess: access, AdmSecret: secret}
+	bucketOperator.Init()
+
+	bucketInfo, err := bucketOperator.GetBucketInfo(o.Req.BucketName)
+	if err != nil {
+		return common.EOSSGETBUCKET
+	}
+	bucketPolicy, err := bucketOperator.GetPolicy(bucketInfo.Name)
+
+	o.Res.OssBucket.BucketName = bucketInfo.Name
+	o.Res.OssBucket.BucketPolicy = bucketPolicy
+	o.Res.OssBucket.BucketUseSizeInG = int32(bucketInfo.UsedSize / 1024 / 1024)
+	o.Res.OssBucket.BucketUseObjects = int32(bucketInfo.UsedObjects)
+	o.Res.OssBucket.BelongToUid = bucketInfo.Owner
+	o.Res.OssBucket.BucketCreatedTime = bucketInfo.CreatedTime
+	return common.EOK
 }
 
 func (o *GetBucketInfoOp) Done(e error) (interface{}, error) {
+	//Translate error code
+	o.Res.Msg = e.Error()
+	if e == common.EOK {
+		o.Res.Code = common.EOK.Code
+		return o.Res, nil
+	}
 	return o.Res, e
 }
 
@@ -215,14 +459,65 @@ type ListBucketsInfoOp struct {
 }
 
 func (o *ListBucketsInfoOp) Predo() error {
-	return nil
+	// check params
+	if o.Req == nil {
+		return common.EPARAM
+	}
+	if o.Req.PageNumber <= 0 || o.Req.PageSize <= 0 {
+		return common.EPARAM
+	}
+	o.Res = new(oss.ListBucketsInfoRes)
+	o.Res.OssBuckets = make([]*oss.OssBucket, o.Req.PageSize, o.Req.PageSize)
+	o.conf = GetOSSConfigure()
+
+	return common.EOK
 }
 
 func (o *ListBucketsInfoOp) Do() error {
-	return nil
+	// Get Endpoint via Region from config file
+	endpoint := o.conf.GetEndpointByRegion(o.Req.Region)
+	// Read Access & Secret keys
+	access, secret := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
+
+	userOperator := UserOp{EndpointAddr: endpoint, Access: access, Secret: secret}
+	userOperator.Init()
+	userInfo, err := userOperator.GetUserInfo(o.Req.OssUid)
+	if err != nil {
+		return common.EOSSGETUSER
+	}
+	bucketOperator := BucketOp{EndpointAddr: endpoint, Access: userInfo.AccessKey, Secret: userInfo.SecretKey, AdmAccess: access, AdmSecret: secret}
+	bucketOperator.Init()
+	err = bucketOperator.ListBucketsInit()
+	if err != nil {
+		return common.EOSSLISTBUCKETS
+	}
+	buckets, err := bucketOperator.ListBucketsPage(int(o.Req.PageNumber), int(o.Req.PageSize))
+	if err != nil {
+		return err
+	}
+	for idx, bucket := range buckets {
+		bucketInfo, _ := bucketOperator.GetBucketInfo(*bucket.Name)
+		bucketPolicy, _ := bucketOperator.GetPolicy(*bucket.Name)
+
+		ossBucket := new(oss.OssBucket)
+		ossBucket.BucketName = bucketInfo.Name
+		ossBucket.BucketPolicy = bucketPolicy
+		ossBucket.BucketUseSizeInG = int32(bucketInfo.UsedSize / 1024 / 1024)
+		ossBucket.BucketUseObjects = int32(bucketInfo.UsedObjects)
+		ossBucket.BelongToUid = bucketInfo.Owner
+		ossBucket.BucketCreatedTime = bucketInfo.CreatedTime
+		o.Res.OssBuckets[idx] = ossBucket
+	}
+	return common.EOK
 }
 
 func (o *ListBucketsInfoOp) Done(e error) (interface{}, error) {
+	//Translate error code
+	o.Res.Msg = e.Error()
+	if e == common.EOK {
+		o.Res.Code = common.EOK.Code
+		return o.Res, nil
+	}
 	return o.Res, e
 }
 
@@ -233,14 +528,64 @@ type SetOssUserQuotaOp struct {
 }
 
 func (o *SetOssUserQuotaOp) Predo() error {
-	return nil
+	// check params
+	if o.Req == nil {
+		return common.EPARAM
+	}
+	o.Res = new(oss.SetOssUserQuotaRes)
+	o.Res.OssUser = new(oss.OssUser)
+	o.conf = GetOSSConfigure()
+
+	return common.EOK
 }
 
 func (o *SetOssUserQuotaOp) Do() error {
-	return nil
+	// Get Endpoint via Region from config file
+	endpoint := o.conf.GetEndpointByRegion(o.Req.Region)
+	// Read Access & Secret keys
+	access, secret := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
+
+	userOperator := UserOp{EndpointAddr: endpoint, Access: access, Secret: secret}
+	userOperator.Init()
+
+	maxSize := int(o.Req.UserMaxSizeInG * 1024 * 1024)
+	maxObjs := int(o.Req.UserMaxObjects)
+	err := userOperator.SetUserSizeQuota(o.Req.OssUid, maxSize)
+	if err != nil {
+		return common.EOSSSETQUOTAS
+	}
+	err = userOperator.SetBucketsObjectsQuotaInUser(o.Req.OssUid, maxObjs)
+	if err != nil {
+		return common.EOSSSETQUOTAS
+	}
+	userInfo, err := userOperator.GetUserInfo(o.Req.OssUid)
+	if err != nil {
+		return common.EOSSGETUSER
+	}
+	userQuota, err := userOperator.GetQuota(o.Req.OssUid, "user")
+
+	bucketOperator := BucketOp{EndpointAddr: endpoint, Access: userInfo.AccessKey, Secret: userInfo.SecretKey, AdmAccess: access, AdmSecret: secret}
+	bucketOperator.Init()
+	bucketOperator.ListBucketsInit()
+
+	o.Res.OssUser.OssUid = userInfo.Uid
+	o.Res.OssUser.OssUserCreatedTime = userInfo.CreatedTime
+	o.Res.OssUser.UserMaxSizeInG = int32(userQuota.MaxSize / 1024 / 1024)
+	o.Res.OssUser.UserMaxObjects = int32(userQuota.MaxObjects)
+	o.Res.OssUser.UserUseSizeInG = int32(userInfo.UsedSize / 1024 / 1024)
+	o.Res.OssUser.UserUseObjects = int32(userInfo.UsedObjects)
+	o.Res.OssUser.TotalBuckets = int32(bucketOperator.ListBucketsCount())
+
+	return common.EOK
 }
 
 func (o *SetOssUserQuotaOp) Done(e error) (interface{}, error) {
+	//Translate error code
+	o.Res.Msg = e.Error()
+	if e == common.EOK {
+		o.Res.Code = common.EOK.Code
+		return o.Res, nil
+	}
 	return o.Res, e
 }
 
@@ -265,18 +610,17 @@ func (o *RecoverKeyOp) Do() error {
 	// Get Endpoint via Region from config file
 	endpoint := o.conf.GetEndpointByRegion(o.Req.Region)
 	// Read Access & Secret keys
-	access, secret := o.conf.GetRGWAdminAccessSecretKeys()
-	rgw, err := radosAPI.New(endpoint, access, secret)
-	var user *radosAPI.User
-	if err == nil {
-		user, err = rgw.GetUser(o.Req.OssUid)
-	}
+	access, secret := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
 
+	userOperator := UserOp{EndpointAddr: endpoint, Access: access, Secret: secret}
+	userOperator.Init()
+	userInfo, err := userOperator.GetUserInfo(o.Req.OssUid)
 	if err != nil {
 		return common.EOSSGETUSER
 	}
-	o.Res.OssAccessKey = user.Keys[0].AccessKey
-	o.Res.OssSecretKey = user.Keys[0].SecretKey
+
+	o.Res.OssAccessKey = userInfo.AccessKey
+	o.Res.OssSecretKey = userInfo.SecretKey
 	o.Res.OssEndpoint = endpoint
 	return common.EOK
 }
