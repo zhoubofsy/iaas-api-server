@@ -166,7 +166,7 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 	}
 	//返回租户ID和appKey
 	log.Info("project result id:", projectResult.ID)
-	res.TenantId = projectResult.ID
+	res.TenantId = tenantID
 	res.Apikey = apiKey
 	res.Code = 200
 	res.Msg = "创建租户成功"
