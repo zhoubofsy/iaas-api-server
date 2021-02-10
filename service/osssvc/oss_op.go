@@ -290,13 +290,13 @@ func (o *UserOp) GetQuota(uid string, qtype string) (*Quota, error) {
 		return nil, err
 	}
 	if qtype == "user" {
-		quota.Enabled = q.UserQuota.Enabled
-		quota.MaxSize = q.UserQuota.MaxSizeKb
-		quota.MaxObjects = q.UserQuota.MaxObjects
+		quota.Enabled = q.Enabled
+		quota.MaxSize = q.MaxSizeKb
+		quota.MaxObjects = q.MaxObjects
 	} else {
-		quota.Enabled = q.BucketQuota.Enabled
-		quota.MaxSize = q.BucketQuota.MaxSizeKb
-		quota.MaxObjects = q.BucketQuota.MaxObjects
+		quota.Enabled = q.Enabled
+		quota.MaxSize = q.MaxSizeKb
+		quota.MaxObjects = q.MaxObjects
 	}
 	return &quota, err
 }
