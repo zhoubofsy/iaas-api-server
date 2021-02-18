@@ -23,57 +23,52 @@ func (*FlavorService) ListFlavors(ctx context.Context, req *flavor.ListFlavorsRe
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
 	if provider == nil {
-		res.Code = common.EUNAUTHORED.Code
-		res.Msg = common.EUNAUTHORED.Msg
-		log.Error("GetOpenstackClient failed: ", err)
+		res.Code = common.EGETOPSTACKCLIENT.Code
+		res.Msg = common.EGETOPSTACKCLIENT.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
 	client, err := openstack.NewComputeV2(provider, gophercloud.EndpointOpts{})
 
-	// TODO: 后续在 common/error.go 中定义错误码
 	if err != nil {
-		res.Code = 20000
-		res.Msg = "openstack NewComputeV2 failed"
-		log.Error("openstack NewComputeV2 failed: ", err)
+		res.Code = common.ENEWCPU.Code
+		res.Msg = common.ENEWCPU.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
 	opts := flavors.ListOpts{
-		//Marker:       req.PageNumber,
-		//Limit:        int(req.PageSize),
+		Marker:       req.StartFlavorId,
+		Limit:        int(req.PageSize),
 		AccessType:   flavors.PublicAccess,
+	}
+
+	// 最多取 1000 项
+	if opts.Limit > 1000 {
+		opts.Limit = 1000
 	}
 
 	pages, err := flavors.ListDetail(client, opts).AllPages()
 	if err != nil {
-		res.Code = 20101
-		res.Msg = "openstack list flavors failed"
-		log.Error("openstack list flavors failed: ", err)
+		res.Code = common.ENFLVLIST.Code
+		res.Msg = common.ENFLVLIST.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
 	allflavors, err := flavors.ExtractFlavors(pages)
 	if err != nil {
-		res.Code = 20102
-		res.Msg = "openstack extract flavors failed"
-		log.Error("openstack extract flavors failed: ", err)
+		res.Code = common.ENFLVEXTRACT.Code
+		res.Msg = common.ENFLVEXTRACT.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
 	res.Code = common.EOK.Code
 	res.Msg = common.EOK.Msg
 
-	if req.PageNumber < 0 {
-		log.Warn("recv negative pagenumber: ", req.PageNumber)
-		req.PageNumber = 0
-	}
-
-	for i := int(req.PageNumber); i < len(allflavors); i++ {
-		if req.PageSize > 0 && len(res.Flavors) >= int(req.PageSize) {
-			break
-		}
-
+	for i := 0; i < len(allflavors); i++ {
 		x := allflavors[i]
 		res.Flavors = append(res.Flavors, &flavor.Flavor{
 			FlavorId:     x.ID,
@@ -82,6 +77,11 @@ func (*FlavorService) ListFlavors(ctx context.Context, req *flavor.ListFlavorsRe
 			FlavorRam:    strconv.Itoa(x.RAM),
 			FlavorDisk:   strconv.Itoa(x.Disk),
 		})
+
+		if req.PageSize > 0 && len(res.Flavors) >= int(req.PageSize) {
+			res.NextFlavorId = x.ID
+			break
+		}
 	}
 
 	log.Info("rpc ListFlavors res: ", res)
@@ -95,27 +95,26 @@ func (*FlavorService) GetFlavor(ctx context.Context, req *flavor.GetFlavorReq) (
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
 	if provider == nil {
-		res.Code = common.EUNAUTHORED.Code
-		res.Msg = common.EUNAUTHORED.Msg
-		log.Error("GetOpenstackClient failed: ", err)
+		res.Code = common.EGETOPSTACKCLIENT.Code
+		res.Msg = common.EGETOPSTACKCLIENT.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
 	client, err := openstack.NewComputeV2(provider, gophercloud.EndpointOpts{})
 
-	// TODO: 后续在 common/error.go 中定义错误码
 	if err != nil {
-		res.Code = 20000
-		res.Msg = "openstack NewComputeV2 failed"
-		log.Error("openstack NewComputeV2 failed: ", err)
+		res.Code = common.ENEWCPU.Code
+		res.Msg = common.ENEWCPU.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
 	x, err := flavors.Get(client, req.FlavorId).Extract()
 	if err != nil {
-		res.Code = 20103
-		res.Msg = "openstack get flavor failed"
-		log.Error("openstack get flavor failed: ", err)
+		res.Code = common.ENFLVGET.Code
+		res.Msg = common.ENFLVGET.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
