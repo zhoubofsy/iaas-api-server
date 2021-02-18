@@ -30,6 +30,11 @@ var (
 	ENGDELETE = &Error{Code: 30001, Msg: "nat gateway delete failed"}
 	ENGGET    = &Error{Code: 30002, Msg: "nat gateway get failed"}
 
+	ENEWCPU = &Error{Code: 40000, Msg: "nova new compute v2 failed"}
+	ENFLVLIST = &Error{Code: 40001, Msg: "nova flavor list failed"}
+	ENFLVEXTRACT = &Error{Code: 40002, Msg: "nova flavor extract failed"}
+	ENFLVGET = &Error{Code: 40003, Msg: "nova flavor get failed"}
+
 	ETTGETTENANT        = &Error{Code: 90000, Msg: "tenant get failed"}
 	ETTCREATETENANT     = &Error{Code: 90001, Msg: "tenant create failed"}
 	ETTDELETETENANT     = &Error{Code: 90002, Msg: "tenant delete failed"}

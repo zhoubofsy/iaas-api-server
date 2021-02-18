@@ -103,19 +103,21 @@ func (is *InstanceService) CreateInstance(ctx context.Context, req *instance.Cre
 
 // 创建 volume, 返回 volume id
 //   volume endpoint: http://192.168.66.131/volume/v3
-func createVolume(volumeType string, sizeInG int32, projectID string, token string) (string, error) {
+func createVolume(volumeType string, sizeInG int32, projectID string, availZone string, token string) (string, error) {
 	jstmpl :=
 `{
     "volume": {
         "size": {{.VolumeSize}},
         "multiattach": false,
-        "volume_type": {{.VolumeType}},
+        "volume_type": "{{.VolumeType}}",
+        "availability_zone": "{{.AvailZone}}"
     }
 }`
 
 	mp := map[string]string {
 		"VolumeSize": strconv.Itoa(int(sizeInG)),
 		"VolumeType": volumeType,
+		"AvailZone": availZone,
 	}
 
 	jsbody, _ := common.CreateJsonByTmpl(jstmpl, mp)
@@ -142,7 +144,13 @@ func createVolume(volumeType string, sizeInG int32, projectID string, token stri
 	}
 
 	log.Info("create volume res: ", string(res))
+	vol, _ := rmp["volume"]
+	id, ok := vol.(map[string]interface{})["id"]
+	if ok == true && id != "" {
+		return id.(string), nil
+	}
 
+	return "", nil
 }
 
 // CreateInstance 创建云主机
