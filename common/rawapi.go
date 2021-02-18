@@ -3,6 +3,7 @@ package common
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	log "github.com/sirupsen/logrus"
@@ -80,13 +81,13 @@ func CreateJsonByTmpl(jstmpl string, mp map[string]string) ([]byte, error) {
 
 // AuthAndGetToken 先利用 apikey, tenantID 等进行认证，然后返回一个 token
 // TODO 读取数据库, 用户认证
-func AuthAndGetToken(apikey string, tenantID string, platformUserID string,tenantInfo *TenantInfo) (string, error) {
+func AuthAndGetToken(apikey string, tenantID string, platformUserID string) (string, error) {
 	resultTenantInfo,err:=QueryTenantInfoByTenantIdAndApikey(tenantID,apikey)
 	if err!=nil {
 		return "", err
 	}
-	if !resultTenantInfo.IsEmpty()&&tenantInfo != nil  {
-		*tenantInfo=resultTenantInfo
+	if  resultTenantInfo.IsEmpty(){
+		return "", errors.New("apikeyq无效，没有权限获取token")
 	}
 	tokenUrl:=os.Getenv("TOKEN_URL")
 	token,err1:=GetToken(tokenUrl,resultTenantInfo.OpenstackUserid,resultTenantInfo.OpenstackPassword,resultTenantInfo.OpenstackProjectid)

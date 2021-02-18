@@ -11,10 +11,7 @@ func APIAuth(apikey string, tenant_id string, platform_userid string, resource_i
 	var result bool
 	//TODO 调用向明接口校验是否有操作权限
 	//查询本地是否存在相关租户信息（根据apiKey和tenant_id查询租户信息）
-	tenantInfo,err:=QueryTenantInfoByTenantIdAndApikey(tenant_id,apikey)
-	if err !=nil{
-		result= false
-	}
+	tenantInfo,_:=QueryTenantInfoByTenantIdAndApikey(tenant_id,apikey)
 	if !tenantInfo.IsEmpty(){
 		result= true
 	}

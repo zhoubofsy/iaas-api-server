@@ -18,11 +18,11 @@ import (
 var db = &sql.DB{}
 
 func InitDb() (bool) {
-	driverName:=os.Getenv("DRIVERNAME")
-	dbBHostIP:=os.Getenv("DBHOSTIP")
-	dbUserName:=os.Getenv("DBUSERNAME")
-	dbPassWord:=os.Getenv("DBPASSWORD")
-	dbName:=os.Getenv("DBNAME")
+	driverName:=os.Getenv("DRIVER_NAME")
+	dbBHostIP:=os.Getenv("DB_HOST_IP")
+	dbUserName:=os.Getenv("DB_USER_NAME")
+	dbPassWord:=os.Getenv("DB_PASSWORD")
+	dbName:=os.Getenv("DB_NAME")
 	dns:= dbUserName + ":" + dbPassWord + "@tcp(" + dbBHostIP + ")/" + dbName
 	var err error
 	db, err = sql.Open(driverName, dns+"?charset=utf8")

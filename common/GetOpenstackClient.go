@@ -17,7 +17,7 @@ func GetOpenstackClient(apikey string, tenantID string, platformUserID string,
 	if err!=nil {
 		return nil, err
 	}
-	identityEndPoint:=os.Getenv("OPENSTACKIDENTITYENDPOINT")
+	identityEndPoint:=os.Getenv("OPENSTACK_IDENTITY_ENDPOINT")
 	//获取provider
 	opts := sdk.AuthOptions{
 		IdentityEndpoint: identityEndPoint, // idenEndPoint,

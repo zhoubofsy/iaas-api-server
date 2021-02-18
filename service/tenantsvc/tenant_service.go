@@ -33,12 +33,12 @@ type TenantService struct {
 var identityEndPoint,adminUserName,adminPassword,adminProjectId,defaultPwd,adminRoleId string
 
 func getEnvValue()  {
-	identityEndPoint=os.Getenv("OPENSTACKIDENTITYENDPOINT")
-	adminUserName =os.Getenv("OPENSTACKADMIN")
-	adminPassword=os.Getenv("OPENSTACKADMINPWD")
-	defaultPwd=os.Getenv("OPENSTACKDEFAULTPROJECTPWD")
-	adminRoleId=os.Getenv("OPENSTACKADMINROLEID")
-	adminProjectId=os.Getenv("OPENSTACKADMINPROJECTID")
+	identityEndPoint=os.Getenv("OPENSTACK_IDENTITY_ENDPOINT")
+	adminUserName =os.Getenv("OPENSTACK_ADMIN")
+	adminPassword=os.Getenv("OPENSTACK_ADMIN_PWD")
+	defaultPwd=os.Getenv("OPENSTACK_DEFAULT_PROJECT_PWD")
+	adminRoleId=os.Getenv("OPENSTACK_ADMIN_ROLE_ID")
+	adminProjectId=os.Getenv("OPENSTACK_ADMIN_PROJECT_ID")
 }
 
 // CreateTenant create tenant
