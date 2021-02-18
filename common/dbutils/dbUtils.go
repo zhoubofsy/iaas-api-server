@@ -13,6 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"iaas-api-server/common"
 	"os"
+	"reflect"
 )
 //Db info
 var db = &sql.DB{}
@@ -34,9 +35,21 @@ func InitDb() (bool) {
 	}
 	return true
 }
+func QueryTenantInfoByTenantIdAndApikey(tenantID string,apiKey string) (TenantInfo,*common.Error) {
+	sqlStr := "SELECT tenant_id,tenant_name,openstack_domainname,openstack_domainid,openstack_projectname,openstack_projectid,openstack_username,openstack_userid,openstack_password,openstack_rolename,openstack_roleid,apikey FROM tenant_info where tenant_id =? and apikey=?"
+	var tenantInfo TenantInfo
+	err := db.QueryRow(sqlStr,tenantID,apiKey).Scan(&tenantInfo.TenantID, &tenantInfo.TenantName,&tenantInfo.OpenstackDomainname,&tenantInfo.OpenstackDomainid,&tenantInfo.OpenstackProjectname,&tenantInfo.OpenstackProjectid,&tenantInfo.OpenstackUsername,&tenantInfo.OpenstackUserid,&tenantInfo.OpenstackPassword,&tenantInfo.OpenstackRolename,&tenantInfo.OpenstackRoleid,&tenantInfo.ApiKey)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err": err,
+		}).Error("query tenantInfoByTenantName failed.")
+		return tenantInfo, common.ETTGETTENANT
+	}
+	return tenantInfo, nil
+}
 
 func QueryTenantInfoByTenantName(name string) (string, *common.Error) {
-	sqlStr := "SELECT tenant_id，tenant_name FROM tenant_info where tenant_name =?"
+	sqlStr := "SELECT tenant_id,tenant_name FROM tenant_info where tenant_name =?"
 	var tenantInfo TenantInfo
 	err := db.QueryRow(sqlStr, name).Scan(&tenantInfo.TenantID, &tenantInfo.TenantName)
 	if err != nil {
@@ -91,6 +104,6 @@ type TenantInfo struct {
 	ApiKey               string
 }
 
-// func (tenantInfo TenantInfo) isEmpty() bool {
-// 	return reflect.DeepEqual(tenantInfo, TenantInfo{})
-// }
+func (tenantInfo TenantInfo) IsEmpty() bool {
+	return reflect.DeepEqual(tenantInfo, TenantInfo{})
+}

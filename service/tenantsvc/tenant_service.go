@@ -11,7 +11,6 @@ package tenantsvc
 import (
 	"iaas-api-server/common"
 	"iaas-api-server/common/dbutils"
-	_ "iaas-api-server/common/dbutils"
 	"iaas-api-server/proto/tenant"
 	"iaas-api-server/randpass"
 	"os"
@@ -48,15 +47,6 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 	res := &tenant.CreateTenantRes{}
 	//生成租户ID
 	tenantID := "t-" + randpass.GetRandomString(10)
-	//初始胡client
-	clientFlag := dbutils.InitDb()
-	if !clientFlag {
-		res.Apikey = ""
-		res.TenantId = ""
-		res.Code = common.ETTGETMYSQLCLIENT.Code
-		res.Msg = common.ETTGETMYSQLCLIENT.Msg
-		return res, common.ETTGETMYSQLCLIENT
-	}
 	//生成app_key，创建指定租户和appKey间的关系
 	apiKey := randpass.GetRandomString(10)
 	var domainFlag, projectFlag, userFlag, createTenantFlag, termianator bool

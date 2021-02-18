@@ -3,9 +3,11 @@ package common
 import (
 	"bytes"
 	"encoding/json"
+	"iaas-api-server/common/dbutils"
 	"io/ioutil"
 	"net/http"
 	log "github.com/sirupsen/logrus"
+	"os"
 	tmpl "text/template"
 )
 
@@ -78,9 +80,21 @@ func CreateJsonByTmpl(jstmpl string, mp map[string]string) ([]byte, error) {
 }
 
 // AuthAndGetToken 先利用 apikey, tenantID 等进行认证，然后返回一个 token
-// TODO: 读取数据库, 用户认证
-func AuthAndGetToken(apikey string, tenantID string, platformUserID string) (string, error) {
-	return "", nil
+// TODO 读取数据库, 用户认证
+func AuthAndGetToken(apikey string, tenantID string, platformUserID string,tenantInfo *dbutils.TenantInfo) (string, error) {
+	resultTenantInfo,err:=dbutils.QueryTenantInfoByTenantIdAndApikey(tenantID,apikey)
+	if err!=nil {
+		return "", err
+	}
+	if !resultTenantInfo.IsEmpty() {
+		tenantInfo=&resultTenantInfo
+	}
+	tokenUrl:=os.Getenv("TOKEN_URL")
+	token,err1:=GetToken(tokenUrl,resultTenantInfo.OpenstackUserid,resultTenantInfo.OpenstackPassword,resultTenantInfo.OpenstackProjectid)
+	if err1!=nil {
+		return "", err1
+	}
+	return token, nil
 }
 
 // CallRawAPI 返回 http response 的 body 部分
