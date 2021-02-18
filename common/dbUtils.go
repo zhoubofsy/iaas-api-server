@@ -5,13 +5,12 @@
 *  创建日期：2021年02月09日
 *
 ================================================================*/
-package dbutils
+package common
 
 import (
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
-	"iaas-api-server/common"
 	"os"
 	"reflect"
 )
@@ -35,7 +34,7 @@ func InitDb() (bool) {
 	}
 	return true
 }
-func QueryTenantInfoByTenantIdAndApikey(tenantID string,apiKey string) (TenantInfo,*common.Error) {
+func QueryTenantInfoByTenantIdAndApikey(tenantID string,apiKey string) (TenantInfo,*Error) {
 	sqlStr := "SELECT tenant_id,tenant_name,openstack_domainname,openstack_domainid,openstack_projectname,openstack_projectid,openstack_username,openstack_userid,openstack_password,openstack_rolename,openstack_roleid,apikey FROM tenant_info where tenant_id =? and apikey=?"
 	var tenantInfo TenantInfo
 	err := db.QueryRow(sqlStr,tenantID,apiKey).Scan(&tenantInfo.TenantID, &tenantInfo.TenantName,&tenantInfo.OpenstackDomainname,&tenantInfo.OpenstackDomainid,&tenantInfo.OpenstackProjectname,&tenantInfo.OpenstackProjectid,&tenantInfo.OpenstackUsername,&tenantInfo.OpenstackUserid,&tenantInfo.OpenstackPassword,&tenantInfo.OpenstackRolename,&tenantInfo.OpenstackRoleid,&tenantInfo.ApiKey)
@@ -43,12 +42,12 @@ func QueryTenantInfoByTenantIdAndApikey(tenantID string,apiKey string) (TenantIn
 		log.WithFields(log.Fields{
 			"err": err,
 		}).Error("query tenantInfoByTenantName failed.")
-		return tenantInfo, common.ETTGETTENANT
+		return tenantInfo, ETTGETTENANT
 	}
 	return tenantInfo, nil
 }
 
-func QueryTenantInfoByTenantName(name string) (string, *common.Error) {
+func QueryTenantInfoByTenantName(name string) (string, *Error) {
 	sqlStr := "SELECT tenant_id,tenant_name FROM tenant_info where tenant_name =?"
 	var tenantInfo TenantInfo
 	err := db.QueryRow(sqlStr, name).Scan(&tenantInfo.TenantID, &tenantInfo.TenantName)
@@ -56,7 +55,7 @@ func QueryTenantInfoByTenantName(name string) (string, *common.Error) {
 		log.WithFields(log.Fields{
 			"err": err,
 		}).Error("query tenantInfoByTenantName failed.")
-		return "", common.ETTGETTENANT
+		return "", ETTGETTENANT
 	}
 	return tenantInfo.TenantID, nil
 }

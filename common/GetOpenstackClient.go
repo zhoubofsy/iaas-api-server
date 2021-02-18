@@ -3,7 +3,6 @@ package common
 import (
 	sdk "github.com/gophercloud/gophercloud"
 	openstack "github.com/gophercloud/gophercloud/openstack"
-	"iaas-api-server/common/dbutils"
 	"os"
 )
 
@@ -14,7 +13,7 @@ func GetOpenstackClient(apikey string, tenantID string, platformUserID string,
 	if !authResult {
 		return nil,EAPIAUTH
 	}
-	tenantInfo,err:=dbutils.QueryTenantInfoByTenantIdAndApikey(tenantID,apikey)
+	tenantInfo,err:=QueryTenantInfoByTenantIdAndApikey(tenantID,apikey)
 	if err!=nil {
 		return nil, err
 	}

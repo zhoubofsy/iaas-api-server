@@ -10,7 +10,6 @@ package tenantsvc
 
 import (
 	"iaas-api-server/common"
-	"iaas-api-server/common/dbutils"
 	"iaas-api-server/proto/tenant"
 	"iaas-api-server/randpass"
 	"os"
@@ -76,7 +75,7 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 	}
 
 	//查询表里是否有该租户（校验租户名称的唯一性）
-	tid, _ := dbutils.QueryTenantInfoByTenantName(tenantReq.TenantName)
+	tid, _ := common.QueryTenantInfoByTenantName(tenantReq.TenantName)
 	if tid != "" {
 		log.Info("tenant info :", tid)
 		res.Apikey = ""
@@ -133,13 +132,13 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 				break
 			}
 		case "createTenant":
-			var tenantInfoCreate = dbutils.TenantInfo{
+			var tenantInfoCreate = common.TenantInfo{
 				TenantID: tenantID, TenantName: tenantReq.TenantName, OpenstackDomainname: domainResult.Name,
 				OpenstackDomainid: domainResult.ID, OpenstackProjectname:projectResult.Name, OpenstackProjectid: projectResult.ID,
 				OpenstackUsername: userResult.Name, OpenstackUserid: userResult.ID, OpenstackPassword: defaultPwd,
 				OpenstackRolename: "admin", OpenstackRoleid: adminRoleId, ApiKey: apiKey,
 			} //向数据库添加数据
-			createTenantFlag = dbutils.CreateTenantInfo(tenantInfoCreate)
+			createTenantFlag = common.CreateTenantInfo(tenantInfoCreate)
 			log.Info("createTenantFlag:", createTenantFlag)
 			if createTenantFlag {
 				break
