@@ -41,6 +41,8 @@ var (
 	ETTISEMPTYTENANT    = &Error{Code: 90003, Msg: "tenant info is empty"}
 	ETTGETTENANTNOTNULL = &Error{Code: 90004, Msg: "tenant info exits"}
 
+	ETTGETMYSQLCLIENT = &Error{Code: 91001, Msg: "mysql client get failed"}
+
 	ETTEDITDOMAIN = &Error{Code: 95001, Msg: "openstack uodate domain failed"}
 
 	ETTCREATEDOMAIN       = &Error{Code: 95001, Msg: "openstack create domain failed"}
@@ -53,4 +55,7 @@ var (
 	ETTDELETEUSER    = &Error{Code: 96003, Msg: "openstack delete user failed"}
 
 	ETTGETIDENTITYCLIENT = &Error{Code: 97001, Msg: "openstack get client failed"}
+
+	EIGGETIMAGE = &Error{Code: 98000, Msg: "openstack get image failed"}
+	EIGLISTIMAGES =&Error{Code: 98001, Msg: "openstack list image failed"}
 )
