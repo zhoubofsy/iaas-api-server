@@ -1,12 +1,8 @@
 package main
 
 import (
-	"os"
-
-	"iaas-api-server/proto/tenant"
-
-	//"iaas-api-server/service/routesvc"
 	"net"
+	"os"
 
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -19,7 +15,7 @@ import (
 	//	"iaas-api-server/proto/oss"
 	//	"iaas-api-server/proto/route"
 	"iaas-api-server/proto/securitygroup"
-	//	"iaas-api-server/proto/tenant"
+	"iaas-api-server/proto/tenant"
 	//	"iaas-api-server/proto/vpc"
 	//	"iaas-api-server/proto/route"
 	"iaas-api-server/proto/natgateway"
@@ -42,7 +38,7 @@ func init() {
 	log.SetFormatter(&log.JSONFormatter{}) //设置日志的输出格式为json格式，还可以设置为text格式
 	log.SetOutput(os.Stdout)               //设置日志的输出为标准输出
 	log.SetLevel(log.InfoLevel)            //设置日志的显示级别，这一级别以及更高级别的日志信息将会输出
-	log.SetReportCaller(true)
+	log.SetReportCaller(true)              //设置日志的调用文件，调用函数
 }
 
 func main() {
