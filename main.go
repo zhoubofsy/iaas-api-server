@@ -4,11 +4,15 @@ import (
 	"iaas-api-server/common"
 	"iaas-api-server/proto/image"
 	"iaas-api-server/proto/natgateway"
+	"iaas-api-server/proto/peerlink"
 	"iaas-api-server/proto/securitygroup"
 	"iaas-api-server/proto/tenant"
+
 	"iaas-api-server/service/imagesvc"
 	"iaas-api-server/service/natgatewaysvc"
-	"os"
+	"iaas-api-server/service/peerlinksvc"
+	"iaas-api-server/service/securitygroupsvc"
+	"iaas-api-server/service/tenantsvc"
 
 	//"iaas-api-server/service/routesvc"
 	"net"
@@ -16,15 +20,12 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-
 	//	"iaas-api-server/service/imagesvc"
 	//	"iaas-api-server/service/instancesvc"
 	//	"iaas-api-server/service/nasdisksvc"
 	//	"iaas-api-server/service/osssvc"
 	//	"iaas-api-server/service/routesvc"
-	"iaas-api-server/service/securitygroupsvc"
 	//	"iaas-api-server/service/tenantsvc"
-	"iaas-api-server/service/tenantsvc"
 	//	"iaas-api-server/service/vpcsvc"
 	//	"iaas-api-server/service/routesvc"
 	//"iaas-api-server/proto/peerlink"
@@ -52,7 +53,7 @@ func main() {
 	//	vpc.RegisterVpcServiceServer(rpcServer, &vpcsvc.VpcService{})
 	//	route.RegisterRouteServiceServer(rpcServer, &routesvc.RouteService{})
 	natgateway.RegisterNatGatewayServiceServer(rpcServer, &natgatewaysvc.NatGatewayService{})
-	//peerlink.RegisterPeerLinkServiceServer(rpcServer, &peerlinksvc.PeerLinkService{})
+	peerlink.RegisterPeerLinkServiceServer(rpcServer, &peerlinksvc.PeerLinkService{})
 
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
