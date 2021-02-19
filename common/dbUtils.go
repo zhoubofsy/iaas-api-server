@@ -20,7 +20,7 @@ var db = &sql.DB{}
 func InitDb() (bool) {
 	driverName:=os.Getenv("DRIVER_NAME")
 	dbBHostIP:=os.Getenv("DB_HOST_IP")
-	dbUserName:=os.Getenv("DB_USER_NAME")
+	dbUserName:=os.Getenv("DB_USERNAME")
 	dbPassWord:=os.Getenv("DB_PASSWORD")
 	dbName:=os.Getenv("DB_NAME")
 	dns:= dbUserName + ":" + dbPassWord + "@tcp(" + dbBHostIP + ")/" + dbName
