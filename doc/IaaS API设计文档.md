@@ -102,7 +102,7 @@ message ListFlavorsReq {
   string apikey = 1;
   string tenant_id = 2;
   string platform_userid = 3;
-  int32 page_number = 4;
+  string start_flavor_id = 4;
   int32 page_size = 5;
 }
 
@@ -110,6 +110,7 @@ message ListFlavorsRes {
   int32 code = 1;
   string msg = 2;
   repeated Flavor flavors = 3;
+  string next_flavor_id = 4;
 }
 
 message GetFlavorReq {
@@ -169,7 +170,7 @@ message ListImagesReq {
   string apikey = 1;
   string tenant_id = 2;
   string platform_userid = 3;
-  int32 page_number = 4;
+  string start_image_id = 4;
   int32 page_size = 5;
 }
 
@@ -177,6 +178,7 @@ message ListImagesRes {
   int32 code = 1;
   string msg = 2;
   repeated Image images = 3;
+  string next_image_id = 4;
 }
 
 message GetImageReq {
@@ -191,7 +193,6 @@ message GetImageRes {
   string msg = 2;
   Image image = 3;
 }
-
 ```
 
 ### 获取镜像列表

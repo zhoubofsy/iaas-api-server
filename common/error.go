@@ -30,11 +30,18 @@ var (
 	ENGDELETE = &Error{Code: 30001, Msg: "nat gateway delete failed"}
 	ENGGET    = &Error{Code: 30002, Msg: "nat gateway get failed"}
 
+	ENEWCPU = &Error{Code: 40000, Msg: "nova new compute v2 failed"}
+	ENFLVLIST = &Error{Code: 40001, Msg: "nova flavor list failed"}
+	ENFLVEXTRACT = &Error{Code: 40002, Msg: "nova flavor extract failed"}
+	ENFLVGET = &Error{Code: 40003, Msg: "nova flavor get failed"}
+
 	ETTGETTENANT        = &Error{Code: 90000, Msg: "tenant get failed"}
 	ETTCREATETENANT     = &Error{Code: 90001, Msg: "tenant create failed"}
 	ETTDELETETENANT     = &Error{Code: 90002, Msg: "tenant delete failed"}
 	ETTISEMPTYTENANT    = &Error{Code: 90003, Msg: "tenant info is empty"}
 	ETTGETTENANTNOTNULL = &Error{Code: 90004, Msg: "tenant info exits"}
+
+	ETTGETMYSQLCLIENT = &Error{Code: 91001, Msg: "mysql client get failed"}
 
 	ETTEDITDOMAIN = &Error{Code: 95001, Msg: "openstack uodate domain failed"}
 
@@ -48,4 +55,7 @@ var (
 	ETTDELETEUSER    = &Error{Code: 96003, Msg: "openstack delete user failed"}
 
 	ETTGETIDENTITYCLIENT = &Error{Code: 97001, Msg: "openstack get client failed"}
+
+	EIGGETIMAGE = &Error{Code: 98000, Msg: "openstack get image failed"}
+	EIGLISTIMAGES =&Error{Code: 98001, Msg: "openstack list image failed"}
 )
