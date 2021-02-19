@@ -29,12 +29,13 @@ import (
 )
 
 func init() {
-	//TODO 错误处理逻辑有待商量
-	common.InitDb()
 	log.SetFormatter(&log.JSONFormatter{}) //设置日志的输出格式为json格式，还可以设置为text格式
 	log.SetOutput(os.Stdout)               //设置日志的输出为标准输出
 	log.SetLevel(log.InfoLevel)            //设置日志的显示级别，这一级别以及更高级别的日志信息将会输出
 	log.SetReportCaller(true)
+	if common.InitDb() {                  //数据库初始化
+		panic("数据库初始化失败")
+	}
 }
 
 func main() {
