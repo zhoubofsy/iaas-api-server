@@ -26,6 +26,8 @@ import (
 	"iaas-api-server/service/tenantsvc"
 	//	"iaas-api-server/service/vpcsvc"
 	//	"iaas-api-server/service/routesvc"
+	//"iaas-api-server/proto/peerlink"
+	//"iaas-api-server/service/peerlinksvc"
 )
 
 func init() {
@@ -49,6 +51,7 @@ func main() {
 	//	vpc.RegisterVpcServiceServer(rpcServer, &vpcsvc.VpcService{})
 	//	route.RegisterRouteServiceServer(rpcServer, &routesvc.RouteService{})
 	natgateway.RegisterNatGatewayServiceServer(rpcServer, &natgatewaysvc.NatGatewayService{})
+	//peerlink.RegisterPeerLinkServiceServer(rpcServer, &peerlinksvc.PeerLinkService{})
 
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {

@@ -1244,6 +1244,89 @@ message DeleteNatGatewayRes {
 
 
 
+## 对等连接相关服务
+
+```
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package peerlink;
+
+//对等连接相关服务
+service PeerLinkService {
+  //创建对等连接
+  rpc CreatePeerLink(PeerLinkReq) returns(PeerLinkRes);
+  //获取对等连接信息
+  rpc GetPeerLink(PeerLinkReq) returns(PeerLinkRes);
+  //删除对等连接
+  rpc DeletePeerLink(PeerLinkReq) returns(DeletePeerLinkRes);
+}
+
+message PeerLinkRes {
+  int32 code = 1;
+  string msg = 2;
+  message LinkConf {
+    string intf_id = 1;
+    string intf_ip = 2;
+    message Route {
+      string destination = 1;
+      string nexthop = 2;
+    }
+    Route route_to_peer = 3;
+    string created_time = 4;
+  }
+  LinkConf link_conf_on_peer_a = 3;
+  LinkConf link_conf_on_peer_b = 4;
+}
+
+message PeerLinkReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string peer_a_subnetid = 4;
+  string peer_a_routerid = 5;
+  string peer_b_subnetid = 6;
+  string peer_b_routerid = 7;
+}
+
+message DeletePeerLinkRes {
+  int32 code = 1;
+  string msg = 2;
+  string peer_a_subnetid = 3;
+  string peer_a_routerid = 4;
+  string peer_b_subnetid = 5;
+  string peer_b_routerid = 6;
+  string deleted_time = 7;
+}
+```
+
+### 创建对等连接
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 先决条件：管理员事先创建一个share类型的网络，该网络的subnetid已知，将此share网络的subnetid作为配置项放入配置文件中
+3. 为peer_a_routerid这个路由器添加一个接口，接口连接的subnetid是share网络的subnetid，接口要指定ip，ip从该share网络的subnetpool中获取；同理，为peer_b_routerid这个路由器添加一个接口，接口连接的subnetid是share网络的subnetid，接口要指定ip，ip从该share网络的subnetpool中获取；
+4. 为peer_a_routerid这个路由器添加一条路由，路由的destination目的网段，是peer_b_subnetid这个子网的cidr，路由的nexthop，是前面第3步，peer_b_routerid这个路由器新加接口的IP；同理，为peer_b_routerid这个路由器添加一条路由，路由的destination目的网段，是peer_a_subnetid这个子网的cidr，路由的nexthop，是前面第3步，peer_a_routerid这个路由器新加接口的IP;
+
+### 获取对等连接信息
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 列出peer_a_routerid这个路由器所有port信息（使用ports2.List方法，listOpts中可以指明deviceid），遍历查找，如果一个port的FixedIPs[0].SubnetID==share网络的subnetid，取出该port的id和FixedIPs[0].IPAddress作为返回值link_conf_on_peer_a中的intf_id和intf_ip；同理，列出peer_b_routerid这个该路由器所有port信息（使用ports2.List方法，listOpts中可以指明deviceid），遍历查找，如果一个port的FixedIPs[0].SubnetID==share网络的subnetid，取出该port的id和FixedIPs[0].IPAddress作为返回值link_conf_on_peer_b中的intf_id和intf_ip；
+3. 列出peer_a_routerid这个路由器所有路由表条目，遍历找出destination目的网段是peer_b_subnetid对应的cidr的那条路由，作为返回值link_conf_on_peer_a中的route_to_peer；同理，列出peer_a_routerid这个路由器所有路由表条目，遍历找出destination目的网段是peer_a_subnetid对应的cidr的那条路由，作为返回值link_conf_on_peer_b中的route_to_peer；
+
+### 删除对等连接
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 针对peer_a_routerid这个路由器：调用routers.RemoveInterface，删除subnetid为share网络id的那个接口，然后调用原生API的remove_extraroutes，删除peer_b_subnetid所对应cidr的路由条目；同理，针对peer_b_routerid这个路由器：调用routers.RemoveInterface，删除subnetid为share网络id的那个接口，调用原生API的remove_extraroutes，删除peer_a_subnetid所对应cidr的路由条目；
+
+
+
 ## 统一注意事项
 
 1. 调用openstack API，ceph API，有的响应比较慢，应有超时处理
