@@ -1,7 +1,6 @@
 package clouddisksvc
 
 import (
-	"configmap"
 	//"fmt"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
@@ -9,6 +8,9 @@ import (
 	cinder "github.com/gophercloud/gophercloud/openstack/blockstorage/v3/volumes"
 	nova_op "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach"
 	log "github.com/sirupsen/logrus"
+	"iaas-api-server/common/config"
+	"iaas/configmap"
+
 	//"golang.org/x/net/context"
 	"iaas-api-server/common"
 	"iaas-api-server/proto/clouddisk"
@@ -95,8 +97,7 @@ func (clouddisktask *CloudDiskService) DeleteCloudDisk(req *clouddisk.DeleteClou
 		return res, err
 	}
 
-	configMap := configmap.InitConfig("config.conf")
-	cascade := configMap["Cascade"]
+	cascade, _ := config.GetString("Cascade")
 
 	err = cinder.Delete(client, req.VolumeId, cinder.DeleteOpts{
 		Cascade: cascade,
