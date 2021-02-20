@@ -16,6 +16,7 @@ import (
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 
+	"iaas-api-server/common/config"
 	"iaas-api-server/proto/peerlink"
 )
 
@@ -24,39 +25,6 @@ type PeerLinkService struct {
 	peerlink.UnimplementedPeerLinkServiceServer
 }
 
-//type rpcTask interface {
-//	Run(context.Context)
-//	exeute(providers *gophercloud.ProviderClient) *common.Error
-//	setResult()
-//	checkParam() error
-//}
-//
-//// Run rpc start
-//func (rpctask *rpcTask) Run(context.Context) {
-//	defer rpctask.setResult()
-//
-//	if err := rpctask.checkParam(); nil != err {
-//		log.WithFields(log.Fields{
-//			"err": err,
-//			"req": rpctask.Req.String(),
-//		}).Error("check param failed.")
-//		rpctask.Err = common.EPARAM
-//		return
-//	}
-//
-//	providers, err := common.GetOpenstackClient(rpctask.Req.Apikey, rpctask.Req.TenantId, rpctask.Req.PlatformUserid)
-//	if nil != err {
-//		log.WithFields(log.Fields{
-//			"err": err,
-//			"req": rpctask.Req.String(),
-//		}).Error("call common, get openstack client error")
-//		rpctask.Err = common.EGETOPSTACKCLIENT
-//		return
-//	}
-//
-//	rpctask.Err = rpctask.execute(providers)
-//}
-
 // CreatePeerLink create peer link
 func (pls *PeerLinkService) CreatePeerLink(ctx context.Context, req *peerlink.PeerLinkReq) (*peerlink.PeerLinkRes, error) {
 	task := &CreatePeerLinkRPCTask{
@@ -64,6 +32,8 @@ func (pls *PeerLinkService) CreatePeerLink(ctx context.Context, req *peerlink.Pe
 		Res: &peerlink.PeerLinkRes{},
 		Err: nil,
 	}
+	shareNetID, _ := config.GetString("ShareNetID")
+	task.ShareNetID = shareNetID
 
 	task.Run(ctx)
 
@@ -99,3 +69,21 @@ func (pls *PeerLinkService) DeletePeerLink(ctx context.Context, req *peerlink.Pe
 func getCurTime() string {
 	return time.Now().Format("2006-01-02 15:04:05")
 }
+
+type routeInfo struct {
+	routeID string
+	cidr    string
+}
+
+//type baseRPCTask interface {
+//	getOCIRBySubnetID(client *gophercloud.ServiceClient, subnetID string) (string, error)
+//}
+//
+//func (base *baseRPCTask) getOCIRBySubnetID(client *gophercloud.ServiceClient, subnetID string) (string, error) {
+//	subnet, err := subnets.Get(client, subnetID).Extract()
+//	if nil != err {
+//		return "", err
+//	}
+//
+//	return subnet.CIDR, nil
+//}

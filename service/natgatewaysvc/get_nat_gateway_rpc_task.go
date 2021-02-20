@@ -61,7 +61,7 @@ func (rpctask *GetNatGatewayRPCTask) execute(providers *gophercloud.ProviderClie
 			"err": err,
 			"req": rpctask.Req.String(),
 		}).Error("new network v2 failed.")
-		return common.ESGNEWNETWORK
+		return common.ENETWORKCLIENT
 	}
 
 	router, err := routers.Get(client, rpctask.Req.GetRouterId()).Extract()

@@ -64,7 +64,7 @@ func (rpctask *DeleteSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 			"err": err,
 			"req": rpctask.Req.String(),
 		}).Error("new network v2 failed.")
-		return common.ESGNEWNETWORK
+		return common.ENETWORKCLIENT
 	}
 
 	defer func(start time.Time) {

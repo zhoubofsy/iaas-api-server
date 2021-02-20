@@ -62,7 +62,7 @@ func (rpctask *CreateNatGatewayRPCTask) execute(providers *gophercloud.ProviderC
 			"err": err,
 			"req": rpctask.Req.String(),
 		}).Error("new network v2 failed.")
-		return common.ESGNEWNETWORK
+		return common.ENETWORKCLIENT
 	}
 
 	enableSnat := true

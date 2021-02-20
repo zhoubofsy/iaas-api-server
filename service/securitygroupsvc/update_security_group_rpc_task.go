@@ -65,7 +65,7 @@ func (rpctask *UpdateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 			"req": rpctask.Req.String(),
 		}).Error("new network v2 failed.")
 		return &common.Error{
-			Code: common.ESGNEWNETWORK.Code,
+			Code: common.ENETWORKCLIENT.Code,
 			Msg:  err.Error(),
 		}
 	}
