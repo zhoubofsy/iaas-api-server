@@ -46,9 +46,10 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 	res := &tenant.CreateTenantRes{}
 	//生成租户ID
 	tenantID := "t-" + randpass.GetRandomString(10)
+	//tenantID := "t-" + "trywurqtyr"
 	//生成app_key，创建指定租户和appKey间的关系
 	apiKey := randpass.GetRandomString(10)
-	defaultPwd:=  randpass.GetRandomString(10)
+	defaultPwd=  randpass.GetRandomString(10)
 	var domainFlag, projectFlag, userFlag, createTenantFlag, termianator bool
 	var FLAG = "createDomain"
 	var domainResult *domains.Domain
