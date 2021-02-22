@@ -34,7 +34,7 @@ func InitDb() (bool) {
 	}
 	return true
 }
-func QueryTenantInfoByTenantIdAndApikey(tenantID string,apiKey string) (TenantInfo,*Error) {
+func QueryTenantInfoByTenantIdAndApikey(tenantID string,apiKey string) (TenantInfo,error) {
 	sqlStr := "SELECT tenant_id,tenant_name,openstack_domainname,openstack_domainid,openstack_projectname,openstack_projectid,openstack_username,openstack_userid,openstack_password,openstack_rolename,openstack_roleid,apikey FROM tenant_info where tenant_id =? and apikey=?"
 	var tenantInfo TenantInfo
 	err := db.QueryRow(sqlStr,tenantID,apiKey).Scan(&tenantInfo.TenantID, &tenantInfo.TenantName,&tenantInfo.OpenstackDomainname,&tenantInfo.OpenstackDomainid,&tenantInfo.OpenstackProjectname,&tenantInfo.OpenstackProjectid,&tenantInfo.OpenstackUsername,&tenantInfo.OpenstackUserid,&tenantInfo.OpenstackPassword,&tenantInfo.OpenstackRolename,&tenantInfo.OpenstackRoleid,&tenantInfo.ApiKey)
@@ -47,7 +47,7 @@ func QueryTenantInfoByTenantIdAndApikey(tenantID string,apiKey string) (TenantIn
 	return tenantInfo, nil
 }
 
-func QueryTenantInfoByTenantName(name string) (string, *Error) {
+func QueryTenantInfoByTenantName(name string) (string, error) {
 	sqlStr := "SELECT tenant_id,tenant_name FROM tenant_info where tenant_name =?"
 	var tenantInfo TenantInfo
 	err := db.QueryRow(sqlStr, name).Scan(&tenantInfo.TenantID, &tenantInfo.TenantName)

@@ -36,7 +36,7 @@ func getEnvValue()  {
 	identityEndPoint=os.Getenv("OPENSTACK_IDENTITY_ENDPOINT")
 	adminUserName =os.Getenv("OPENSTACK_ADMIN")
 	adminPassword=os.Getenv("OPENSTACK_ADMIN_PWD")
-	defaultPwd=os.Getenv("OPENSTACK_DEFAULT_PROJECT_PWD")
+	//defaultPwd=os.Getenv("OPENSTACK_DEFAULT_PROJECT_PWD")
 	adminRoleId=os.Getenv("OPENSTACK_ADMIN_ROLE_ID")
 	adminProjectId=os.Getenv("OPENSTACK_ADMIN_PROJECT_ID")
 }
@@ -48,6 +48,7 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 	tenantID := "t-" + randpass.GetRandomString(10)
 	//生成app_key，创建指定租户和appKey间的关系
 	apiKey := randpass.GetRandomString(10)
+	defaultPwd:=  randpass.GetRandomString(10)
 	var domainFlag, projectFlag, userFlag, createTenantFlag, termianator bool
 	var FLAG = "createDomain"
 	var domainResult *domains.Domain
