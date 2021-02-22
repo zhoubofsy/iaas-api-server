@@ -36,7 +36,6 @@ func getEnvValue()  {
 	identityEndPoint=os.Getenv("OPENSTACK_IDENTITY_ENDPOINT")
 	adminUserName =os.Getenv("OPENSTACK_ADMIN")
 	adminPassword=os.Getenv("OPENSTACK_ADMIN_PWD")
-	//defaultPwd=os.Getenv("OPENSTACK_DEFAULT_PROJECT_PWD")
 	adminRoleId=os.Getenv("OPENSTACK_ADMIN_ROLE_ID")
 	adminProjectId=os.Getenv("OPENSTACK_ADMIN_PROJECT_ID")
 }
@@ -44,9 +43,18 @@ func getEnvValue()  {
 // CreateTenant create tenant
 func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.CreateTenantReq) (*tenant.CreateTenantRes, error) {
 	res := &tenant.CreateTenantRes{}
+	//获取seq序列
+	tenantIDSeq,seqErr:=common.GetTenantIDSeq()
+	if seqErr!=nil{
+		log.Error("call mysql, get mysql sequence error", seqErr)
+		res.Apikey = ""
+		res.TenantId = ""
+		res.Code = common.EGETOPSTACKCLIENT.Code
+		res.Msg = common.EGETOPSTACKCLIENT.Msg
+		return res, common.ETTGETENATSEQ
+	}
 	//生成租户ID
-	tenantID := "t-" + randpass.GetRandomString(10)
-	//tenantID := "t-" + "trywurqtyr"
+	tenantID := "t-" + tenantIDSeq
 	//生成app_key，创建指定租户和appKey间的关系
 	apiKey := randpass.GetRandomString(10)
 	defaultPwd=  randpass.GetRandomString(10)

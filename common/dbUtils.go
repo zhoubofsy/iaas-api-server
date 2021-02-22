@@ -9,6 +9,7 @@ package common
 
 import (
 	"database/sql"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -60,6 +61,20 @@ func QueryTenantInfoByTenantName(name string) (string, error) {
 	return tenantInfo.TenantID, nil
 }
 
+func GetTenantIDSeq() (string,error) {
+	sqlStr :="select nextval(seq)"
+	var nextVal int32
+	err := db.QueryRow(sqlStr).Scan(&nextVal)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err": err,
+		}).Error("query tenantId seq failed.")
+		return "", ETTGETENATSEQ
+	}
+	valStr:=fmt.Sprintf("%010d",nextVal)
+	return valStr, nil
+}
+
 func CreateTenantInfo(tenantInfo TenantInfo) (createTenantFlag bool) {
 	log.Info("dbutils insert tenantInfo :", tenantInfo)
 	log.Info("create tenant flag :", createTenantFlag)
@@ -84,7 +99,7 @@ func DeleteTenant(tenantID string) {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
-		}).Error("createTenantInfo failed.")
+		}).Error("delete tenant info failed.")
 	}
 }
 // TenantInfo for tenant
