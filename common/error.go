@@ -35,6 +35,15 @@ var (
 	ENFLVEXTRACT = &Error{Code: 40002, Msg: "nova flavor extract failed"}
 	ENFLVGET = &Error{Code: 40003, Msg: "nova flavor get failed"}
 
+	ENEWBLOCK = &Error{Code: 50000, Msg: "cinder new block v3 failed"}
+	ENEWVOLUME = &Error{Code: 50001, Msg: "cinder create volume failed"}
+	EDELETEVOLUME = &Error{Code: 50002, Msg: "cinder delete volume failed"}
+	ESHOWVOLUME = &Error{Code: 50003, Msg: "cinder show volume info failed"}
+	EEXTENDVOLUMESIZE = &Error{Code: 50004, Msg: "cinder extend volume size failed"}
+	EVOLUMEUPDATE = &Error{Code: 50005, Msg: "cinder update volume failed"}
+	EVOLUMEATTACH = &Error{Code: 50006, Msg: "cinder volume attach failed"}
+	EVOLUMEDETACH = &Error{Code: 50006, Msg: "cinder volume detach failed"}
+
 	ETTGETTENANT        = &Error{Code: 90000, Msg: "tenant get failed"}
 	ETTCREATETENANT     = &Error{Code: 90001, Msg: "tenant create failed"}
 	ETTDELETETENANT     = &Error{Code: 90002, Msg: "tenant delete failed"}

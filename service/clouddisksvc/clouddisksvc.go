@@ -1,7 +1,6 @@
 package clouddisksvc
 
 import (
-	"configmap"
 	//"fmt"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
@@ -9,6 +8,9 @@ import (
 	cinder "github.com/gophercloud/gophercloud/openstack/blockstorage/v3/volumes"
 	nova_op "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach"
 	log "github.com/sirupsen/logrus"
+	"iaas-api-server/common/config"
+	"iaas/configmap"
+
 	//"golang.org/x/net/context"
 	"iaas-api-server/common"
 	"iaas-api-server/proto/clouddisk"
@@ -25,20 +27,19 @@ func (clouddisktask *CloudDiskService) CreateCloudDisk(req *clouddisk.CreateClou
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
 	if nil != err {
-		res.Code = common.EUNAUTHORED.Code
-		res.Msg = common.EUNAUTHORED.Msg
-		log.Error("GetOpenstackClient failed: ", err)
+		res.Code = common.EGETOPSTACKCLIENT.Code
+		res.Msg = common.EGETOPSTACKCLIENT.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
 	client, err := openstack.NewBlockStorageV3(provider, gophercloud.EndpointOpts{
 		Region: req.Region,
 	})
-
 	if nil != err {
-		res.Code = xxx //todo 错误码待定义
-		res.Msg = "openstack NewBlockStorageV3 failed"
-		log.Error("openstack NewBlockStorageV3 failed: ", err)
+		res.Code = common.ENEWBLOCK.Code
+		res.Msg = common.ENEWBLOCK.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
@@ -51,9 +52,9 @@ func (clouddisktask *CloudDiskService) CreateCloudDisk(req *clouddisk.CreateClou
 	}).Extract()
 
 	if err != nil {
-		res.Code = xxx //todo 错误码待定义
-		res.Msg = "openstack cinder create failed"
-		log.Error("openstack cinder create failed: ", err)
+		res.Code = common.ENEWVOLUME.Code
+		res.Msg = common.ENEWVOLUME.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
@@ -80,32 +81,30 @@ func (clouddisktask *CloudDiskService) DeleteCloudDisk(req *clouddisk.DeleteClou
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
 	if nil != err {
-		res.Code = common.EUNAUTHORED.Code
-		res.Msg = common.EUNAUTHORED.Msg
-		log.Error("GetOpenstackClient failed: ", err)
+		res.Code = common.EGETOPSTACKCLIENT.Code
+		res.Msg = common.EGETOPSTACKCLIENT.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
 	client, err := openstack.NewBlockStorageV3(provider, gophercloud.EndpointOpts{})
-
 	if nil != err {
-		res.Code = xxx //todo 错误码待定义
-		res.Msg = "openstack NewBlockStorageV3 failed"
-		log.Error("openstack NewBlockStorageV3 failed: ", err)
+		res.Code = common.ENEWBLOCK.Code
+		res.Msg = common.ENEWBLOCK.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
-	configMap := configmap.InitConfig("config.conf")
-	cascade := configMap["Cascade"]
+	cascade, _ := config.GetBool("Cascade")
 
 	err = cinder.Delete(client, req.VolumeId, cinder.DeleteOpts{
 		Cascade: cascade,
 	}).ExtractErr()
 
 	if nil != err {
-		res.Code = xxx //todo 错误码待定义
-		res.Msg = "openstack cinder delete failed"
-		log.Error("openstack cinder delete failed: ", err)
+		res.Code = common.EDELETEVOLUME.Code
+		res.Msg = common.EDELETEVOLUME.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
@@ -122,27 +121,27 @@ func (clouddisktask *CloudDiskService) GetCloudDisk(req *clouddisk.GetCloudDiskR
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
 	if nil != err {
-		res.Code = common.EUNAUTHORED.Code
-		res.Msg = common.EUNAUTHORED.Msg
-		log.Error("GetOpenstackClient failed: ", err)
+		res.Code = common.EGETOPSTACKCLIENT.Code
+		res.Msg = common.EGETOPSTACKCLIENT.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
 	client, err := openstack.NewBlockStorageV3(provider, gophercloud.EndpointOpts{})
 
 	if nil != err {
-		res.Code = xxx //todo 错误码待定义
-		res.Msg = "openstack NewBlockStorageV3 failed"
-		log.Error("openstack NewBlockStorageV3 failed: ", err)
+		res.Code = common.ENEWBLOCK.Code
+		res.Msg = common.ENEWBLOCK.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
 	ret, err := cinder.Get(client, req.VolumeId).Extract()
 
 	if nil != err {
-		res.Code = xxx //todo 错误码待定义
-		res.Msg = "openstack get clouddisk info failed"
-		log.Error("openstack get clouddisk info failed: ", err)
+		res.Code = common.ESHOWVOLUME.Code
+		res.Msg = common.ESHOWVOLUME.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
@@ -169,18 +168,18 @@ func (clouddisktask *CloudDiskService) ReqizeCloudDisk(req *clouddisk.ReqizeClou
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
 	if nil != err {
-		res.Code = common.EUNAUTHORED.Code
-		res.Msg = common.EUNAUTHORED.Msg
-		log.Error("GetOpenstackClient failed: ", err)
+		res.Code = common.EGETOPSTACKCLIENT.Code
+		res.Msg = common.EGETOPSTACKCLIENT.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
 	client, err := openstack.NewBlockStorageV3(provider, gophercloud.EndpointOpts{})
 
 	if nil != err {
-		res.Code = xxx //todo 错误码待定义
-		res.Msg = "openstack NewBlockStorageV3 failed"
-		log.Error("openstack NewBlockStorageV3 failed: ", err)
+		res.Code = common.ENEWBLOCK.Code
+		res.Msg = common.ENEWBLOCK.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
@@ -189,9 +188,9 @@ func (clouddisktask *CloudDiskService) ReqizeCloudDisk(req *clouddisk.ReqizeClou
 	}).ExtractErr()
 
 	if nil != err {
-		res.Code = xxx //todo 错误码待定义
-		res.Msg = "openstack cinder volume extract failed"
-		log.Error("openstack cinder volume extract failed: ", err)
+		res.Code = common.EEXTENDVOLUMESIZE.Code
+		res.Msg = common.EEXTENDVOLUMESIZE.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
@@ -207,18 +206,18 @@ func (clouddisktask *CloudDiskService) ModifyCloudDiskInfo(req *clouddisk.Modify
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
 	if nil != err {
-		res.Code = common.EUNAUTHORED.Code
-		res.Msg = common.EUNAUTHORED.Msg
-		log.Error("GetOpenstackClient failed: ", err)
+		res.Code = common.EGETOPSTACKCLIENT.Code
+		res.Msg = common.EGETOPSTACKCLIENT.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
 	client, err := openstack.NewBlockStorageV3(provider, gophercloud.EndpointOpts{})
 
 	if nil != err {
-		res.Code = xxx //todo 错误码待定义
-		res.Msg = "openstack NewBlockStorageV3 failed"
-		log.Error("openstack NewBlockStorageV3 failed: ", err)
+		res.Code = common.ENEWBLOCK.Code
+		res.Msg = common.ENEWBLOCK.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
@@ -228,9 +227,9 @@ func (clouddisktask *CloudDiskService) ModifyCloudDiskInfo(req *clouddisk.Modify
 	}).Extract()
 
 	if nil != err {
-		res.Code = xxx //todo 错误码待定义
-		res.Msg = "openstack cinder volume info update failed"
-		log.Error("openstack cinder volume info update failed: ", err)
+		res.Code = common.EVOLUMEUPDATE.Code
+		res.Msg = common.EVOLUMEUPDATE.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
@@ -247,18 +246,18 @@ func (clouddisktask *CloudDiskService) OperateCloudDisk(req *clouddisk.OperateCl
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
 	if nil != err {
-		res.Code = common.EUNAUTHORED.Code
-		res.Msg = common.EUNAUTHORED.Msg
-		log.Error("GetOpenstackClient failed: ", err)
+		res.Code = common.EGETOPSTACKCLIENT.Code
+		res.Msg = common.EGETOPSTACKCLIENT.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
 	client, err := openstack.NewComputeV2(provider, gophercloud.EndpointOpts{})
 
 	if nil != err {
-		res.Code = xxx //todo 错误码待定义
-		res.Msg = "openstack NewComputeV2 failed"
-		log.Error("openstack NewComputeV2 failed: ", err)
+		res.Code = common.ENEWCPU.Code
+		res.Msg = common.ENEWCPU.Msg
+		log.Error(res.Msg, ": ", err)
 		return res, err
 	}
 
@@ -269,9 +268,9 @@ func (clouddisktask *CloudDiskService) OperateCloudDisk(req *clouddisk.OperateCl
 		}).Extract()
 
 		if err != nil {
-			res.Code = xxx //todo 错误码待定义
-			res.Msg = "openstack nova attach failed"
-			log.Error("openstack nova attach failed: ", err)
+			res.Code = common.EVOLUMEATTACH.Code
+			res.Msg = common.EVOLUMEATTACH.Msg
+			log.Error(res.Msg, ": ", err)
 			return res, err
 		}
 
@@ -284,9 +283,9 @@ func (clouddisktask *CloudDiskService) OperateCloudDisk(req *clouddisk.OperateCl
 		err = nova_op.Delete(client, req.InstanceId, req.VolumeId).ExtractErr()
 
 		if err != nil {
-			res.Code = xxx //todo 错误码待定义
-			res.Msg = "openstack nova detach failed"
-			log.Error("openstack nova detach failed: ", err)
+			res.Code = common.EVOLUMEDETACH.Code
+			res.Msg = common.EVOLUMEDETACH.Msg
+			log.Error(res.Msg, ": ", err)
 			return res, err
 		}
 
