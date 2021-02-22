@@ -43,6 +43,26 @@ func getEnvValue()  {
 // CreateTenant create tenant
 func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.CreateTenantReq) (*tenant.CreateTenantRes, error) {
 	res := &tenant.CreateTenantRes{}
+	//生成app_key，创建指定租户和appKey间的关系
+	apiKey := randpass.GetRandomString(10)
+	defaultPwd=  randpass.GetRandomString(10)
+	var domainFlag, projectFlag, userFlag, createTenantFlag, termianator bool
+	var FLAG = "createDomain"
+	var domainResult *domains.Domain
+	var projectResult *projects.Project
+	var userResult *users.User
+
+	//查询表里是否有该租户（校验租户名称的唯一性）
+	tid, _ := common.QueryTenantInfoByTenantName(tenantReq.TenantName)
+	if tid != "" {
+		log.Info("tenant info :", tid)
+		res.Apikey = ""
+		res.TenantId = ""
+		res.Code = common.ETTGETTENANTNOTNULL.Code
+		res.Msg = common.ETTGETTENANTNOTNULL.Msg
+		return res, common.ETTGETTENANTNOTNULL
+	}
+
 	//获取seq序列
 	tenantIDSeq,seqErr:=common.GetTenantIDSeq()
 	if seqErr!=nil{
@@ -55,16 +75,10 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 	}
 	//生成租户ID
 	tenantID := "t-" + tenantIDSeq
-	//生成app_key，创建指定租户和appKey间的关系
-	apiKey := randpass.GetRandomString(10)
-	defaultPwd=  randpass.GetRandomString(10)
-	var domainFlag, projectFlag, userFlag, createTenantFlag, termianator bool
-	var FLAG = "createDomain"
-	var domainResult *domains.Domain
-	var projectResult *projects.Project
-	var userResult *users.User
+
 	//获取环境变量
 	getEnvValue()
+
 	//获取provider
 	opts := gophercloud.AuthOptions{
 		IdentityEndpoint:identityEndPoint,
@@ -75,6 +89,7 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 	}
 	log.Info("test:--------------------------", opts)
 	provider, err := openstack.AuthenticatedClient(opts)
+
 	if nil != err {
 		log.Error("call openstack, get openstack admin client error", err)
 		res.Apikey = ""
@@ -82,17 +97,6 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 		res.Code = common.EGETOPSTACKCLIENT.Code
 		res.Msg = common.EGETOPSTACKCLIENT.Msg
 		return res, common.EGETOPSTACKCLIENT
-	}
-
-	//查询表里是否有该租户（校验租户名称的唯一性）
-	tid, _ := common.QueryTenantInfoByTenantName(tenantReq.TenantName)
-	if tid != "" {
-		log.Info("tenant info :", tid)
-		res.Apikey = ""
-		res.TenantId = ""
-		res.Code = common.ETTGETTENANTNOTNULL.Code
-		res.Msg = common.ETTGETTENANTNOTNULL.Msg
-		return res, common.ETTGETTENANTNOTNULL
 	}
 	//校验业务数据
 	for true {
@@ -188,7 +192,7 @@ func (s *TenantService) CreateTenant(cxt context.Context, tenantReq *tenant.Crea
 	return res, nil
 }
 
-func getOpenstackClient(provider *gophercloud.ProviderClient) (*gophercloud.ServiceClient, *common.Error) {
+func getOpenstackClient(provider *gophercloud.ProviderClient) (*gophercloud.ServiceClient, error) {
 	sc, serviceErr := openstack.NewIdentityV3(provider, gophercloud.EndpointOpts{})
 	if serviceErr != nil {
 		log.WithFields(log.Fields{
@@ -199,7 +203,7 @@ func getOpenstackClient(provider *gophercloud.ProviderClient) (*gophercloud.Serv
 	return sc, nil
 }
 
-func editDomain(provider *gophercloud.ProviderClient, domainID string) (*domains.Domain, *common.Error) {
+func editDomain(provider *gophercloud.ProviderClient, domainID string) (*domains.Domain, error) {
 	sc, serviceErr := getOpenstackClient(provider)
 	if serviceErr != nil {
 		return nil, common.ETTGETIDENTITYCLIENT
@@ -220,7 +224,7 @@ func editDomain(provider *gophercloud.ProviderClient, domainID string) (*domains
 	return domain, common.EOK
 }
 
-func deleteDomain(provider *gophercloud.ProviderClient, domainID string) *common.Error {
+func deleteDomain(provider *gophercloud.ProviderClient, domainID string) error {
 	sc, serviceErr := getOpenstackClient(provider)
 	if serviceErr != nil {
 		return common.ETTGETIDENTITYCLIENT
@@ -232,7 +236,7 @@ func deleteDomain(provider *gophercloud.ProviderClient, domainID string) *common
 	return common.EOK
 }
 
-func deleteProject(provider *gophercloud.ProviderClient, projectID string) *common.Error {
+func deleteProject(provider *gophercloud.ProviderClient, projectID string) error {
 	sc, serviceErr := getOpenstackClient(provider)
 	if serviceErr != nil {
 		return common.ETTGETIDENTITYCLIENT
@@ -245,7 +249,7 @@ func deleteProject(provider *gophercloud.ProviderClient, projectID string) *comm
 
 }
 
-func deleteUser(provider *gophercloud.ProviderClient, userID string) *common.Error {
+func deleteUser(provider *gophercloud.ProviderClient, userID string) error {
 	sc, serviceErr := getOpenstackClient(provider)
 	if serviceErr != nil {
 		return common.ETTGETIDENTITYCLIENT
@@ -258,7 +262,7 @@ func deleteUser(provider *gophercloud.ProviderClient, userID string) *common.Err
 
 }
 
-func createDomain(provider *gophercloud.ProviderClient, name string) (*domains.Domain, *common.Error) {
+func createDomain(provider *gophercloud.ProviderClient, name string) (*domains.Domain, error) {
 	sc, serviceErr := getOpenstackClient(provider)
 	if serviceErr == nil {
 		createOpts := domains.CreateOpts{
@@ -280,7 +284,7 @@ func createDomain(provider *gophercloud.ProviderClient, name string) (*domains.D
 
 }
 
-func createProject(provider *gophercloud.ProviderClient, tenantID string, name string, domainID string) (*projects.Project, *common.Error) {
+func createProject(provider *gophercloud.ProviderClient, tenantID string, name string, domainID string) (*projects.Project, error) {
 	sc, serviceErr := getOpenstackClient(provider)
 	if serviceErr == nil {
 		createOpts := projects.CreateOpts{
@@ -302,7 +306,7 @@ func createProject(provider *gophercloud.ProviderClient, tenantID string, name s
 	return nil, common.ETTGETIDENTITYCLIENT
 }
 
-func createUser(provider *gophercloud.ProviderClient, name string, domainID string, projectID string) (*users.User, *common.Error) {
+func createUser(provider *gophercloud.ProviderClient, name string, domainID string, projectID string) (*users.User, error) {
 	sc, serviceErr := openstack.NewIdentityV3(provider, gophercloud.EndpointOpts{})
 	if serviceErr == nil {
 		createOpts := users.CreateOpts{
@@ -324,7 +328,7 @@ func createUser(provider *gophercloud.ProviderClient, name string, domainID stri
 	return nil, common.ETTGETIDENTITYCLIENT
 }
 
-func createUserAndRoleRelation(provider *gophercloud.ProviderClient, projectId string, userId string) *common.Error {
+func createUserAndRoleRelation(provider *gophercloud.ProviderClient, projectId string, userId string) error {
 	sc, serviceErr := openstack.NewIdentityV3(provider, gophercloud.EndpointOpts{})
 	if serviceErr == nil {
 		err := roles.Assign(sc, adminRoleId, roles.AssignOpts{
