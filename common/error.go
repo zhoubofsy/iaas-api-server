@@ -37,10 +37,20 @@ var (
 	EOSSNOPAGE          = &Error{Code: 31009, Msg: "OSS no page failed"}
 	EOSSLISTBUCKETS     = &Error{Code: 31010, Msg: "OSS list buckets failed"}
 
-	ENEWCPU      = &Error{Code: 40000, Msg: "nova new compute v2 failed"}
-	ENFLVLIST    = &Error{Code: 40001, Msg: "nova flavor list failed"}
-	ENFLVEXTRACT = &Error{Code: 40002, Msg: "nova flavor extract failed"}
-	ENFLVGET     = &Error{Code: 40003, Msg: "nova flavor get failed"}
+	ENEWCPU            = &Error{Code: 40000, Msg: "nova new compute v2 failed"}
+	ENFLVLIST          = &Error{Code: 40001, Msg: "nova flavor list failed"}
+	ENFLVEXTRACT       = &Error{Code: 40002, Msg: "nova flavor extract failed"}
+	ENFLVGET           = &Error{Code: 40003, Msg: "nova flavor get failed"}
+	ENINSQUERYTENANT   = &Error{Code: 40100, Msg: "nova instance query tenant info failed"}
+	ENINSCREATEVOLUME  = &Error{Code: 40101, Msg: "nova instance create volume failed"}
+	ENINSCREATE        = &Error{Code: 40102, Msg: "nova instance create failed"}
+	ENINSQUERY         = &Error{Code: 40103, Msg: "nova instance query failed"}
+	ENINSGET           = &Error{Code: 40104, Msg: "nova instance get failed"}
+	ENINSUPFLAVOR      = &Error{Code: 40105, Msg: "nova instance update flavor failed"}
+	ENINSCONFIRMRESIZE = &Error{Code: 40106, Msg: "nova instance update flavor confirm failed"}
+	ENINSDEL           = &Error{Code: 40107, Msg: "nova instance delete failed"}
+	ENINSOPUNKNOWN     = &Error{Code: 40108, Msg: "nova instance operation not supported"}
+	ENINSOP            = &Error{Code: 40109, Msg: "nova instance operate failed"}
 
 	ENEWBLOCK         = &Error{Code: 50000, Msg: "cinder new block v3 failed"}
 	ENEWVOLUME        = &Error{Code: 50001, Msg: "cinder create volume failed"}
@@ -58,7 +68,7 @@ var (
 	ETTGETTENANTNOTNULL = &Error{Code: 90004, Msg: "tenant info exits"}
 
 	ETTGETMYSQLCLIENT = &Error{Code: 91001, Msg: "mysql client get failed"}
-	EOSSGETCONFIG=&Error{Code: 91005, Msg: "get oss config failed"}
+	EOSSGETCONFIG     = &Error{Code: 91005, Msg: "get oss config failed"}
 
 	ETTEDITDOMAIN = &Error{Code: 95001, Msg: "openstack uodate domain failed"}
 
