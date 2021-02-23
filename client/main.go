@@ -12,10 +12,12 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"time"
 
 	ngpb "iaas-api-server/proto/natgateway"
+	plpb "iaas-api-server/proto/peerlink"
 	sgpb "iaas-api-server/proto/securitygroup"
 
 	"google.golang.org/grpc"
@@ -37,9 +39,10 @@ func sgOperate(conn grpc.ClientConnInterface, data []byte) {
 
 	r, err := c.OperateSecurityGroup(ctx, req)
 	if err != nil {
-		log.Fatalf("could not rpc request: %v", err)
+		log.Println("could not rpc request: %v", err)
+		return
 	}
-	log.Printf("rpc result: %+v", r)
+	log.Println("rpc result: %+v", r)
 }
 
 func ngDelete(conn grpc.ClientConnInterface, data []byte) {
@@ -58,9 +61,10 @@ func ngDelete(conn grpc.ClientConnInterface, data []byte) {
 
 	r, err := c.DeleteNatGateway(ctx, req)
 	if err != nil {
-		log.Fatalf("could not rpc request: %v", err)
+		log.Println("could not rpc request: %v", err)
+		return
 	}
-	log.Printf("rpc result: %+v", r)
+	log.Println("rpc result: %+v", r)
 }
 
 func ngCreate(conn grpc.ClientConnInterface, data []byte) {
@@ -79,9 +83,10 @@ func ngCreate(conn grpc.ClientConnInterface, data []byte) {
 
 	r, err := c.CreateNatGateway(ctx, req)
 	if err != nil {
-		log.Fatalf("could not rpc request: %v", err)
+		log.Println("could not rpc request: %v", err)
+		return
 	}
-	log.Printf("rpc result: %+v", r)
+	log.Println("rpc result: %+v", r)
 }
 
 func ngGet(conn grpc.ClientConnInterface, data []byte) {
@@ -100,10 +105,77 @@ func ngGet(conn grpc.ClientConnInterface, data []byte) {
 
 	r, err := c.GetNatGateway(ctx, req)
 	if err != nil {
-		log.Fatalf("could not rpc request: %v", err)
+		log.Println("could not rpc request: %v", err)
+		return
 	}
-	log.Printf("rpc result: %+v", r)
+	log.Println("rpc result: %+v", r)
 }
+
+func plCreate(conn grpc.ClientConnInterface, data []byte) {
+	c := plpb.NewPeerLinkServiceClient(conn)
+
+	req := &plpb.PeerLinkReq{}
+	err := json.Unmarshal(data, req)
+	if nil != err {
+		log.Fatalf("input param is not json or format error, err: %+v", err)
+	}
+
+	log.Printf("request is : %+v", req)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	r, err := c.CreatePeerLink(ctx, req)
+	if err != nil {
+		log.Println("could not rpc request: %v", err)
+		return
+	}
+	log.Println("rpc result: %+v", r)
+}
+
+func plDelete(conn grpc.ClientConnInterface, data []byte) {
+	c := plpb.NewPeerLinkServiceClient(conn)
+
+	req := &plpb.PeerLinkReq{}
+	err := json.Unmarshal(data, req)
+	if nil != err {
+		log.Fatalf("input param is not json or format error, err: %+v", err)
+	}
+
+	log.Printf("request is : %+v", req)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	r, err := c.DeletePeerLink(ctx, req)
+	if err != nil {
+		log.Println("could not rpc request: %v", err)
+	}
+	log.Println("rpc result: %+v", r)
+}
+
+func plGet(conn grpc.ClientConnInterface, data []byte) {
+	c := plpb.NewPeerLinkServiceClient(conn)
+
+	req := &plpb.PeerLinkReq{}
+	err := json.Unmarshal(data, req)
+	if nil != err {
+		log.Fatalf("input param is not json or format error, err: %+v", err)
+	}
+
+	log.Printf("request is : %+v", req)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	r, err := c.GetPeerLink(ctx, req)
+	if err != nil {
+		log.Println("could not rpc request: %v", err)
+		return
+	}
+	log.Println("rpc result: %+v", r)
+}
+
 func main() {
 	flag.Parse()
 
@@ -139,7 +211,17 @@ func main() {
 	case "ngGet":
 		ngGet(conn, data)
 		break
+	case "plCreate":
+		plCreate(conn, data)
+		break
+	case "plDelete":
+		plDelete(conn, data)
+		break
+	case "plGet":
+		plGet(conn, data)
+		break
 	default:
+		fmt.Println("input method not found")
 		break
 	}
 }

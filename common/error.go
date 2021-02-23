@@ -70,5 +70,9 @@ var (
 	EIGGETIMAGE   = &Error{Code: 98000, Msg: "openstack get image failed"}
 	EIGLISTIMAGES = &Error{Code: 98001, Msg: "openstack list image failed"}
 
-	EPLGETCIDR = &Error{Code: 100000, Msg: "openstack get cidr by subnetid failed"}
+	EPLGETPREPARE         = &Error{Code: 100000, Msg: "openstack peerlink get, prepare param failed"}
+	EPLDELETEPREPARE      = &Error{Code: 100001, Msg: "openstack peerlink delete, prepare param failed"}
+	EPLCREATEPREPARE      = &Error{Code: 100002, Msg: "openstack peerlink create, prepare param failed"}
+	EPLCREATEADDROUTE     = &Error{Code: 100003, Msg: "openstack peerlink create, add route to router failed"}
+	EPLCREATEADDINTERFACE = &Error{Code: 100004, Msg: "openstack peerlink create, add interface to router failed"}
 )

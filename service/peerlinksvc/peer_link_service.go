@@ -9,10 +9,18 @@
 package peerlinksvc
 
 import (
+	"fmt"
+	"math/big"
+	"net"
+	"sync"
 	"time"
 
 	"golang.org/x/net/context"
 
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 
@@ -47,6 +55,8 @@ func (pls *PeerLinkService) GetPeerLink(ctx context.Context, req *peerlink.PeerL
 		Res: &peerlink.PeerLinkRes{},
 		Err: nil,
 	}
+	shareNetID, _ := config.GetString("ShareNetID")
+	task.ShareNetID = shareNetID
 
 	task.Run(ctx)
 
@@ -60,6 +70,8 @@ func (pls *PeerLinkService) DeletePeerLink(ctx context.Context, req *peerlink.Pe
 		Res: &peerlink.DeletePeerLinkRes{},
 		Err: nil,
 	}
+	shareNetID, _ := config.GetString("ShareNetID")
+	task.ShareNetID = shareNetID
 
 	task.Run(ctx)
 
@@ -70,20 +82,66 @@ func getCurTime() string {
 	return time.Now().Format("2006-01-02 15:04:05")
 }
 
-type routeInfo struct {
-	routeID string
-	cidr    string
+func getCIDRBySubnetID(client *gophercloud.ServiceClient,
+	subnetID string,
+	cidr *string,
+	wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	subnet, err := subnets.Get(client, subnetID).Extract()
+	if nil != err {
+		*cidr = ""
+	} else {
+		*cidr = subnet.CIDR
+	}
 }
 
-//type baseRPCTask interface {
-//	getOCIRBySubnetID(client *gophercloud.ServiceClient, subnetID string) (string, error)
-//}
-//
-//func (base *baseRPCTask) getOCIRBySubnetID(client *gophercloud.ServiceClient, subnetID string) (string, error) {
-//	subnet, err := subnets.Get(client, subnetID).Extract()
-//	if nil != err {
-//		return "", err
-//	}
-//
-//	return subnet.CIDR, nil
-//}
+func getRouterByRouterID(client *gophercloud.ServiceClient,
+	routerID string,
+	router *routers.Router,
+	wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	ret, err := routers.Get(client, routerID).Extract()
+	if nil == err {
+		*router = *ret
+	}
+}
+
+func getPortByRouterIDAndNetID(client *gophercloud.ServiceClient,
+	routerID string,
+	netID string,
+	port *ports.Port,
+	wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	allPages, err := ports.List(client, ports.ListOpts{
+		DeviceID: routerID,
+	}).AllPages()
+
+	if nil != err {
+		return
+	}
+
+	allPorts, err := ports.ExtractPorts(allPages)
+	if nil != err {
+		return
+	}
+
+	for _, pt := range allPorts {
+		if len(pt.FixedIPs) > 0 && pt.FixedIPs[0].SubnetID == netID {
+			*port = pt
+		}
+	}
+}
+
+func inetntoa(ip int64) string {
+	return fmt.Sprintf("%d.%d.%d.%d",
+		byte(ip>>24), byte(ip>>16), byte(ip>>8), byte(ip))
+}
+
+func inetaton(ip string) int64 {
+	ret := big.NewInt(0)
+	ret.SetBytes(net.ParseIP(ip).To4())
+	return ret.Int64()
+}

@@ -15,7 +15,9 @@ import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/subnetpools"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
+
+	//	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/subnetpools"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 
 	log "github.com/sirupsen/logrus"
@@ -71,7 +73,7 @@ func (rpctask *CreatePeerLinkRPCTask) execute(providers *gophercloud.ProviderCli
 
 	var wg sync.WaitGroup
 	var subnetACIDR, subnetBCIDR string
-	var sharePoolAIP, sharePoolBIP string
+	var availableIP []string = make([]string, 0)
 
 	// 异步获取peera和peerb的子网cidr，后面设置需要用到, 从share net pool获取2个ip
 	{
@@ -86,57 +88,229 @@ func (rpctask *CreatePeerLinkRPCTask) execute(providers *gophercloud.ProviderCli
 
 	{
 		wg.Add(1)
+		go getIPFromSubnet(client, rpctask.ShareNetID, &availableIP, &wg)
 	}
 
 	wg.Wait()
-	if "" == subnetACIDR || "" == subnetBCIDR {
-		log.Error("get cidr by subnetid failed")
-		return common.EPLGETCIDR
+	if "" == subnetACIDR || "" == subnetBCIDR || 0 == len(availableIP) {
+		log.Error("prepare create peer link data failed")
+		return common.EPLCREATEPREPARE
 	}
 
 	// TODO 异步创建interface（route -> share subnet）
+	var peerA, peerB peerlink.PeerLinkRes_LinkConf
 	{
 		wg.Add(1)
+		go addRouteInterfaceToShareNet(client,
+			rpctask.ShareNetID,
+			rpctask.Req.GetPeerARouterid(),
+			availableIP[0],
+			&peerA,
+			&wg)
 	}
 	{
 		wg.Add(1)
+		go addRouteInterfaceToShareNet(client,
+			rpctask.ShareNetID,
+			rpctask.Req.GetPeerBRouterid(),
+			availableIP[1],
+			&peerB,
+			&wg)
 	}
 
 	wg.Wait()
+	if "" == peerA.IntfId || "" == peerB.IntfId {
+		log.WithFields(log.Fields{
+			"peerA": peerA,
+			"peerB": peerB,
+		}).Error("Create router interface failed")
+		return common.EPLCREATEADDINTERFACE
+	}
+
+	// 为路由器添加路由表
+	{
+		wg.Add(1)
+		go addRouteToRouter(client,
+			subnetBCIDR,
+			availableIP[1],
+			rpctask.Req.GetPeerARouterid(),
+			&peerA,
+			&wg)
+	}
+	{
+		wg.Add(1)
+		go addRouteToRouter(client,
+			subnetACIDR,
+			availableIP[0],
+			rpctask.Req.GetPeerBRouterid(),
+			&peerB,
+			&wg)
+
+	}
+
+	wg.Wait()
+	if nil == peerA.RouteToPeer || nil == peerB.RouteToPeer {
+		log.Error("add route to router failed")
+		return common.EPLCREATEADDROUTE
+	}
+
+	rpctask.Res.LinkConfOnPeerA = &peerA
+	rpctask.Res.LinkConfOnPeerB = &peerB
 
 	return common.EOK
 }
 
-func getCIDRBySubnetID(client *gophercloud.ServiceClient, subnetID string, cidr *string, wg *sync.WaitGroup) {
+func addRouteToRouter(client *gophercloud.ServiceClient,
+	cidr string,
+	nexthop string,
+	routerID string,
+	peer *peerlink.PeerLinkRes_LinkConf,
+	wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	// 获取路由器信息
+	router, err := routers.Get(client, routerID).Extract()
+	if nil != err {
+		log.WithFields(log.Fields{
+			"err":      err.Error(),
+			"cidr":     cidr,
+			"nexthop":  nexthop,
+			"routerid": routerID,
+		}).Error("Get router info failed")
+		return
+	}
+
+	routes := append(router.Routes, routers.Route{
+		DestinationCIDR: cidr,
+		NextHop:         nexthop,
+	})
+
+	// 更新路由表
+	router, err = routers.Update(client, routerID, routers.UpdateOpts{
+		Routes: &routes,
+	}).Extract()
+	if nil != err {
+		log.WithFields(log.Fields{
+			"err":     err,
+			"routeID": routerID,
+			"cidr":    cidr,
+			"nexthop": nexthop,
+			"routes":  routes,
+		}).Error("update route to router failed")
+		return
+	}
+
+	peer.RouteToPeer = &peerlink.PeerLinkRes_LinkConf_Route{
+		Destination: cidr,
+		Nexthop:     nexthop,
+	}
+}
+
+func addRouteInterfaceToShareNet(client *gophercloud.ServiceClient,
+	shareNetID string,
+	routeID string,
+	routeInterfaceIP string,
+	peer *peerlink.PeerLinkRes_LinkConf,
+	wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	// 首先必须创建端口
+	port := ports.CreateOpts{
+		NetworkID: "1ad28c94-3298-4cdb-ac5a-e6d08c133818",
+		FixedIPs: []ports.IP{
+			{
+				SubnetID:  shareNetID,
+				IPAddress: routeInterfaceIP,
+			},
+		},
+	}
+
+	pt, err := ports.Create(client, port).Extract()
+	if nil != err {
+		log.WithFields(log.Fields{
+			"err":      err,
+			"SubnetID": shareNetID,
+			"ipaddr":   routeInterfaceIP,
+		}).Error("create ports failed.")
+		return
+	}
+
+	// 将创建的端口与路由绑定，千万别传入SubnetID，否则会出错
+	ifc, err := routers.AddInterface(client, routeID, &routers.AddInterfaceOpts{
+		PortID: pt.ID,
+	}).Extract()
+
+	if nil != err {
+		log.WithFields(log.Fields{
+			"err":        err,
+			"routeID":    routeID,
+			"shareNetID": shareNetID,
+			"PortID":     pt.ID,
+		}).Error("add interface error")
+		return
+	}
+
+	peer.CreatedTime = getCurTime()
+	peer.IntfId = ifc.PortID
+	peer.IntfIp = routeInterfaceIP
+}
+
+func getIPFromSubnet(client *gophercloud.ServiceClient, subnetID string, availableIP *[]string, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	subnet, err := subnets.Get(client, subnetID).Extract()
 	if nil != err {
-		*cidr = ""
-	} else {
-		*cidr = subnet.CIDR
+		log.WithFields(log.Fields{
+			"err":      err,
+			"subnetID": subnetID,
+		}).Error("get subnet by subnetID failed")
+		return
 	}
-}
 
-func addRouteInterfaceToShareNet(client *gophercloud.ServiceClient, shareNetID string, routeID string, routeInterfaceIP *string, wg *sync.WaitGroup) {
-	defer wg.Done()
+	if len(subnet.AllocationPools) == 0 {
+		log.WithFields(log.Fields{
+			"subnetID": subnetID,
+		}).Error("subnet ip pool is empty")
+		return
+	}
 
-	ifc, err := routers.AddInterface(client, routeID, &routers.AddInterfaceOpts{
-		SubnetID: shareNetID,
+	newPool := make([]subnets.AllocationPool, 0)
+	switch subnet.IPVersion {
+	case 4:
+		for _, pools := range subnet.AllocationPools {
+			if len(*availableIP) >= 2 { // 如果申请完了，那么丢到newpool里面用于更新子网ip池子
+				newPool = append(newPool, pools)
+				continue
+			}
+			*availableIP = append(*availableIP, pools.Start)
+			if pools.Start == pools.End { // 首尾ip相同，
+				continue
+			}
+			startIP := inetaton(pools.Start)
+			endIP := inetaton(pools.End)
+			nextIP := startIP + 1
+			*availableIP = append(*availableIP, inetntoa(nextIP))
+
+			if endIP != nextIP { // 如果池子超过2个可用ip，则后续还可以使用
+				newPool = append(newPool, subnets.AllocationPool{
+					Start: inetntoa(nextIP + 1),
+					End:   pools.End,
+				})
+			}
+		}
+		break
+	case 6:
+		break
+	default:
+		break
+	}
+
+	// 更新子网池
+	_, err = subnets.Update(client, subnetID, subnets.UpdateOpts{
+		AllocationPools: newPool,
 	}).Extract()
-
 	if nil != err {
-		*routeInterfaceIP = ""
-		return
-	}
-}
-
-func getIPFromSubnetPool(client *gophercloud.ServiceClient, shareNetID string, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	subnetPool, err := subnetpools.Get(client, shareNetID).Extract()
-	if nil != err {
-		return
+		*availableIP = nil
 	}
 }
 
@@ -157,4 +331,8 @@ func (rpctask *CreatePeerLinkRPCTask) checkParam() error {
 func (rpctask *CreatePeerLinkRPCTask) setResult() {
 	rpctask.Res.Code = rpctask.Err.Code
 	rpctask.Res.Msg = rpctask.Err.Msg
+
+	log.WithFields(log.Fields{
+		"res": rpctask.Res,
+	}).Info("request end")
 }
