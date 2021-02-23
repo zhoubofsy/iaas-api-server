@@ -36,4 +36,42 @@ var (
 	EOSSGETBUCKET       = &Error{Code: 31008, Msg: "OSS get bucket failed"}
 	EOSSNOPAGE          = &Error{Code: 31009, Msg: "OSS no page failed"}
 	EOSSLISTBUCKETS     = &Error{Code: 31010, Msg: "OSS list buckets failed"}
+
+	ENEWCPU      = &Error{Code: 40000, Msg: "nova new compute v2 failed"}
+	ENFLVLIST    = &Error{Code: 40001, Msg: "nova flavor list failed"}
+	ENFLVEXTRACT = &Error{Code: 40002, Msg: "nova flavor extract failed"}
+	ENFLVGET     = &Error{Code: 40003, Msg: "nova flavor get failed"}
+
+	ENEWBLOCK         = &Error{Code: 50000, Msg: "cinder new block v3 failed"}
+	ENEWVOLUME        = &Error{Code: 50001, Msg: "cinder create volume failed"}
+	EDELETEVOLUME     = &Error{Code: 50002, Msg: "cinder delete volume failed"}
+	ESHOWVOLUME       = &Error{Code: 50003, Msg: "cinder show volume info failed"}
+	EEXTENDVOLUMESIZE = &Error{Code: 50004, Msg: "cinder extend volume size failed"}
+	EVOLUMEUPDATE     = &Error{Code: 50005, Msg: "cinder update volume failed"}
+	EVOLUMEATTACH     = &Error{Code: 50006, Msg: "cinder volume attach failed"}
+	EVOLUMEDETACH     = &Error{Code: 50006, Msg: "cinder volume detach failed"}
+
+	ETTGETTENANT        = &Error{Code: 90000, Msg: "tenant get failed"}
+	ETTCREATETENANT     = &Error{Code: 90001, Msg: "tenant create failed"}
+	ETTDELETETENANT     = &Error{Code: 90002, Msg: "tenant delete failed"}
+	ETTISEMPTYTENANT    = &Error{Code: 90003, Msg: "tenant info is empty"}
+	ETTGETTENANTNOTNULL = &Error{Code: 90004, Msg: "tenant info exits"}
+
+	ETTGETMYSQLCLIENT = &Error{Code: 91001, Msg: "mysql client get failed"}
+
+	ETTEDITDOMAIN = &Error{Code: 95001, Msg: "openstack uodate domain failed"}
+
+	ETTCREATEDOMAIN       = &Error{Code: 95001, Msg: "openstack create domain failed"}
+	ETTCREATEPROJECT      = &Error{Code: 95002, Msg: "openstack create project failed"}
+	ETTCREATEUSER         = &Error{Code: 95003, Msg: "openstack create user failed"}
+	ETTCREATEUSERANDROLER = &Error{Code: 95004, Msg: "openstack create user and role relation failed"}
+
+	ETTDELETEDOMAIN  = &Error{Code: 96001, Msg: "openstack delete domain failed"}
+	ETTDELETEPROJECT = &Error{Code: 96002, Msg: "openstack delete project failed"}
+	ETTDELETEUSER    = &Error{Code: 96003, Msg: "openstack delete user failed"}
+
+	ETTGETIDENTITYCLIENT = &Error{Code: 97001, Msg: "openstack get client failed"}
+
+	EIGGETIMAGE   = &Error{Code: 98000, Msg: "openstack get image failed"}
+	EIGLISTIMAGES = &Error{Code: 98001, Msg: "openstack list image failed"}
 )

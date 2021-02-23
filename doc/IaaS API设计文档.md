@@ -102,7 +102,7 @@ message ListFlavorsReq {
   string apikey = 1;
   string tenant_id = 2;
   string platform_userid = 3;
-  int32 page_number = 4;
+  string start_flavor_id = 4;
   int32 page_size = 5;
 }
 
@@ -110,6 +110,7 @@ message ListFlavorsRes {
   int32 code = 1;
   string msg = 2;
   repeated Flavor flavors = 3;
+  string next_flavor_id = 4;
 }
 
 message GetFlavorReq {
@@ -169,7 +170,7 @@ message ListImagesReq {
   string apikey = 1;
   string tenant_id = 2;
   string platform_userid = 3;
-  int32 page_number = 4;
+  string start_image_id = 4;
   int32 page_size = 5;
 }
 
@@ -177,6 +178,7 @@ message ListImagesRes {
   int32 code = 1;
   string msg = 2;
   repeated Image images = 3;
+  string next_image_id = 4;
 }
 
 message GetImageReq {
@@ -191,7 +193,6 @@ message GetImageRes {
   string msg = 2;
   Image image = 3;
 }
-
 ```
 
 ### 获取镜像列表
@@ -260,7 +261,7 @@ message InstanceRes {
     string network_uuid = 10;
     repeated string security_group_name = 11;
     string instance_name = 12;
-    string hypervisor_hostname = 13;
+    string guest_os_hostname = 13;
     string created_time = 14;
     string updated_time = 15;
   }
@@ -280,7 +281,8 @@ message CreateInstanceReq {
   string network_uuid = 10;
   repeated string security_group_name = 11;
   string instance_name = 12;
-  string hypervisor_hostname = 13;
+  string guest_os_hostname = 13;
+  string root_pass = 14;
 }
 
 message GetInstanceReq {
@@ -327,7 +329,6 @@ message OperateInstanceRes {
   string operated_time = 4;
   string operate_type = 5;
 }
-
 ```
 
 ### 创建云主机
@@ -337,9 +338,9 @@ message OperateInstanceRes {
 1. 鉴权 && 查表获取该租户的openstack连接参数
 2. 对传入的volume_type暂不做处理，咱们目前还没有Qos差异化的云硬盘服务
 3. 根据data_disks数组，创建多块数据盘volume;可调用本API种CreateCloudDisk接口
-4. 系统盘（根卷），不先创建，创建server时通过field：block storage maping v2 那段设定，
+4. 系统盘（根卷），不先创建，创建server时通过field：block storage maping v2 那段设定，数据盘volume，也是过field：block storage maping v2 那段设定
 5. 创建 server
-6. 数据盘volume调用nova api的attachvolume 挂到server上
+6. 自定义主机名，自定义root密码，通过在user_data filed中注入脚本实现。
 
 **讨论**：3、5两步各开一个[goroutine](https://www.google.com/search?client=safari&rls=en&q=goroutine&spell=1&sa=X&ved=2ahUKEwienPSlgLfuAhUUP30KHUC3CsoQkeECKAB6BAgKEDU)，主程序等signal，是否可行？
 
@@ -1110,6 +1111,7 @@ message GetRouterRes {
     }
     repeated Intf Intfs = 4;
   }
+  Router router = 3;
 }
 
 message Route {
@@ -1224,7 +1226,7 @@ message DeleteNatGatewayRes {
 
 1. 鉴权 && 查表获取该租户的openstack连接参数；
 2. 根据传入的routerID，调用network V2 sdk中routers.Update方法，为router增加Gatewayinfo field，Gatewayinfo中NetworkID取自external_network_id，EnableSNAT默认设置true；
-3. 创建完成后，会返回exterbal_fixed_ip，该路由器会增加一个新的interface，取出这个interface的interface id作为返回参数中的gateway_id;
+3. 创建完成后，会返回exterbal_fixed_ip，取出这个fix ip结构体的subnet id作为返回参数中的gateway_id;
 
 ### 获取NAT网关信息
 
@@ -1238,7 +1240,90 @@ message DeleteNatGatewayRes {
 要点：
 
 1. 鉴权 && 查表获取该租户的openstack连接参数；
-2. 根据传入的router_id，gateway_id（即路由器连接外网的那个接口的ID），使用network V2 sdk中routers.RemoveInterface相关方法，从路由器上删除该接口即可
+2. 根据传入的router_id，gateway_id，使用network V2 sdk中routers.Update方法，将Gatewayinfo field置空
+
+
+
+## 对等连接相关服务
+
+```
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package peerlink;
+
+//对等连接相关服务
+service PeerLinkService {
+  //创建对等连接
+  rpc CreatePeerLink(PeerLinkReq) returns(PeerLinkRes);
+  //获取对等连接信息
+  rpc GetPeerLink(PeerLinkReq) returns(PeerLinkRes);
+  //删除对等连接
+  rpc DeletePeerLink(PeerLinkReq) returns(DeletePeerLinkRes);
+}
+
+message PeerLinkRes {
+  int32 code = 1;
+  string msg = 2;
+  message LinkConf {
+    string intf_id = 1;
+    string intf_ip = 2;
+    message Route {
+      string destination = 1;
+      string nexthop = 2;
+    }
+    Route route_to_peer = 3;
+    string created_time = 4;
+  }
+  LinkConf link_conf_on_peer_a = 3;
+  LinkConf link_conf_on_peer_b = 4;
+}
+
+message PeerLinkReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string peer_a_subnetid = 4;
+  string peer_a_routerid = 5;
+  string peer_b_subnetid = 6;
+  string peer_b_routerid = 7;
+}
+
+message DeletePeerLinkRes {
+  int32 code = 1;
+  string msg = 2;
+  string peer_a_subnetid = 3;
+  string peer_a_routerid = 4;
+  string peer_b_subnetid = 5;
+  string peer_b_routerid = 6;
+  string deleted_time = 7;
+}
+```
+
+### 创建对等连接
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 先决条件：管理员事先创建一个share类型的网络，该网络的subnetid已知，将此share网络的subnetid作为配置项放入配置文件中
+3. 为peer_a_routerid这个路由器添加一个接口，接口连接的subnetid是share网络的subnetid，接口要指定ip，ip从该share网络的subnetpool中获取；同理，为peer_b_routerid这个路由器添加一个接口，接口连接的subnetid是share网络的subnetid，接口要指定ip，ip从该share网络的subnetpool中获取；
+4. 为peer_a_routerid这个路由器添加一条路由，路由的destination目的网段，是peer_b_subnetid这个子网的cidr，路由的nexthop，是前面第3步，peer_b_routerid这个路由器新加接口的IP；同理，为peer_b_routerid这个路由器添加一条路由，路由的destination目的网段，是peer_a_subnetid这个子网的cidr，路由的nexthop，是前面第3步，peer_a_routerid这个路由器新加接口的IP;
+
+### 获取对等连接信息
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 列出peer_a_routerid这个路由器所有port信息（使用ports2.List方法，listOpts中可以指明deviceid），遍历查找，如果一个port的FixedIPs[0].SubnetID==share网络的subnetid，取出该port的id和FixedIPs[0].IPAddress作为返回值link_conf_on_peer_a中的intf_id和intf_ip；同理，列出peer_b_routerid这个该路由器所有port信息（使用ports2.List方法，listOpts中可以指明deviceid），遍历查找，如果一个port的FixedIPs[0].SubnetID==share网络的subnetid，取出该port的id和FixedIPs[0].IPAddress作为返回值link_conf_on_peer_b中的intf_id和intf_ip；
+3. 列出peer_a_routerid这个路由器所有路由表条目，遍历找出destination目的网段是peer_b_subnetid对应的cidr的那条路由，作为返回值link_conf_on_peer_a中的route_to_peer；同理，列出peer_a_routerid这个路由器所有路由表条目，遍历找出destination目的网段是peer_a_subnetid对应的cidr的那条路由，作为返回值link_conf_on_peer_b中的route_to_peer；
+
+### 删除对等连接
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 针对peer_a_routerid这个路由器：调用routers.RemoveInterface，删除subnetid为share网络id的那个接口，然后调用原生API的remove_extraroutes，删除peer_b_subnetid所对应cidr的路由条目；同理，针对peer_b_routerid这个路由器：调用routers.RemoveInterface，删除subnetid为share网络id的那个接口，调用原生API的remove_extraroutes，删除peer_a_subnetid所对应cidr的路由条目；
 
 
 
