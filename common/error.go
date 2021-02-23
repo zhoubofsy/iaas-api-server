@@ -37,6 +37,17 @@ var (
 	ENFLVEXTRACT = &Error{Code: 40002, Msg: "nova flavor extract failed"}
 	ENFLVGET     = &Error{Code: 40003, Msg: "nova flavor get failed"}
 
+	ENINSQUERYTENANT   = &Error{Code: 40100, Msg: "nova instance query tenant info failed"}
+	ENINSCREATEVOLUME  = &Error{Code: 40101, Msg: "nova instance create volume failed"}
+	ENINSCREATE        = &Error{Code: 40102, Msg: "nova instance create failed"}
+	ENINSQUERY         = &Error{Code: 40103, Msg: "nova instance query failed"}
+	ENINSGET           = &Error{Code: 40104, Msg: "nova instance get failed"}
+	ENINSUPFLAVOR      = &Error{Code: 40105, Msg: "nova instance update flavor failed"}
+	ENINSCONFIRMRESIZE = &Error{Code: 40106, Msg: "nova instance update flavor confirm failed"}
+	ENINSDEL           = &Error{Code: 40107, Msg: "nova instance delete failed"}
+	ENINSOPUNKNOWN     = &Error{Code: 40108, Msg: "nova instance operation not supported"}
+	ENINSOP            = &Error{Code: 40109, Msg: "nova instance operate failed"}
+
 	ENEWBLOCK         = &Error{Code: 50000, Msg: "cinder new block v3 failed"}
 	ENEWVOLUME        = &Error{Code: 50001, Msg: "cinder create volume failed"}
 	EDELETEVOLUME     = &Error{Code: 50002, Msg: "cinder delete volume failed"}
