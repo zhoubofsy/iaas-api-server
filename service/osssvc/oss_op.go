@@ -2,14 +2,13 @@ package osssvc
 
 import (
 	"strconv"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"liyongcool.nat300.top/bozhou/go-radosgw/pkg/api"
-	"liyongcool.nat300.top/iaas/iaas-api-server/common"
-	"liyongcool.nat300.top/iaas/iaas-api-server/proto/oss"
+	"github.com/zhoubofsy/go-radosgw/pkg/api"
+	"iaas-api-server/common"
+	"iaas-api-server/proto/oss"
 )
 
 type Authorization interface {
@@ -336,9 +335,15 @@ func (o *CreateUserAndBucketOp) Predo() error {
 
 func (o *CreateUserAndBucketOp) Do() error {
 	// Get Endpoint via Region from config file
-	endpoint := o.conf.GetEndpointByRegion(o.Req.Region)
+	endpoint,err := o.conf.GetEndpointByRegion(o.Req.Region)
+	if nil!=err {
+		return err
+	}
 	// Read Access & Secret keys
-	access, secret := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
+	access, secret,err:= o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
+	if nil!=err {
+		return err
+	}
 	maxObjs := o.Req.UserMaxObjects
 	maxSize := o.Req.UserMaxSizeInG * 1024 * 1024
 
@@ -413,9 +418,15 @@ func (o *GetBucketInfoOp) Predo() error {
 
 func (o *GetBucketInfoOp) Do() error {
 	// Get Endpoint via Region from config file
-	endpoint := o.conf.GetEndpointByRegion(o.Req.Region)
+	endpoint,err := o.conf.GetEndpointByRegion(o.Req.Region)
+	if nil!=err {
+		return err
+	}
 	// Read Access & Secret keys
-	access, secret := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
+	access, secret,err := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
+	if nil!=err {
+		return err
+	}
 
 	userOperator := UserOp{EndpointAddr: endpoint, Access: access, Secret: secret}
 	userOperator.Init()
@@ -475,9 +486,15 @@ func (o *ListBucketsInfoOp) Predo() error {
 
 func (o *ListBucketsInfoOp) Do() error {
 	// Get Endpoint via Region from config file
-	endpoint := o.conf.GetEndpointByRegion(o.Req.Region)
+	endpoint,err := o.conf.GetEndpointByRegion(o.Req.Region)
+	if nil!=err {
+		return err
+	}
 	// Read Access & Secret keys
-	access, secret := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
+	access, secret,err := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
+	if nil!=err {
+		return err
+	}
 
 	userOperator := UserOp{EndpointAddr: endpoint, Access: access, Secret: secret}
 	userOperator.Init()
@@ -541,16 +558,21 @@ func (o *SetOssUserQuotaOp) Predo() error {
 
 func (o *SetOssUserQuotaOp) Do() error {
 	// Get Endpoint via Region from config file
-	endpoint := o.conf.GetEndpointByRegion(o.Req.Region)
+	endpoint,err := o.conf.GetEndpointByRegion(o.Req.Region)
+	if nil!=err {
+		return err
+	}
 	// Read Access & Secret keys
-	access, secret := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
-
+	access, secret,err := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
+	if nil!=err {
+		return err
+	}
 	userOperator := UserOp{EndpointAddr: endpoint, Access: access, Secret: secret}
 	userOperator.Init()
 
 	maxSize := int(o.Req.UserMaxSizeInG * 1024 * 1024)
 	maxObjs := int(o.Req.UserMaxObjects)
-	err := userOperator.SetUserSizeQuota(o.Req.OssUid, maxSize)
+	err = userOperator.SetUserSizeQuota(o.Req.OssUid, maxSize)
 	if err != nil {
 		return common.EOSSSETQUOTAS
 	}
@@ -608,10 +630,15 @@ func (o *RecoverKeyOp) Predo() error {
 
 func (o *RecoverKeyOp) Do() error {
 	// Get Endpoint via Region from config file
-	endpoint := o.conf.GetEndpointByRegion(o.Req.Region)
+	endpoint,err := o.conf.GetEndpointByRegion(o.Req.Region)
+	if nil!=err {
+		return err
+	}
 	// Read Access & Secret keys
-	access, secret := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
-
+	access, secret,err := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
+	if nil!=err {
+		return err
+	}
 	userOperator := UserOp{EndpointAddr: endpoint, Access: access, Secret: secret}
 	userOperator.Init()
 	userInfo, err := userOperator.GetUserInfo(o.Req.OssUid)

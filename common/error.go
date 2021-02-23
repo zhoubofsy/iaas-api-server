@@ -58,6 +58,7 @@ var (
 	ETTGETTENANTNOTNULL = &Error{Code: 90004, Msg: "tenant info exits"}
 
 	ETTGETMYSQLCLIENT = &Error{Code: 91001, Msg: "mysql client get failed"}
+	EOSSGETCONFIG=&Error{Code: 91005, Msg: "get oss config failed"}
 
 	ETTEDITDOMAIN = &Error{Code: 95001, Msg: "openstack uodate domain failed"}
 

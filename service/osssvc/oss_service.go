@@ -2,8 +2,8 @@ package osssvc
 
 import (
 	"golang.org/x/net/context"
-	"liyongcool.nat300.top/iaas/iaas-api-server/common"
-	"liyongcool.nat300.top/iaas/iaas-api-server/proto/oss"
+	"iaas-api-server/common"
+	"iaas-api-server/proto/oss"
 )
 
 type OSSService struct {

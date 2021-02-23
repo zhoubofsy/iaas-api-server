@@ -34,6 +34,18 @@ func InitDb() (bool) {
 	}
 	return true
 }
+func QueryOssConfigByRegion(region string)(OssConfig,error)  {
+	sqlStr := "SELECT id, region, access_key, secret_key, endpoint, description FROM oss_config where region = ? "
+	var ossConfig OssConfig
+	err := db.QueryRow(sqlStr,region).Scan(&ossConfig.ID, &ossConfig.Region,&ossConfig.AccessKey,&ossConfig.SecretKey,&ossConfig.Endpoint,&ossConfig.Description)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err": err,
+		}).Error("query sssConfig by region failed.")
+		return ossConfig,EOSSGETCONFIG
+	}
+	return ossConfig, nil
+}
 func QueryTenantInfoByTenantIdAndApikey(tenantID string,apiKey string) (TenantInfo,*Error) {
 	sqlStr := "SELECT tenant_id,tenant_name,openstack_domainname,openstack_domainid,openstack_projectname,openstack_projectid,openstack_username,openstack_userid,openstack_password,openstack_rolename,openstack_roleid,apikey FROM tenant_info where tenant_id =? and apikey=?"
 	var tenantInfo TenantInfo
@@ -78,7 +90,7 @@ func CreateTenantInfo(tenantInfo TenantInfo) (createTenantFlag bool) {
 	return false
 }
 
-func DeleteTenant(tenantID string) {
+func DeleteTenantInfo(tenantID string) {
 	sqlStr := "delete from tenant_info where tenant_id = ?"
 	_, err := db.Exec(sqlStr, tenantID)
 	if err != nil {
@@ -102,7 +114,18 @@ type TenantInfo struct {
 	OpenstackRoleid      string
 	ApiKey               string
 }
-
 func (tenantInfo TenantInfo) IsEmpty() bool {
 	return reflect.DeepEqual(tenantInfo, TenantInfo{})
+}
+
+type OssConfig struct {
+	ID string
+	Region string
+	AccessKey string
+	SecretKey string
+	Endpoint string
+	Description string
+}
+func (ossConfig OssConfig) IsEmpty() bool {
+	return reflect.DeepEqual(ossConfig, OssConfig{})
 }
