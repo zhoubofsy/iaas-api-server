@@ -31,6 +31,7 @@ type InstanceService struct {
 //   - 挂载系统盘、数据盘 (gosdk 暂不支持, 用原生 api 实现)
 //   - 修改 hostname、root密码
 func (is *InstanceService) CreateInstance(ctx context.Context, req *instance.CreateInstanceReq) (*instance.InstanceRes, error) {
+	timer := common.NewTimer()
 	log.Info("rpc CreateInstance req: ", req)
 	res := &instance.InstanceRes{}
 
@@ -227,12 +228,13 @@ func (is *InstanceService) CreateInstance(ctx context.Context, req *instance.Cre
 	}
 	 */
 
-	log.Info("rpc CreateInstance res: ", res)
+	log.Info("rpc CreateInstance res: ", res, ". time elapse: ", timer.Elapse())
 	return res, nil
 }
 
 // GetInstance 获取云主机信息
 func (is *InstanceService) GetInstance(ctx context.Context, req *instance.GetInstanceReq) (*instance.InstanceRes, error) {
+	timer := common.NewTimer()
 	log.Info("rpc GetInstance req: ", req)
 	res := &instance.InstanceRes{}
 
@@ -291,7 +293,7 @@ func (is *InstanceService) GetInstance(ctx context.Context, req *instance.GetIns
 	//   - addr
 	//   - flavor sec
 
-	log.Info("rpc GetInstance res: ", res)
+	log.Info("rpc GetInstance res: ", res, ", time elapse: ", timer.Elapse())
 	return res, nil
 }
 
