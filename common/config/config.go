@@ -40,7 +40,7 @@ func InitConfig(path string) bool {
 		s := strings.TrimSpace(string(b))
 
 		// # 开头的行是注释, 目前只支持单行注释，不支持行尾注释
-		if s[0] == '#' {
+		if s == "" || s[0] == '#' {
 			continue
 		}
 
@@ -66,7 +66,7 @@ func InitConfig(path string) bool {
 
 		//把配置文件里的属性key=value对，成功载入到内存中c对象里
 		configMap[key] = value
-		fmt.Println("add config %s:%s", key, value)
+		fmt.Printf("add config %s = %s\n", key, value)
 	}
 	return true
 }
