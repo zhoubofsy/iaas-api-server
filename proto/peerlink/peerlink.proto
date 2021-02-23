@@ -1,0 +1,52 @@
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package peerlink;
+
+//对等连接相关服务
+service PeerLinkService {
+  //创建对等连接
+  rpc CreatePeerLink(PeerLinkReq) returns(PeerLinkRes);
+  //获取对等连接信息
+  rpc GetPeerLink(PeerLinkReq) returns(PeerLinkRes);
+  //删除对等连接
+  rpc DeletePeerLink(PeerLinkReq) returns(DeletePeerLinkRes);
+}
+
+message PeerLinkRes {
+  int32 code = 1;
+  string msg = 2;
+  message LinkConf {
+    string intf_id = 1;
+    string intf_ip = 2;
+    message Route {
+      string destination = 1;
+      string nexthop = 2;
+    }
+    Route route_to_peer = 3;
+    string created_time = 4;
+  }
+  LinkConf link_conf_on_peer_a = 3;
+  LinkConf link_conf_on_peer_b = 4;
+}
+
+message PeerLinkReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string peer_a_subnetid = 4;
+  string peer_a_routerid = 5;
+  string peer_b_subnetid = 6;
+  string peer_b_routerid = 7;
+}
+
+message DeletePeerLinkRes {
+  int32 code = 1;
+  string msg = 2;
+  string peer_a_subnetid = 3;
+  string peer_a_routerid = 4;
+  string peer_b_subnetid = 5;
+  string peer_b_routerid = 6;
+  string deleted_time = 7;
+}

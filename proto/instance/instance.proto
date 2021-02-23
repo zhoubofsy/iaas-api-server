@@ -31,6 +31,13 @@ message CloudDiskConf {
   int32 size_in_g = 2;
 }
 
+message CloudDiskInfo {
+  string volume_type = 1;
+  int32 size_in_g = 2;
+  string device = 3;
+  string volume_id = 4;
+}
+
 message InstanceRes {
   int32 code = 1;
   string msg = 2;
@@ -42,8 +49,8 @@ message InstanceRes {
     string availability_zone = 5;
     Flavor flavor = 6;
     string image_ref = 7;
-    CloudDiskConf system_disk = 8;
-    repeated CloudDiskConf data_disks = 9;
+    CloudDiskInfo system_disk = 8;
+    repeated CloudDiskInfo data_disks = 9;
     string network_uuid = 10;
     repeated string security_group_name = 11;
     string instance_name = 12;
