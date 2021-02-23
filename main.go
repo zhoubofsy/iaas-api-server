@@ -1,12 +1,18 @@
 package main
 
 import (
+	"flag"
 	"iaas-api-server/common"
+	"iaas-api-server/common/config"
+	"iaas-api-server/proto/flavor"
 	"iaas-api-server/proto/image"
+	"iaas-api-server/proto/instance"
 	"iaas-api-server/proto/natgateway"
 	"iaas-api-server/proto/securitygroup"
 	"iaas-api-server/proto/tenant"
+	"iaas-api-server/service/flavorsvc"
 	"iaas-api-server/service/imagesvc"
+	"iaas-api-server/service/instancesvc"
 	"iaas-api-server/service/natgatewaysvc"
 	"os"
 
@@ -39,10 +45,21 @@ func init() {
 	log.SetReportCaller(true)
 }
 
+var (
+	conf = flag.String("conf", "", "config file")
+	addr = flag.String("addr", ":8080", "listening address")
+)
+
 func main() {
+	flag.Parse()
+	if (*conf != "") {
+		config.InitConfig(*conf)
+	}
+
 	rpcServer := grpc.NewServer()
 	//注册服务
-	//	flavor.RegisterFlavorServiceServer(rpcServer, &flavorsvc.FlavorService{})
+	flavor.RegisterFlavorServiceServer(rpcServer, &flavorsvc.FlavorService{})
+	instance.RegisterInstanceServiceServer(rpcServer, &instancesvc.InstanceService{})
 	image.RegisterImageServiceServer(rpcServer, &imagesvc.ImageService{})
 	//	nasdisk.RegisterNasDiskServiceServer(rpcServer, &nasdisksvc.NasDiskService{})
 	//	oss.RegisterOSSServiceServer(rpcServer, &osssvc.OssService{})
@@ -53,7 +70,7 @@ func main() {
 	natgateway.RegisterNatGatewayServiceServer(rpcServer, &natgatewaysvc.NatGatewayService{})
 	//peerlink.RegisterPeerLinkServiceServer(rpcServer, &peerlinksvc.PeerLinkService{})
 
-	listener, err := net.Listen("tcp", ":8080")
+	listener, err := net.Listen("tcp", *addr)
 	if err != nil {
 		log.Fatal("服务监听端口失败", err)
 	}
