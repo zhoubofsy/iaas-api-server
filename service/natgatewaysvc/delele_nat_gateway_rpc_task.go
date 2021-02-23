@@ -101,5 +101,10 @@ func (rpctask *DeleteNatGatewayRPCTask) setResult() {
 	rpctask.Res.Msg = rpctask.Err.Msg
 	rpctask.Res.RouterId = rpctask.Req.GetRouterId()
 	rpctask.Res.GatewayId = rpctask.Req.GetGatewayId()
-	rpctask.Res.DeletedTime = getCurTime()
+	rpctask.Res.DeletedTime = common.Now()
+
+	log.WithFields(log.Fields{
+		"req": rpctask.Req,
+		"res": rpctask.Res,
+	}).Info("request end")
 }

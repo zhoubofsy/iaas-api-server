@@ -178,4 +178,9 @@ func (rpctask *UpdateSecurityGroupRPCTask) checkParam() error {
 func (rpctask *UpdateSecurityGroupRPCTask) setResult() {
 	rpctask.Res.Code = rpctask.Err.Code
 	rpctask.Res.Msg = rpctask.Err.Msg
+
+	log.WithFields(log.Fields{
+		"req": rpctask.Req,
+		"res": rpctask.Res,
+	}).Info("request end")
 }

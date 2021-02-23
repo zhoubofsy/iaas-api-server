@@ -86,7 +86,7 @@ func (rpctask *GetSecurityGroupRPCTask) execute(providers *gophercloud.ProviderC
 		UpdatedTime:       group.UpdatedAt.String(),
 	}
 	if len(group.Rules) > 0 {
-		cur := getCurTime()
+		cur := common.Now()
 		rpctask.Res.SecurityGroup.SecurityGroupRules = make([]*securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule, len(group.Rules))
 		for index, rule := range group.Rules {
 			rpctask.Res.SecurityGroup.SecurityGroupRules[index] = &securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule{
@@ -120,4 +120,9 @@ func (rpctask *GetSecurityGroupRPCTask) checkParam() error {
 func (rpctask *GetSecurityGroupRPCTask) setResult() {
 	rpctask.Res.Code = rpctask.Err.Code
 	rpctask.Res.Msg = rpctask.Err.Msg
+
+	log.WithFields(log.Fields{
+		"req": rpctask.Req,
+		"res": rpctask.Res,
+	}).Info("request end")
 }

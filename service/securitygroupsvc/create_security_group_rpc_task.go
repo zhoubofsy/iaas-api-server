@@ -94,7 +94,7 @@ func (rpctask *CreateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 	}
 
 	if len(group.Rules) > 0 {
-		cur := getCurTime()
+		cur := common.Now()
 		for _, rule := range group.Rules {
 			rpctask.Res.SecurityGroup.SecurityGroupRules = append(rpctask.Res.SecurityGroup.SecurityGroupRules, &securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule{
 				RuleId:          rule.ID,
@@ -136,7 +136,7 @@ func (rpctask *CreateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 				continue
 			}
 
-			cur := getCurTime()
+			cur := common.Now()
 			rpctask.Res.SecurityGroup.SecurityGroupRules = append(rpctask.Res.SecurityGroup.SecurityGroupRules, &securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule{
 				RuleId:          rl.ID,
 				RuleDesc:        rl.Description,
@@ -168,4 +168,9 @@ func (rpctask *CreateSecurityGroupRPCTask) checkParam() error {
 func (rpctask *CreateSecurityGroupRPCTask) setResult() {
 	rpctask.Res.Code = rpctask.Err.Code
 	rpctask.Res.Msg = rpctask.Err.Msg
+
+	log.WithFields(log.Fields{
+		"req": rpctask.Req,
+		"res": rpctask.Res,
+	}).Info("request end")
 }

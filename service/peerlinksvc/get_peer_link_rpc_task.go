@@ -138,7 +138,7 @@ func (rpctask *GetPeerLinkRPCTask) execute(providers *gophercloud.ProviderClient
 	for _, route := range routerA.Routes {
 		if route.DestinationCIDR == subnetBCIDR {
 			rpctask.Res.LinkConfOnPeerA = &peerlink.PeerLinkRes_LinkConf{
-				CreatedTime: getCurTime(),
+				CreatedTime: common.Now(),
 				RouteToPeer: &peerlink.PeerLinkRes_LinkConf_Route{
 					Destination: route.DestinationCIDR,
 					Nexthop:     route.NextHop,
@@ -153,7 +153,7 @@ func (rpctask *GetPeerLinkRPCTask) execute(providers *gophercloud.ProviderClient
 	for _, route := range routerB.Routes {
 		if route.DestinationCIDR == subnetACIDR {
 			rpctask.Res.LinkConfOnPeerB = &peerlink.PeerLinkRes_LinkConf{
-				CreatedTime: getCurTime(),
+				CreatedTime: common.Now(),
 				RouteToPeer: &peerlink.PeerLinkRes_LinkConf_Route{
 					Destination: route.DestinationCIDR,
 					Nexthop:     route.NextHop,
@@ -183,4 +183,9 @@ func (rpctask *GetPeerLinkRPCTask) checkParam() error {
 func (rpctask *GetPeerLinkRPCTask) setResult() {
 	rpctask.Res.Code = rpctask.Err.Code
 	rpctask.Res.Msg = rpctask.Err.Msg
+
+	log.WithFields(log.Fields{
+		"req": rpctask.Req,
+		"res": rpctask.Res,
+	}).Info("request end")
 }

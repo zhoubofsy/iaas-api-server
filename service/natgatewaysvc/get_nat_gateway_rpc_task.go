@@ -80,7 +80,7 @@ func (rpctask *GetNatGatewayRPCTask) execute(providers *gophercloud.ProviderClie
 		RouterId:          rpctask.Req.GetRouterId(),
 		ExternalNetworkId: router.GatewayInfo.NetworkID,
 		EnableSnat:        *(router.GatewayInfo.EnableSNAT),
-		CreatedTime:       getCurTime(),
+		CreatedTime:       common.Now(),
 	}
 
 	// TODO ExternalFixedIPs 可能有多个，通常只会有一个，但是不能排除多个的情况
@@ -105,4 +105,9 @@ func (rpctask *GetNatGatewayRPCTask) checkParam() error {
 func (rpctask *GetNatGatewayRPCTask) setResult() {
 	rpctask.Res.Code = rpctask.Err.Code
 	rpctask.Res.Msg = rpctask.Err.Msg
+
+	log.WithFields(log.Fields{
+		"req": rpctask.Req,
+		"res": rpctask.Res,
+	}).Info("request end")
 }

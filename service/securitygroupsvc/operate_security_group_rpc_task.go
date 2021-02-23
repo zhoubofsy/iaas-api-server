@@ -133,7 +133,12 @@ func (rpctask *OperateSecurityGroupRPCTask) checkParam() error {
 func (rpctask *OperateSecurityGroupRPCTask) setResult() {
 	rpctask.Res.Code = rpctask.Err.Code
 	rpctask.Res.Msg = rpctask.Err.Msg
-	rpctask.Res.OperateedTime = getCurTime()
+	rpctask.Res.OperateedTime = common.Now()
 	rpctask.Res.OpsType = rpctask.Req.GetOpsType()
 	rpctask.Res.SecurityGroupId = rpctask.Req.GetSecurityGroupId()
+
+	log.WithFields(log.Fields{
+		"req": rpctask.Req,
+		"res": rpctask.Res,
+	}).Info("request end")
 }

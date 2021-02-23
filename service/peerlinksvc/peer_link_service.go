@@ -13,7 +13,6 @@ import (
 	"math/big"
 	"net"
 	"sync"
-	"time"
 
 	"golang.org/x/net/context"
 
@@ -76,10 +75,6 @@ func (pls *PeerLinkService) DeletePeerLink(ctx context.Context, req *peerlink.Pe
 	task.Run(ctx)
 
 	return task.Res, status.Error(codes.OK, "success")
-}
-
-func getCurTime() string {
-	return time.Now().Format("2006-01-02 15:04:05")
 }
 
 func getCIDRBySubnetID(client *gophercloud.ServiceClient,

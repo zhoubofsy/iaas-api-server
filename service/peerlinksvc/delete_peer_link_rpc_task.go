@@ -187,5 +187,10 @@ func (rpctask *DeletePeerLinkRPCTask) setResult() {
 	rpctask.Res.PeerASubnetid = rpctask.Req.PeerASubnetid
 	rpctask.Res.PeerBRouterid = rpctask.Req.PeerBRouterid
 	rpctask.Res.PeerBSubnetid = rpctask.Req.PeerBSubnetid
-	rpctask.Res.DeletedTime = getCurTime()
+	rpctask.Res.DeletedTime = common.Now()
+
+	log.WithFields(log.Fields{
+		"req": rpctask.Req,
+		"res": rpctask.Res,
+	}).Info("request end")
 }

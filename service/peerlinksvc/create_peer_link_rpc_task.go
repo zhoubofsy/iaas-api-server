@@ -250,7 +250,7 @@ func addRouteInterfaceToShareNet(client *gophercloud.ServiceClient,
 		return
 	}
 
-	peer.CreatedTime = getCurTime()
+	peer.CreatedTime = common.Now()
 	peer.IntfId = ifc.PortID
 	peer.IntfIp = routeInterfaceIP
 }
@@ -333,6 +333,7 @@ func (rpctask *CreatePeerLinkRPCTask) setResult() {
 	rpctask.Res.Msg = rpctask.Err.Msg
 
 	log.WithFields(log.Fields{
+		"req": rpctask.Req,
 		"res": rpctask.Res,
 	}).Info("request end")
 }
