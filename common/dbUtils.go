@@ -9,6 +9,7 @@ package common
 
 import (
 	"database/sql"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -20,7 +21,7 @@ var db = &sql.DB{}
 func InitDb() (bool) {
 	driverName:=os.Getenv("DRIVER_NAME")
 	dbBHostIP:=os.Getenv("DB_HOST_IP")
-	dbUserName:=os.Getenv("DB_USER_NAME")
+	dbUserName:=os.Getenv("DB_USERNAME")
 	dbPassWord:=os.Getenv("DB_PASSWORD")
 	dbName:=os.Getenv("DB_NAME")
 	dns:= dbUserName + ":" + dbPassWord + "@tcp(" + dbBHostIP + ")/" + dbName
@@ -34,7 +35,7 @@ func InitDb() (bool) {
 	}
 	return true
 }
-func QueryTenantInfoByTenantIdAndApikey(tenantID string,apiKey string) (TenantInfo,*Error) {
+func QueryTenantInfoByTenantIdAndApikey(tenantID string,apiKey string) (TenantInfo,error) {
 	sqlStr := "SELECT tenant_id,tenant_name,openstack_domainname,openstack_domainid,openstack_projectname,openstack_projectid,openstack_username,openstack_userid,openstack_password,openstack_rolename,openstack_roleid,apikey FROM tenant_info where tenant_id =? and apikey=?"
 	var tenantInfo TenantInfo
 	err := db.QueryRow(sqlStr,tenantID,apiKey).Scan(&tenantInfo.TenantID, &tenantInfo.TenantName,&tenantInfo.OpenstackDomainname,&tenantInfo.OpenstackDomainid,&tenantInfo.OpenstackProjectname,&tenantInfo.OpenstackProjectid,&tenantInfo.OpenstackUsername,&tenantInfo.OpenstackUserid,&tenantInfo.OpenstackPassword,&tenantInfo.OpenstackRolename,&tenantInfo.OpenstackRoleid,&tenantInfo.ApiKey)
@@ -47,7 +48,7 @@ func QueryTenantInfoByTenantIdAndApikey(tenantID string,apiKey string) (TenantIn
 	return tenantInfo, nil
 }
 
-func QueryTenantInfoByTenantName(name string) (string, *Error) {
+func QueryTenantInfoByTenantName(name string) (string, error) {
 	sqlStr := "SELECT tenant_id,tenant_name FROM tenant_info where tenant_name =?"
 	var tenantInfo TenantInfo
 	err := db.QueryRow(sqlStr, name).Scan(&tenantInfo.TenantID, &tenantInfo.TenantName)
@@ -58,6 +59,20 @@ func QueryTenantInfoByTenantName(name string) (string, *Error) {
 		return "", ETTGETTENANT
 	}
 	return tenantInfo.TenantID, nil
+}
+
+func GetTenantIDSeq() (string,error) {
+	sqlStr :="select nextval(seq)"
+	var nextVal int32
+	err := db.QueryRow(sqlStr).Scan(&nextVal)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err": err,
+		}).Error("query tenantId seq failed.")
+		return "", ETTGETENATSEQ
+	}
+	valStr:=fmt.Sprintf("%010d",nextVal)
+	return valStr, nil
 }
 
 func CreateTenantInfo(tenantInfo TenantInfo) (createTenantFlag bool) {
@@ -84,7 +99,7 @@ func DeleteTenant(tenantID string) {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
-		}).Error("createTenantInfo failed.")
+		}).Error("delete tenant info failed.")
 	}
 }
 // TenantInfo for tenant
