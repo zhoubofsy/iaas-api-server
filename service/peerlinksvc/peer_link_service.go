@@ -126,6 +126,7 @@ func getPortByRouterIDAndNetID(client *gophercloud.ServiceClient,
 	for _, pt := range allPorts {
 		if len(pt.FixedIPs) > 0 && pt.FixedIPs[0].SubnetID == netID {
 			*port = pt
+			return
 		}
 	}
 }

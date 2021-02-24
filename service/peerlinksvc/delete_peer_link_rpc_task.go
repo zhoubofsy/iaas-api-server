@@ -10,11 +10,14 @@ package peerlinksvc
 
 import (
 	"errors"
+	"sort"
 	"sync"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
@@ -93,13 +96,15 @@ func (rpctask *DeletePeerLinkRPCTask) execute(providers *gophercloud.ProviderCli
 		return common.EPLDELETEPREPARE
 	}
 
-	// TODO 从路由器里面删除接口跟路由表
+	// TODO 从路由器里面删除接口跟路由表, 获取对应的router ip，把ip还给sharenet子网池
+	var routerIP = []int64{0, 0} // 用来存放ip的int值，方便后续快速归还ip
 	{
 		wg.Add(1)
 		go removeRouteFromRouter(client,
 			subnetACIDR,
 			rpctask.Req.GetPeerBRouterid(),
 			rpctask.ShareNetID,
+			&routerIP[0],
 			&wg)
 	}
 	{
@@ -108,7 +113,46 @@ func (rpctask *DeletePeerLinkRPCTask) execute(providers *gophercloud.ProviderCli
 			subnetBCIDR,
 			rpctask.Req.GetPeerARouterid(),
 			rpctask.ShareNetID,
+			&routerIP[1],
 			&wg)
+	}
+
+	wg.Wait()
+
+	// TODO 上面的逻辑没有拿到router从sharenet获取的ip，那么从router的interface获取ip
+	if 0 == routerIP[0] {
+		var portsA ports.Port
+		wg.Add(1)
+		go getPortByRouterIDAndNetID(client,
+			rpctask.Req.GetPeerARouterid(),
+			rpctask.ShareNetID,
+			&portsA,
+			&wg)
+		if 0 != len(portsA.FixedIPs) {
+			routerIP[0] = inetaton(portsA.FixedIPs[0].IPAddress)
+		}
+	}
+
+	if 0 == routerIP[1] {
+		var portsB ports.Port
+		wg.Add(1)
+		go getPortByRouterIDAndNetID(client,
+			rpctask.Req.GetPeerBRouterid(),
+			rpctask.ShareNetID,
+			&portsB,
+			&wg)
+		if 0 != len(portsB.FixedIPs) {
+			routerIP[1] = inetaton(portsB.FixedIPs[0].IPAddress)
+		}
+	}
+
+	wg.Wait()
+
+	// 归还ip给子网池
+	sort.Slice(routerIP, func(i, j int) bool { return routerIP[i] < routerIP[j] })
+	{
+		wg.Add(1)
+		go giveBackIPToSubnet(client, rpctask.ShareNetID, routerIP, len(routerIP), &wg)
 	}
 
 	wg.Wait()
@@ -116,7 +160,48 @@ func (rpctask *DeletePeerLinkRPCTask) execute(providers *gophercloud.ProviderCli
 	return common.EOK
 }
 
-func removeRouteFromRouter(client *gophercloud.ServiceClient, cidr string, routerID string, shareNetID string, wg *sync.WaitGroup) {
+func giveBackIPToSubnet(client *gophercloud.ServiceClient,
+	subnetID string,
+	ip []int64,
+	length int,
+	wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	subnet, err := subnets.Get(client, subnetID).Extract()
+	if nil != err {
+		log.WithFields(log.Fields{
+			"err":      err,
+			"subnetID": subnetID,
+		}).Error("get subnet by subnetID failed")
+		return
+	}
+
+	if len(subnet.AllocationPools) == 0 {
+		log.WithFields(log.Fields{
+			"subnetID": subnetID,
+		}).Error("subnet ip pool is empty")
+	}
+
+	for i := 0; i < length; i++ {
+		switch subnet.IPVersion {
+		case 4:
+			break
+		case 6: // 暂时没考虑ipv6
+			log.Error("not surpport ipv6")
+			break
+		default:
+			log.Error("ipversion is not 4 or 6")
+			break
+		}
+	}
+}
+
+func removeRouteFromRouter(client *gophercloud.ServiceClient,
+	cidr string,
+	routerID string,
+	shareNetID string,
+	routerIP *int64,
+	wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// 获取路由器信息
@@ -134,6 +219,8 @@ func removeRouteFromRouter(client *gophercloud.ServiceClient, cidr string, route
 	for _, route := range router.Routes {
 		if route.DestinationCIDR != cidr {
 			routes = append(routes, route)
+		} else {
+			*routerIP = inetaton(route.NextHop)
 		}
 	}
 

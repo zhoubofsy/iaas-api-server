@@ -299,9 +299,11 @@ func getIPFromSubnet(client *gophercloud.ServiceClient, subnetID string, availab
 			}
 		}
 		break
-	case 6:
+	case 6: // TODO 暂时没考虑ipv6
+		log.Error("not surpport ipv6")
 		break
 	default:
+		log.Error("ipversion is not 4 or 6")
 		break
 	}
 
