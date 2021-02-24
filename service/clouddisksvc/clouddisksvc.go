@@ -1,6 +1,8 @@
 package clouddisksvc
 
 import (
+	"time"
+
 	//"fmt"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
@@ -8,20 +10,17 @@ import (
 	cinder "github.com/gophercloud/gophercloud/openstack/blockstorage/v3/volumes"
 	nova_op "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach"
 	log "github.com/sirupsen/logrus"
-	"iaas-api-server/common/config"
-	"iaas/configmap"
-
-	//"golang.org/x/net/context"
+	"golang.org/x/net/context"
 	"iaas-api-server/common"
+	"iaas-api-server/common/config"
 	"iaas-api-server/proto/clouddisk"
-	"time"
 )
 
 type CloudDiskService struct {
 }
 
 //创建云硬盘
-func (clouddisktask *CloudDiskService) CreateCloudDisk(req *clouddisk.CreateCloudDiskReq) (*clouddisk.CloudDiskRes, error) {
+func (clouddisktask *CloudDiskService) CreateCloudDisk(ctx context.Context, req *clouddisk.CreateCloudDiskReq) (*clouddisk.CloudDiskRes, error) {
 
 	res := &clouddisk.CloudDiskRes{}
 
@@ -58,25 +57,65 @@ func (clouddisktask *CloudDiskService) CreateCloudDisk(req *clouddisk.CreateClou
 		return res, err
 	}
 
-	res.CloudDisk.VolumeId = ret.ID
-	res.CloudDisk.AvailabilityZone = ret.AvailabilityZone
-	res.CloudDisk.VolumeName = ret.Name
-	res.CloudDisk.CloudDiskConf.VolumeType = ret.VolumeType
-	res.CloudDisk.CloudDiskConf.SizeInG = int32(ret.Size) //类型不一致，使用强转
-	res.CloudDisk.VolumeDesc = ret.Description
-	res.CloudDisk.Region = req.Region
-	res.CloudDisk.VolumeStatus = ret.Status
-	res.CloudDisk.CreatedTime = ret.CreatedAt.String()
-	res.CloudDisk.UpdatedTime = ret.UpdatedAt.String()
-	res.CloudDisk.AttachInstanceId = ret.Attachments[0].ServerID
-	res.CloudDisk.AttachInstanceDevice = ret.Attachments[0].Device
-	res.CloudDisk.AttachedTime = ret.Attachments[0].AttachedAt.String()
+	res.CloudDisk = &clouddisk.CloudDiskRes_CloudDisk{
+		VolumeId:         ret.ID,
+		AvailabilityZone: ret.AvailabilityZone,
+		VolumeName:       ret.Name,
+		CloudDiskConf: &clouddisk.CloudDiskConf{
+			VolumeType: ret.VolumeType,
+			SizeInG:    int32(ret.Size), //类型不一致，使用强转
+		},
+		VolumeDesc:   ret.Description,
+		Region:       req.Region,
+		VolumeStatus: ret.Status,
+		CreatedTime:  ret.CreatedAt.Local().Format("2006-01-02 03:04:05"),
+		UpdatedTime:  ret.UpdatedAt.Local().Format("2006-01-02 03:04:05"),
+	}
+
+	if len(ret.Attachments) != 0 {
+		res.CloudDisk.AttachInstanceId = ret.Attachments[0].ServerID
+		res.CloudDisk.AttachInstanceDevice = ret.Attachments[0].Device
+		res.CloudDisk.AttachedTime = ret.Attachments[0].AttachedAt.Local().Format("2006-01-02 03:04:05")
+	}
+
+	timer := common.NewTimer()
+	for ;; {
+
+		ret, err := cinder.Get(client, res.CloudDisk.VolumeId).Extract()
+
+		if nil != err {
+			res.Code = common.ESHOWVOLUME.Code
+			res.Msg = common.ESHOWVOLUME.Msg
+			log.Error(res.Msg, ": ", err)
+			return res, err
+		}
+
+		if ret.Status == "error" {
+			res.Code = common.ENEWVOLUME.Code
+			res.Msg = common.ENEWVOLUME.Msg
+
+			return res, err
+		}
+
+		if ret.Status == "available" {
+			res.CloudDisk.VolumeStatus = ret.Status
+			return res, err
+		}
+
+		time.Sleep(time.Duration(1) * time.Second)
+
+		if timer.Elapse().Seconds() > 15 {
+			res.Code = common.ENEWVOLUME.Code
+			res.Msg = common.ENEWVOLUME.Msg
+			return res, common.ENINSCREATEVOLUME
+		}
+	}
 
 	return res, err
 }
 
 //删除云硬盘
-func (clouddisktask *CloudDiskService) DeleteCloudDisk(req *clouddisk.DeleteCloudDiskReq) (*clouddisk.DeleteCloudDiskRes, error) {
+func (clouddisktask *CloudDiskService) DeleteCloudDisk(ctx context.Context, req *clouddisk.DeleteCloudDiskReq) (*clouddisk.DeleteCloudDiskRes, error) {
 	res := &clouddisk.DeleteCloudDiskRes{}
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
@@ -109,13 +148,13 @@ func (clouddisktask *CloudDiskService) DeleteCloudDisk(req *clouddisk.DeleteClou
 	}
 
 	res.VolumeId = req.VolumeId
-	res.DeletedTime = time.Now().String()
+	res.DeletedTime = common.Now()
 
 	return res, err
 }
 
 //获取云硬盘信息
-func (clouddisktask *CloudDiskService) GetCloudDisk(req *clouddisk.GetCloudDiskReq) (*clouddisk.CloudDiskRes, error) {
+func (clouddisktask *CloudDiskService) GetCloudDisk(ctx context.Context, req *clouddisk.GetCloudDiskReq) (*clouddisk.CloudDiskRes, error) {
 
 	res := &clouddisk.CloudDiskRes{}
 
@@ -145,24 +184,31 @@ func (clouddisktask *CloudDiskService) GetCloudDisk(req *clouddisk.GetCloudDiskR
 		return res, err
 	}
 
-	res.CloudDisk.VolumeId = ret.ID
-	res.CloudDisk.VolumeName = ret.Name
-	res.CloudDisk.VolumeDesc = ret.Description
-	res.CloudDisk.VolumeStatus = ret.Status
-	res.CloudDisk.CreatedTime = ret.CreatedAt.String()
-	res.CloudDisk.AvailabilityZone = ret.AvailabilityZone
-	res.CloudDisk.CloudDiskConf.VolumeType = ret.VolumeType
-	res.CloudDisk.CloudDiskConf.SizeInG = int32(ret.Size) //使用强转
-	res.CloudDisk.UpdatedTime = ret.UpdatedAt.String()
-	res.CloudDisk.AttachInstanceId = ret.Attachments[0].ServerID
-	res.CloudDisk.AttachInstanceDevice = ret.Attachments[0].Device
-	res.CloudDisk.AttachedTime = ret.Attachments[0].AttachedAt.String()
+	res.CloudDisk = &clouddisk.CloudDiskRes_CloudDisk{
+		VolumeId:         ret.ID,
+		AvailabilityZone: ret.AvailabilityZone,
+		VolumeName:       ret.Name,
+		CloudDiskConf: &clouddisk.CloudDiskConf{
+			VolumeType: ret.VolumeType,
+			SizeInG:    int32(ret.Size), //类型不一致，使用强转
+		},
+		VolumeDesc:   ret.Description,
+		VolumeStatus: ret.Status,
+		CreatedTime:  ret.CreatedAt.Local().Format("2006-01-02 03:04:05"),
+		UpdatedTime:  ret.UpdatedAt.Local().Format("2006-01-02 03:04:05"),
+	}
+
+	if len(ret.Attachments) != 0 {
+		res.CloudDisk.AttachInstanceId = ret.Attachments[0].ServerID
+		res.CloudDisk.AttachInstanceDevice = ret.Attachments[0].Device
+		res.CloudDisk.AttachedTime = ret.Attachments[0].AttachedAt.Local().Format("2006-01-02 03:04:05")
+	}
 
 	return res, err
 }
 
 //云硬盘扩容
-func (clouddisktask *CloudDiskService) ReqizeCloudDisk(req *clouddisk.ReqizeCloudDiskReq) (*clouddisk.CloudDiskRes, error) {
+func (clouddisktask *CloudDiskService) ReqizeCloudDisk(ctx context.Context, req *clouddisk.ReqizeCloudDiskReq) (*clouddisk.CloudDiskRes, error) {
 
 	res := &clouddisk.CloudDiskRes{}
 
@@ -194,13 +240,19 @@ func (clouddisktask *CloudDiskService) ReqizeCloudDisk(req *clouddisk.ReqizeClou
 		return res, err
 	}
 
-	res.CloudDisk.CloudDiskConf.SizeInG = req.CloudDiskConf.SizeInG
+	res.CloudDisk = &clouddisk.CloudDiskRes_CloudDisk{
+		VolumeId: req.VolumeId,
+		CloudDiskConf: &clouddisk.CloudDiskConf{
+			VolumeType: req.CloudDiskConf.VolumeType,
+			SizeInG:    int32(req.CloudDiskConf.SizeInG), //类型不一致，使用强转
+		},
+	}
 
 	return res, err
 }
 
 //更新云硬盘信息
-func (clouddisktask *CloudDiskService) ModifyCloudDiskInfo(req *clouddisk.ModifyCloudDiskInfoReq) (*clouddisk.CloudDiskRes, error) {
+func (clouddisktask *CloudDiskService) ModifyCloudDiskInfo(ctx context.Context, req *clouddisk.ModifyCloudDiskInfoReq) (*clouddisk.CloudDiskRes, error) {
 
 	res := &clouddisk.CloudDiskRes{}
 
@@ -233,14 +285,19 @@ func (clouddisktask *CloudDiskService) ModifyCloudDiskInfo(req *clouddisk.Modify
 		return res, err
 	}
 
-	res.CloudDisk.VolumeDesc = ret.Description
-	res.CloudDisk.VolumeName = ret.Name
+	res.CloudDisk = &clouddisk.CloudDiskRes_CloudDisk{
+		VolumeId:     ret.ID,
+		VolumeName:   ret.Name,
+		VolumeDesc:   ret.Description,
+		UpdatedTime:  common.Now(),
+		VolumeStatus: ret.Status,
+	}
 
 	return res, err
 }
 
 //云主机挂载、卸载
-func (clouddisktask *CloudDiskService) OperateCloudDisk(req *clouddisk.OperateCloudDiskReq) (*clouddisk.CloudDiskRes, error) {
+func (clouddisktask *CloudDiskService) OperateCloudDisk(ctx context.Context, req *clouddisk.OperateCloudDiskReq) (*clouddisk.CloudDiskRes, error) {
 
 	res := &clouddisk.CloudDiskRes{}
 
@@ -274,10 +331,13 @@ func (clouddisktask *CloudDiskService) OperateCloudDisk(req *clouddisk.OperateCl
 			return res, err
 		}
 
-		res.CloudDisk.VolumeId = ret.VolumeID
-		res.CloudDisk.AttachInstanceId = ret.ServerID
-		res.CloudDisk.AttachInstanceDevice = ret.Device
-		res.CloudDisk.AttachedTime = time.Now().String()
+		res.CloudDisk = &clouddisk.CloudDiskRes_CloudDisk{
+			VolumeId:             ret.VolumeID,
+			AttachInstanceId:     ret.ServerID,
+			AttachInstanceDevice: ret.Device,
+			AttachedTime:         common.Now(),
+			UpdatedTime:          common.Now(),
+		}
 
 	} else {
 		err = nova_op.Delete(client, req.InstanceId, req.VolumeId).ExtractErr()
@@ -289,7 +349,12 @@ func (clouddisktask *CloudDiskService) OperateCloudDisk(req *clouddisk.OperateCl
 			return res, err
 		}
 
-		res.CloudDisk.VolumeId = req.VolumeId
+		res.CloudDisk = &clouddisk.CloudDiskRes_CloudDisk{
+			VolumeId:         req.VolumeId,
+			UpdatedTime:      common.Now(),
+			AttachInstanceId: req.InstanceId,
+		}
+
 	}
 	return res, err
 }
