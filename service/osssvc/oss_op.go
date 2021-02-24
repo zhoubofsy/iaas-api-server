@@ -22,8 +22,7 @@ type OpenstackAPIAuthorization struct {
 }
 
 func (o *OpenstackAPIAuthorization) Auth() bool {
-	//common.APIAuth(o.Apikey, o.TenantId, o.PlantformUserid)
-	return true
+	return common.APIAuth(o.Apikey, o.TenantId,o.PlatformUserid)
 }
 
 type Op interface {
