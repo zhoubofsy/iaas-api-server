@@ -87,7 +87,7 @@ func AuthAndGetToken(apikey string, tenantID string, platformUserID string) (str
 		return "", err
 	}
 	if  resultTenantInfo.IsEmpty(){
-		return "", errors.New("apikeyq无效，没有权限获取token")
+		return "", errors.New("apikey无效，没有权限获取token")
 	}
 	tokenUrl:=os.Getenv("TOKEN_URL")
 	token,err1:=GetToken(tokenUrl,resultTenantInfo.OpenstackUserid,resultTenantInfo.OpenstackPassword,resultTenantInfo.OpenstackProjectid)

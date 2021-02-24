@@ -9,21 +9,23 @@ package common
 
 import (
 	"database/sql"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"reflect"
 )
+
 //Db info
 var db = &sql.DB{}
 
-func InitDb() (bool) {
-	driverName:=os.Getenv("DRIVER_NAME")
-	dbBHostIP:=os.Getenv("DB_HOST_IP")
-	dbUserName:=os.Getenv("DB_USER_NAME")
-	dbPassWord:=os.Getenv("DB_PASSWORD")
-	dbName:=os.Getenv("DB_NAME")
-	dns:= dbUserName + ":" + dbPassWord + "@tcp(" + dbBHostIP + ")/" + dbName
+func InitDb() bool {
+	driverName := os.Getenv("DRIVER_NAME")
+	dbBHostIP := os.Getenv("DB_HOST_IP")
+	dbUserName := os.Getenv("DB_USERNAME")
+	dbPassWord := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
+	dns := dbUserName + ":" + dbPassWord + "@tcp(" + dbBHostIP + ")/" + dbName
 	var err error
 	db, err = sql.Open(driverName, dns+"?charset=utf8")
 	if err != nil {
@@ -34,22 +36,23 @@ func InitDb() (bool) {
 	}
 	return true
 }
-func QueryOssConfigByRegion(region string)(OssConfig,error)  {
+func QueryOssConfigByRegion(region string) (OssConfig, error) {
 	sqlStr := "SELECT id, region, access_key, secret_key, endpoint, description FROM oss_config where region = ? "
 	var ossConfig OssConfig
-	err := db.QueryRow(sqlStr,region).Scan(&ossConfig.ID, &ossConfig.Region,&ossConfig.AccessKey,&ossConfig.SecretKey,&ossConfig.Endpoint,&ossConfig.Description)
+	err := db.QueryRow(sqlStr, region).Scan(&ossConfig.ID, &ossConfig.Region, &ossConfig.AccessKey, &ossConfig.SecretKey, &ossConfig.Endpoint, &ossConfig.Description)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
 		}).Error("query sssConfig by region failed.")
-		return ossConfig,EOSSGETCONFIG
+		return ossConfig, EOSSGETCONFIG
 	}
 	return ossConfig, nil
 }
-func QueryTenantInfoByTenantIdAndApikey(tenantID string,apiKey string) (TenantInfo,*Error) {
+
+func QueryTenantInfoByTenantIdAndApikey(tenantID string, apiKey string) (TenantInfo, error) {
 	sqlStr := "SELECT tenant_id,tenant_name,openstack_domainname,openstack_domainid,openstack_projectname,openstack_projectid,openstack_username,openstack_userid,openstack_password,openstack_rolename,openstack_roleid,apikey FROM tenant_info where tenant_id =? and apikey=?"
 	var tenantInfo TenantInfo
-	err := db.QueryRow(sqlStr,tenantID,apiKey).Scan(&tenantInfo.TenantID, &tenantInfo.TenantName,&tenantInfo.OpenstackDomainname,&tenantInfo.OpenstackDomainid,&tenantInfo.OpenstackProjectname,&tenantInfo.OpenstackProjectid,&tenantInfo.OpenstackUsername,&tenantInfo.OpenstackUserid,&tenantInfo.OpenstackPassword,&tenantInfo.OpenstackRolename,&tenantInfo.OpenstackRoleid,&tenantInfo.ApiKey)
+	err := db.QueryRow(sqlStr, tenantID, apiKey).Scan(&tenantInfo.TenantID, &tenantInfo.TenantName, &tenantInfo.OpenstackDomainname, &tenantInfo.OpenstackDomainid, &tenantInfo.OpenstackProjectname, &tenantInfo.OpenstackProjectid, &tenantInfo.OpenstackUsername, &tenantInfo.OpenstackUserid, &tenantInfo.OpenstackPassword, &tenantInfo.OpenstackRolename, &tenantInfo.OpenstackRoleid, &tenantInfo.ApiKey)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
@@ -59,7 +62,7 @@ func QueryTenantInfoByTenantIdAndApikey(tenantID string,apiKey string) (TenantIn
 	return tenantInfo, nil
 }
 
-func QueryTenantInfoByTenantName(name string) (string, *Error) {
+func QueryTenantInfoByTenantName(name string) (string, error) {
 	sqlStr := "SELECT tenant_id,tenant_name FROM tenant_info where tenant_name =?"
 	var tenantInfo TenantInfo
 	err := db.QueryRow(sqlStr, name).Scan(&tenantInfo.TenantID, &tenantInfo.TenantName)
@@ -70,6 +73,20 @@ func QueryTenantInfoByTenantName(name string) (string, *Error) {
 		return "", ETTGETTENANT
 	}
 	return tenantInfo.TenantID, nil
+}
+
+func GetTenantIDSeq() (string, error) {
+	sqlStr := "select nextval(seq)"
+	var nextVal int32
+	err := db.QueryRow(sqlStr).Scan(&nextVal)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err": err,
+		}).Error("query tenantId seq failed.")
+		return "", ETTGETENATSEQ
+	}
+	valStr := fmt.Sprintf("%010d", nextVal)
+	return valStr, nil
 }
 
 func CreateTenantInfo(tenantInfo TenantInfo) (createTenantFlag bool) {
@@ -96,9 +113,10 @@ func DeleteTenantInfo(tenantID string) {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
-		}).Error("createTenantInfo failed.")
+		}).Error("delete tenant info failed.")
 	}
 }
+
 // TenantInfo for tenant
 type TenantInfo struct {
 	TenantID             string
@@ -114,18 +132,20 @@ type TenantInfo struct {
 	OpenstackRoleid      string
 	ApiKey               string
 }
+
 func (tenantInfo TenantInfo) IsEmpty() bool {
 	return reflect.DeepEqual(tenantInfo, TenantInfo{})
 }
 
 type OssConfig struct {
-	ID string
-	Region string
-	AccessKey string
-	SecretKey string
-	Endpoint string
+	ID          string
+	Region      string
+	AccessKey   string
+	SecretKey   string
+	Endpoint    string
 	Description string
 }
+
 func (ossConfig OssConfig) IsEmpty() bool {
 	return reflect.DeepEqual(ossConfig, OssConfig{})
 }
