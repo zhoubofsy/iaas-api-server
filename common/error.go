@@ -1,6 +1,6 @@
 package common
 
-// basic error info for IAAS
+// Error basic error info for IAAS
 type Error struct {
 	Code int32
 	Msg  string
@@ -64,6 +64,8 @@ var (
 	ETTGETTENANTNOTNULL = &Error{Code: 90004, Msg: "tenant info exits"}
 
 	ETTGETMYSQLCLIENT = &Error{Code: 91001, Msg: "mysql client get failed"}
+	ETTGETENATSEQ     = &Error{Code: 91002, Msg: "mysql get seq failed"}
+	ETTTRANS          = &Error{Code: 91003, Msg: "seq transform failed"}
 
 	ETTEDITDOMAIN = &Error{Code: 95001, Msg: "openstack uodate domain failed"}
 
