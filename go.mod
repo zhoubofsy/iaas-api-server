@@ -11,4 +11,5 @@ require (
 	google.golang.org/grpc v1.35.0
 	google.golang.org/protobuf v1.25.0
     github.com/zhoubofsy/go-radosgw ccbfit
+    github.com/aws/aws-sdk-go v1.37.17
 )
