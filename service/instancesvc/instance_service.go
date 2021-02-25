@@ -691,7 +691,6 @@ func createVolume(volumeType string, sizeInG int32, projectID string, availZone 
 			return id, nil
 		}
 
-		time.Sleep(time.Duration(1) * time.Second)
 		timeout, err := config.GetInt("create_volume_timeout")
 		if err != nil {
 			timeout = 20
@@ -700,5 +699,7 @@ func createVolume(volumeType string, sizeInG int32, projectID string, availZone 
 		if timer.Elapse().Seconds() > float64(timeout){
 			return "", common.ENINSCREATEVOLUME
 		}
+
+		time.Sleep(time.Duration(1) * time.Second)
 	}
 }
