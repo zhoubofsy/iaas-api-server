@@ -15,16 +15,17 @@ import (
 	"os"
 	"reflect"
 )
+
 //Db info
 var db = &sql.DB{}
 
-func InitDb() (bool) {
-	driverName:=os.Getenv("DRIVER_NAME")
-	dbBHostIP:=os.Getenv("DB_HOST_IP")
-	dbUserName:=os.Getenv("DB_USERNAME")
-	dbPassWord:=os.Getenv("DB_PASSWORD")
-	dbName:=os.Getenv("DB_NAME")
-	dns:= dbUserName + ":" + dbPassWord + "@tcp(" + dbBHostIP + ")/" + dbName
+func InitDb() bool {
+	driverName := os.Getenv("DRIVER_NAME")
+	dbBHostIP := os.Getenv("DB_HOST_IP")
+	dbUserName := os.Getenv("DB_USERNAME")
+	dbPassWord := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
+	dns := dbUserName + ":" + dbPassWord + "@tcp(" + dbBHostIP + ")/" + dbName
 	var err error
 	db, err = sql.Open(driverName, dns+"?charset=utf8")
 	if err != nil {
@@ -35,10 +36,10 @@ func InitDb() (bool) {
 	}
 	return true
 }
-func QueryTenantInfoByTenantIdAndApikey(tenantID string,apiKey string) (TenantInfo,error) {
+func QueryTenantInfoByTenantIdAndApikey(tenantID string, apiKey string) (TenantInfo, error) {
 	sqlStr := "SELECT tenant_id,tenant_name,openstack_domainname,openstack_domainid,openstack_projectname,openstack_projectid,openstack_username,openstack_userid,openstack_password,openstack_rolename,openstack_roleid,apikey FROM tenant_info where tenant_id =? and apikey=?"
 	var tenantInfo TenantInfo
-	err := db.QueryRow(sqlStr,tenantID,apiKey).Scan(&tenantInfo.TenantID, &tenantInfo.TenantName,&tenantInfo.OpenstackDomainname,&tenantInfo.OpenstackDomainid,&tenantInfo.OpenstackProjectname,&tenantInfo.OpenstackProjectid,&tenantInfo.OpenstackUsername,&tenantInfo.OpenstackUserid,&tenantInfo.OpenstackPassword,&tenantInfo.OpenstackRolename,&tenantInfo.OpenstackRoleid,&tenantInfo.ApiKey)
+	err := db.QueryRow(sqlStr, tenantID, apiKey).Scan(&tenantInfo.TenantID, &tenantInfo.TenantName, &tenantInfo.OpenstackDomainname, &tenantInfo.OpenstackDomainid, &tenantInfo.OpenstackProjectname, &tenantInfo.OpenstackProjectid, &tenantInfo.OpenstackUsername, &tenantInfo.OpenstackUserid, &tenantInfo.OpenstackPassword, &tenantInfo.OpenstackRolename, &tenantInfo.OpenstackRoleid, &tenantInfo.ApiKey)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
@@ -61,8 +62,8 @@ func QueryTenantInfoByTenantName(name string) (string, error) {
 	return tenantInfo.TenantID, nil
 }
 
-func GetTenantIDSeq() (string,error) {
-	sqlStr :="select nextval(seq)"
+func GetTenantIDSeq() (string, error) {
+	sqlStr := "select nextval(seq)"
 	var nextVal int32
 	err := db.QueryRow(sqlStr).Scan(&nextVal)
 	if err != nil {
@@ -71,7 +72,7 @@ func GetTenantIDSeq() (string,error) {
 		}).Error("query tenantId seq failed.")
 		return "", ETTGETENATSEQ
 	}
-	valStr:=fmt.Sprintf("%010d",nextVal)
+	valStr := fmt.Sprintf("%010d", nextVal)
 	return valStr, nil
 }
 
@@ -102,6 +103,7 @@ func DeleteTenant(tenantID string) {
 		}).Error("delete tenant info failed.")
 	}
 }
+
 // TenantInfo for tenant
 type TenantInfo struct {
 	TenantID             string
@@ -120,4 +122,72 @@ type TenantInfo struct {
 
 func (tenantInfo TenantInfo) IsEmpty() bool {
 	return reflect.DeepEqual(tenantInfo, TenantInfo{})
+}
+
+// QuerySharedSubnetUsedIP for shared subnet
+func QuerySharedSubnetUsedIP(subnetIP string) (SharedSubnetIPPool, error) {
+	sqlStr := "SELECT used_ip, ip_pool FROM shared_subnet_ip_pool where subnetIP =?"
+	var ip = SharedSubnetIPPool{
+		SubnetID: subnetIP,
+	}
+	err := db.QueryRow(sqlStr, subnetIP).Scan(&ip.UsedIP, &ip.IPPool)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return ip, EPLGETIPPOOLNONE
+		}
+		log.WithFields(log.Fields{
+			"err":      err,
+			"subnetIP": subnetIP,
+			"sql":      sqlStr,
+		}).Error("query shared_subnet_ip_pool failed.")
+		return ip, EPLGETIPPOOL
+	}
+	return ip, nil
+}
+
+// CreateSharedSubnetUsedIP for shared subnet
+func CreateSharedSubnetUsedIP(subnetIP string, usedIP string) bool {
+	sqlStr := "insert into shared_subnet_ip_pool(subnet_id, used_ip) values (?,?)"
+	ret, err := db.Exec(sqlStr, subnetIP, usedIP)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err":      err,
+			"sql":      sqlStr,
+			"subnetIP": subnetIP,
+			"usedIP":   usedIP,
+		}).Error("create shared subnet ip pool failed.")
+		return false
+	}
+	n, err := ret.RowsAffected()
+	if n > 0 {
+		return true
+	}
+	return false
+}
+
+// UpdateSharedSubnetUsedIP for shared subnet
+func UpdateSharedSubnetUsedIP(subnetIP string, usedIP string) bool {
+	sqlStr := "update shared_subnet_ip_pool set usedIP = '?' where subnetIP = '?'"
+	ret, err := db.Exec(sqlStr, usedIP, subnetIP)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err":      err,
+			"sql":      sqlStr,
+			"subnetIP": subnetIP,
+			"usedIP":   usedIP,
+		}).Error("update shared subnet ip pool failed.")
+		return false
+	}
+	n, err := ret.RowsAffected()
+	if n > 0 {
+		return true
+	}
+	return false
+}
+
+// SharedSubnetIPPool IP Pool
+type SharedSubnetIPPool struct {
+	SubnetID string
+	UsedIP   string
+	IPPool   string
 }

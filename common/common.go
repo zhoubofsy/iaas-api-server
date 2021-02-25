@@ -11,7 +11,7 @@ type Timer struct {
 }
 
 func NewTimer() *Timer {
-	return &Timer{ time.Now() }
+	return &Timer{time.Now()}
 }
 
 func (t *Timer) Restart() {

@@ -9,15 +9,14 @@
 package peerlinksvc
 
 import (
+	"encoding/json"
 	"errors"
-	"sort"
 	"sync"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
@@ -149,10 +148,9 @@ func (rpctask *DeletePeerLinkRPCTask) execute(providers *gophercloud.ProviderCli
 	wg.Wait()
 
 	// 归还ip给子网池
-	sort.Slice(routerIP, func(i, j int) bool { return routerIP[i] < routerIP[j] })
 	{
 		wg.Add(1)
-		go giveBackIPToSubnet(client, rpctask.ShareNetID, routerIP, len(routerIP), &wg)
+		go giveBackIPToSubnet(client, rpctask.ShareNetID, routerIP, &wg)
 	}
 
 	wg.Wait()
@@ -162,57 +160,60 @@ func (rpctask *DeletePeerLinkRPCTask) execute(providers *gophercloud.ProviderCli
 
 func giveBackIPToSubnet(client *gophercloud.ServiceClient,
 	subnetID string,
-	ip []int64,
-	length int,
+	ips []int64,
 	wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	subnet, err := subnets.Get(client, subnetID).Extract()
-	if nil != err {
+	ipPool, errSQL := common.QuerySharedSubnetUsedIP(subnetID)
+	if nil != errSQL && common.EPLGETIPPOOLNONE != errSQL {
 		log.WithFields(log.Fields{
-			"err":      err,
 			"subnetID": subnetID,
-		}).Error("get subnet by subnetID failed")
+		}).Error("get used ip from mysql failed")
 		return
 	}
 
-	if len(subnet.AllocationPools) == 0 {
+	var usedIP []int64
+	err := json.Unmarshal([]byte(ipPool.UsedIP), &usedIP)
+	if nil != err {
 		log.WithFields(log.Fields{
 			"subnetID": subnetID,
-		}).Info("subnet ip pool is empty")
+		}).Error("parse used ip from json to vector failed")
+		return
 	}
 
-	// 构造归还的子网ip pool，减少后续循环次数
-	newPool := make([]subnets.AllocationPool, 0)
-	for i := 0; i < length; i++ {
-		switch subnet.IPVersion {
-		case 4:
-			for _, pools := range subnet.AllocationPools { // 遍历现在的子网池
-				start := inetaton(pools.Start)
-				end := inetaton(pools.End)
-
-				if (ip[i] + 1) == start { // 归还的ip在当前子网池的头部
-					newPool = append(newPool, subnets.AllocationPool{
-						Start: inetntoa(ip[i]),
-						End:   pools.End,
-					})
-				} else if (end + 1) == ip[i] { //  归还的ip在当前子网池的尾部
-					newPool = append(newPool, subnets.AllocationPool{
-						Start: pools.Start,
-						End:   inetntoa(ip[i]),
-					})
-				} else { // 当前归还ip不在头尾
-					newPool = append(newPool, pools)
-				}
+	// 此处数据较少，直接遍历影响不大，后续如果性能影响，此处可优化
+	for _, ip := range ips {
+		for idx, used := range usedIP {
+			if ip == used { // 找到了
+				usedIP = append(usedIP[:idx], usedIP[idx+1:]...)
+				break
 			}
-			break
-		case 6: // 暂时没考虑ipv6
-			log.Error("not surpport ipv6")
-			break
-		default:
-			log.Error("ipversion is not 4 or 6")
-			break
 		}
+	}
+
+	// 将已用的ip记录到数据库
+	newUsedIP, err := json.Marshal(usedIP)
+	if nil != err {
+		log.WithFields(log.Fields{
+			"err":       err,
+			"newUsedIP": newUsedIP,
+		}).Error("parse ip vector to string failed")
+		return
+	}
+
+	// 不存在数据，则插入，否则更新
+	var ret bool = false
+	if errSQL == common.EPLGETIPPOOLNONE {
+		ret = common.CreateSharedSubnetUsedIP(subnetID, string(newUsedIP))
+	} else {
+		ret = common.UpdateSharedSubnetUsedIP(subnetID, string(newUsedIP))
+	}
+	if !ret {
+		log.WithFields(log.Fields{
+			"err":       err,
+			"newUsedIP": newUsedIP,
+		}).Error("update used ip to DB failed")
+		return
 	}
 }
 

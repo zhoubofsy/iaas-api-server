@@ -9,6 +9,7 @@
 package peerlinksvc
 
 import (
+	"encoding/json"
 	"errors"
 	"sync"
 
@@ -274,29 +275,47 @@ func getIPFromSubnet(client *gophercloud.ServiceClient, subnetID string, availab
 		return
 	}
 
-	newPool := make([]subnets.AllocationPool, 0)
+	ipPool, errSQL := common.QuerySharedSubnetUsedIP(subnetID)
+	if nil != errSQL && common.EPLGETIPPOOLNONE != errSQL {
+		log.WithFields(log.Fields{
+			"subnetID": subnetID,
+		}).Error("get used ip from mysql failed")
+		return
+	}
+	var usedIP []int64
+	var newIP []int64 = make([]int64, 0)
+	err = json.Unmarshal([]byte(ipPool.UsedIP), &usedIP)
+	if nil != err {
+		log.WithFields(log.Fields{
+			"subnetID": subnetID,
+		}).Error("parse used ip from json to vector failed")
+		return
+	}
+
+	// 暂时不考虑子网的ip池被人修改的情况
 	switch subnet.IPVersion {
 	case 4:
-		for _, pools := range subnet.AllocationPools {
-			if len(*availableIP) >= 2 { // 如果申请完了，那么丢到newpool里面用于更新子网ip池子
-				newPool = append(newPool, pools)
-				continue
+		pools := subnet.AllocationPools[0]
+		startIP := inetaton(pools.Start)
+		endIP := inetaton(pools.End)
+		for i := startIP; i <= endIP; i++ {
+			if len(*availableIP) >= 2 {
+				break
 			}
-			*availableIP = append(*availableIP, pools.Start)
-			if pools.Start == pools.End { // 首尾ip相同，
-				continue
-			}
-			startIP := inetaton(pools.Start)
-			endIP := inetaton(pools.End)
-			nextIP := startIP + 1
-			*availableIP = append(*availableIP, inetntoa(nextIP))
 
-			if endIP != nextIP { // 如果池子超过2个可用ip，则后续还可以使用
-				newPool = append(newPool, subnets.AllocationPool{
-					Start: inetntoa(nextIP + 1),
-					End:   pools.End,
-				})
+			// 从已使用的ip池查询当前ip是否已经使用了，这个位置ip应该不会太多，直接遍历
+			used := false
+			for _, ip := range usedIP {
+				if ip == i { // 当前ip已经被使用了，则需要下一跳的ip
+					used = true
+					break
+				}
 			}
+			if used { // 当前ip已经被使用了，则需要下一跳的ip
+				continue
+			}
+			*availableIP = append(*availableIP, inetntoa(i)) // 分配ip
+			newIP = append(newIP, i)
 		}
 		break
 	case 6: // TODO 暂时没考虑ipv6
@@ -307,12 +326,31 @@ func getIPFromSubnet(client *gophercloud.ServiceClient, subnetID string, availab
 		break
 	}
 
-	// 更新子网池
-	_, err = subnets.Update(client, subnetID, subnets.UpdateOpts{
-		AllocationPools: newPool,
-	}).Extract()
+	// 将已用的ip记录到数据库
+	newUsedIP, err := json.Marshal(newIP)
 	if nil != err {
+		log.WithFields(log.Fields{
+			"err":       err,
+			"newUsedIP": newIP,
+		}).Error("parse ip vector to string failed")
 		*availableIP = nil
+		return
+	}
+
+	// 不存在数据，则插入，否则更新
+	var ret bool = false
+	if errSQL == common.EPLGETIPPOOLNONE {
+		ret = common.CreateSharedSubnetUsedIP(subnetID, string(newUsedIP))
+	} else {
+		ret = common.UpdateSharedSubnetUsedIP(subnetID, string(newUsedIP))
+	}
+	if !ret {
+		log.WithFields(log.Fields{
+			"err":       err,
+			"newUsedIP": newIP,
+		}).Error("update used ip to DB failed")
+		*availableIP = nil
+		return
 	}
 }
 
