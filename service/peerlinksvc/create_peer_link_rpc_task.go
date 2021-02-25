@@ -122,8 +122,9 @@ func (rpctask *CreatePeerLinkRPCTask) execute(providers *gophercloud.ProviderCli
 	wg.Wait()
 	if "" == peerA.IntfId || "" == peerB.IntfId {
 		log.WithFields(log.Fields{
-			"peerA": peerA,
-			"peerB": peerB,
+			"subnetACIDR": subnetACIDR,
+			"subnetBCIDR": subnetBCIDR,
+			"ipaddr":      availableIP,
 		}).Error("Create router interface failed")
 		return common.EPLCREATEADDINTERFACE
 	}
@@ -217,7 +218,7 @@ func addRouteInterfaceToShareNet(client *gophercloud.ServiceClient,
 
 	// 首先必须创建端口
 	port := ports.CreateOpts{
-		NetworkID: "1ad28c94-3298-4cdb-ac5a-e6d08c133818",
+		NetworkID: "5f55f08b-d55a-45a2-8f3f-c5b3eb295856",
 		FixedIPs: []ports.IP{
 			{
 				SubnetID:  shareNetID,
@@ -284,12 +285,15 @@ func getIPFromSubnet(client *gophercloud.ServiceClient, subnetID string, availab
 	}
 	var usedIP []int64
 	var newIP []int64 = make([]int64, 0)
-	err = json.Unmarshal([]byte(ipPool.UsedIP), &usedIP)
-	if nil != err {
-		log.WithFields(log.Fields{
-			"subnetID": subnetID,
-		}).Error("parse used ip from json to vector failed")
-		return
+
+	if common.EPLGETIPPOOLNONE != errSQL {
+		err = json.Unmarshal([]byte(ipPool.UsedIP), &usedIP)
+		if nil != err {
+			log.WithFields(log.Fields{
+				"subnetID": subnetID,
+			}).Error("parse used ip from json to vector failed")
+			return
+		}
 	}
 
 	// 暂时不考虑子网的ip池被人修改的情况
@@ -326,8 +330,9 @@ func getIPFromSubnet(client *gophercloud.ServiceClient, subnetID string, availab
 		break
 	}
 
+	// TODO ip 可以用一个长的0101010的串去标识哪个ip已经使用
 	// 将已用的ip记录到数据库
-	newUsedIP, err := json.Marshal(newIP)
+	newUsedIP, err := json.Marshal(append(newIP, usedIP...))
 	if nil != err {
 		log.WithFields(log.Fields{
 			"err":       err,

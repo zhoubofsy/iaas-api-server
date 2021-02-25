@@ -125,19 +125,19 @@ func (tenantInfo TenantInfo) IsEmpty() bool {
 }
 
 // QuerySharedSubnetUsedIP for shared subnet
-func QuerySharedSubnetUsedIP(subnetIP string) (SharedSubnetIPPool, error) {
-	sqlStr := "SELECT used_ip, ip_pool FROM shared_subnet_ip_pool where subnetIP =?"
+func QuerySharedSubnetUsedIP(subnetID string) (SharedSubnetIPPool, error) {
+	sqlStr := "SELECT used_ip FROM shared_subnet_ip_pool WHERE subnet_id =?"
 	var ip = SharedSubnetIPPool{
-		SubnetID: subnetIP,
+		SubnetID: subnetID,
 	}
-	err := db.QueryRow(sqlStr, subnetIP).Scan(&ip.UsedIP, &ip.IPPool)
+	err := db.QueryRow(sqlStr, subnetID).Scan(&ip.UsedIP)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return ip, EPLGETIPPOOLNONE
 		}
 		log.WithFields(log.Fields{
 			"err":      err,
-			"subnetIP": subnetIP,
+			"subnetID": subnetID,
 			"sql":      sqlStr,
 		}).Error("query shared_subnet_ip_pool failed.")
 		return ip, EPLGETIPPOOL
@@ -146,14 +146,14 @@ func QuerySharedSubnetUsedIP(subnetIP string) (SharedSubnetIPPool, error) {
 }
 
 // CreateSharedSubnetUsedIP for shared subnet
-func CreateSharedSubnetUsedIP(subnetIP string, usedIP string) bool {
-	sqlStr := "insert into shared_subnet_ip_pool(subnet_id, used_ip) values (?,?)"
-	ret, err := db.Exec(sqlStr, subnetIP, usedIP)
+func CreateSharedSubnetUsedIP(subnetID string, usedIP string) bool {
+	sqlStr := "INSERT INTO shared_subnet_ip_pool(subnet_id, used_ip) VALUES (?,?)"
+	ret, err := db.Exec(sqlStr, subnetID, usedIP)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err":      err,
 			"sql":      sqlStr,
-			"subnetIP": subnetIP,
+			"subnetID": subnetID,
 			"usedIP":   usedIP,
 		}).Error("create shared subnet ip pool failed.")
 		return false
@@ -166,14 +166,14 @@ func CreateSharedSubnetUsedIP(subnetIP string, usedIP string) bool {
 }
 
 // UpdateSharedSubnetUsedIP for shared subnet
-func UpdateSharedSubnetUsedIP(subnetIP string, usedIP string) bool {
-	sqlStr := "update shared_subnet_ip_pool set usedIP = '?' where subnetIP = '?'"
-	ret, err := db.Exec(sqlStr, usedIP, subnetIP)
+func UpdateSharedSubnetUsedIP(subnetID string, usedIP string) bool {
+	sqlStr := "UPDATE shared_subnet_ip_pool SET used_ip = ? WHERE subnet_id = ?"
+	ret, err := db.Exec(sqlStr, usedIP, subnetID)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err":      err,
 			"sql":      sqlStr,
-			"subnetIP": subnetIP,
+			"subnetID": subnetID,
 			"usedIP":   usedIP,
 		}).Error("update shared subnet ip pool failed.")
 		return false

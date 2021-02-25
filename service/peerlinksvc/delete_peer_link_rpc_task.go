@@ -118,7 +118,7 @@ func (rpctask *DeletePeerLinkRPCTask) execute(providers *gophercloud.ProviderCli
 
 	wg.Wait()
 
-	// TODO 上面的逻辑没有拿到router从sharenet获取的ip，那么从router的interface获取ip
+	// TODO 如果上面的逻辑没有拿到router从sharenet获取的ip，那么从router的interface获取ip
 	if 0 == routerIP[0] {
 		var portsA ports.Port
 		wg.Add(1)
@@ -165,7 +165,13 @@ func giveBackIPToSubnet(client *gophercloud.ServiceClient,
 	defer wg.Done()
 
 	ipPool, errSQL := common.QuerySharedSubnetUsedIP(subnetID)
-	if nil != errSQL && common.EPLGETIPPOOLNONE != errSQL {
+	if nil != errSQL {
+		if common.EPLGETIPPOOLNONE == errSQL {
+			log.WithFields(log.Fields{
+				"err":      errSQL,
+				"subnetID": subnetID,
+			}).Error("give back to ip pool, but mysql has no records")
+		}
 		log.WithFields(log.Fields{
 			"subnetID": subnetID,
 		}).Error("get used ip from mysql failed")
