@@ -21,7 +21,7 @@ type CloudDiskService struct {
 
 //创建云硬盘
 func (clouddisktask *CloudDiskService) CreateCloudDisk(ctx context.Context, req *clouddisk.CreateCloudDiskReq) (*clouddisk.CloudDiskRes, error) {
-
+	timer_elasp := common.NewTimer()
 	res := &clouddisk.CloudDiskRes{}
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
@@ -99,7 +99,7 @@ func (clouddisktask *CloudDiskService) CreateCloudDisk(ctx context.Context, req 
 
 		if ret.Status == "available" {
 			res.CloudDisk.VolumeStatus = ret.Status
-			return res, err
+			break
 		}
 
 		time.Sleep(time.Duration(1) * time.Second)
@@ -110,12 +110,13 @@ func (clouddisktask *CloudDiskService) CreateCloudDisk(ctx context.Context, req 
 			return res, common.ENINSCREATEVOLUME
 		}
 	}
-
+	log.Info("rpc CreateVolume: ", res, ". time elapse: ", timer_elasp.Elapse())
 	return res, err
 }
 
 //删除云硬盘
 func (clouddisktask *CloudDiskService) DeleteCloudDisk(ctx context.Context, req *clouddisk.DeleteCloudDiskReq) (*clouddisk.DeleteCloudDiskRes, error) {
+	timer_elasp := common.NewTimer()
 	res := &clouddisk.DeleteCloudDiskRes{}
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
@@ -149,13 +150,13 @@ func (clouddisktask *CloudDiskService) DeleteCloudDisk(ctx context.Context, req 
 
 	res.VolumeId = req.VolumeId
 	res.DeletedTime = common.Now()
-
+	log.Info("rpc CreateVolume: ", res, ". time elapse: ", timer_elasp.Elapse())
 	return res, err
 }
 
 //获取云硬盘信息
 func (clouddisktask *CloudDiskService) GetCloudDisk(ctx context.Context, req *clouddisk.GetCloudDiskReq) (*clouddisk.CloudDiskRes, error) {
-
+	timer_elasp := common.NewTimer()
 	res := &clouddisk.CloudDiskRes{}
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
@@ -203,13 +204,13 @@ func (clouddisktask *CloudDiskService) GetCloudDisk(ctx context.Context, req *cl
 		res.CloudDisk.AttachInstanceDevice = ret.Attachments[0].Device
 		res.CloudDisk.AttachedTime = ret.Attachments[0].AttachedAt.Local().Format("2006-01-02 03:04:05")
 	}
-
+	log.Info("rpc CreateVolume: ", res, ". time elapse: ", timer_elasp.Elapse())
 	return res, err
 }
 
 //云硬盘扩容
 func (clouddisktask *CloudDiskService) ReqizeCloudDisk(ctx context.Context, req *clouddisk.ReqizeCloudDiskReq) (*clouddisk.CloudDiskRes, error) {
-
+	timer_elasp := common.NewTimer()
 	res := &clouddisk.CloudDiskRes{}
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
@@ -247,13 +248,13 @@ func (clouddisktask *CloudDiskService) ReqizeCloudDisk(ctx context.Context, req 
 			SizeInG:    int32(req.CloudDiskConf.SizeInG), //类型不一致，使用强转
 		},
 	}
-
+	log.Info("rpc CreateVolume: ", res, ". time elapse: ", timer_elasp.Elapse())
 	return res, err
 }
 
 //更新云硬盘信息
 func (clouddisktask *CloudDiskService) ModifyCloudDiskInfo(ctx context.Context, req *clouddisk.ModifyCloudDiskInfoReq) (*clouddisk.CloudDiskRes, error) {
-
+	timer_elasp := common.NewTimer()
 	res := &clouddisk.CloudDiskRes{}
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
@@ -292,13 +293,13 @@ func (clouddisktask *CloudDiskService) ModifyCloudDiskInfo(ctx context.Context, 
 		UpdatedTime:  common.Now(),
 		VolumeStatus: ret.Status,
 	}
-
+	log.Info("rpc CreateVolume: ", res, ". time elapse: ", timer_elasp.Elapse())
 	return res, err
 }
 
 //云主机挂载、卸载
 func (clouddisktask *CloudDiskService) OperateCloudDisk(ctx context.Context, req *clouddisk.OperateCloudDiskReq) (*clouddisk.CloudDiskRes, error) {
-
+	timer_elasp := common.NewTimer()
 	res := &clouddisk.CloudDiskRes{}
 
 	provider, err := common.GetOpenstackClient(req.Apikey, req.TenantId, req.PlatformUserid)
@@ -356,5 +357,6 @@ func (clouddisktask *CloudDiskService) OperateCloudDisk(ctx context.Context, req
 		}
 
 	}
+	log.Info("rpc CreateVolume: ", res, ". time elapse: ", timer_elasp.Elapse())
 	return res, err
 }
