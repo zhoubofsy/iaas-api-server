@@ -47,6 +47,7 @@ var (
 	ENINSDEL           = &Error{Code: 40107, Msg: "nova instance delete failed"}
 	ENINSOPUNKNOWN     = &Error{Code: 40108, Msg: "nova instance operation not supported"}
 	ENINSOP            = &Error{Code: 40109, Msg: "nova instance operate failed"}
+	ENINSSTATUS        = &Error{Code: 40110, Msg: "nova instance update flavor invalid status"}
 
 	ENEWBLOCK         = &Error{Code: 50000, Msg: "cinder new block v3 failed"}
 	ENEWVOLUME        = &Error{Code: 50001, Msg: "cinder create volume failed"}

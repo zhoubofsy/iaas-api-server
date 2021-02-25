@@ -1,6 +1,7 @@
 package flavorsvc
 
 import (
+	"iaas-api-server/common/config"
 	"strconv"
 	"iaas-api-server/common"
 	"iaas-api-server/proto/flavor"
@@ -18,6 +19,7 @@ type FlavorService struct {
 
 // ListFlavors 获取规格列表
 func (*FlavorService) ListFlavors(ctx context.Context, req *flavor.ListFlavorsReq) (*flavor.ListFlavorsRes, error) {
+	timer := common.NewTimer()
 	log.Info("rpc ListFlavors req: ", req)
 	res := &flavor.ListFlavorsRes{}
 
@@ -30,7 +32,6 @@ func (*FlavorService) ListFlavors(ctx context.Context, req *flavor.ListFlavorsRe
 	}
 
 	client, err := openstack.NewComputeV2(provider, gophercloud.EndpointOpts{})
-
 	if err != nil {
 		res.Code = common.ENEWCPU.Code
 		res.Msg = common.ENEWCPU.Msg
@@ -44,9 +45,12 @@ func (*FlavorService) ListFlavors(ctx context.Context, req *flavor.ListFlavorsRe
 		AccessType:   flavors.PublicAccess,
 	}
 
-	// 最多取 1000 项
-	if opts.Limit > 1000 {
-		opts.Limit = 1000
+	limit, err := config.GetInt("list_flavors_limit")
+	if err != nil {
+		limit = 1000
+	}
+	if opts.Limit > limit {
+		opts.Limit = limit
 	}
 
 	pages, err := flavors.ListDetail(client, opts).AllPages()
@@ -84,12 +88,13 @@ func (*FlavorService) ListFlavors(ctx context.Context, req *flavor.ListFlavorsRe
 		}
 	}
 
-	log.Info("rpc ListFlavors res: ", res)
+	log.Info("rpc ListFlavors res: ", res, ", time elapse: ", timer.Elapse())
 	return res, nil
 }
 
 // GetFlavor 获取规格信息
 func (*FlavorService) GetFlavor(ctx context.Context, req *flavor.GetFlavorReq) (*flavor.GetFlavorRes, error) {
+	timer := common.NewTimer()
 	log.Info("rpc GetFlavor req: ", req)
 	res := &flavor.GetFlavorRes{}
 
@@ -102,7 +107,6 @@ func (*FlavorService) GetFlavor(ctx context.Context, req *flavor.GetFlavorReq) (
 	}
 
 	client, err := openstack.NewComputeV2(provider, gophercloud.EndpointOpts{})
-
 	if err != nil {
 		res.Code = common.ENEWCPU.Code
 		res.Msg = common.ENEWCPU.Msg
@@ -128,6 +132,6 @@ func (*FlavorService) GetFlavor(ctx context.Context, req *flavor.GetFlavorReq) (
 		FlavorDisk:   strconv.Itoa(x.Disk),
 	}
 
-	log.Info("rpc GetFlavor res: ", res)
+	log.Info("rpc GetFlavor res: ", res, ", time elapse: ", timer.Elapse())
 	return res, err
 }

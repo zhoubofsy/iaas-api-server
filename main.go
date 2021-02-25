@@ -56,6 +56,8 @@ func main() {
 	flag.Parse()
 	if *conf != "" {
 		config.InitConfig(*conf)
+	} else {
+		panic("no config file.. usage:\n\t./serv.exe -conf xx.conf")
 	}
 
 	rpcServer := grpc.NewServer()
