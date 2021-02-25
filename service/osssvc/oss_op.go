@@ -1,15 +1,26 @@
 package osssvc
 
 import (
+	"iaas-api-server/common"
+	"iaas-api-server/proto/oss"
 	"strconv"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/zhoubofsy/go-radosgw/pkg/api"
-	"iaas-api-server/common"
-	"iaas-api-server/proto/oss"
 )
+
+func TransUTCTime(t string) string {
+	if t == "" {
+		return ""
+	}
+	ut, _ := time.Parse(time.RFC3339, t)
+	zt := ut.In(time.Local)
+	return zt.Format("2006-01-02 15:04:05")
+}
 
 type Authorization interface {
 	Auth() bool
@@ -156,6 +167,9 @@ func (o *BucketOp) GetPolicy(name string) (string, error) {
 }
 
 func (o *BucketOp) SetPolicy(name string, policy string) error {
+	if policy == "" {
+		return nil
+	}
 	_, err := o.S3Handler.PutBucketPolicy(&s3.PutBucketPolicyInput{
 		Bucket: aws.String(name),
 		Policy: aws.String(policy),
@@ -225,7 +239,7 @@ func (o *UserOp) CreateUser(uid string, display string) (error, int) {
 
 func (o *UserOp) GetUserInfo(uid string) (*UserInfo, error) {
 	var userInfo UserInfo
-	user, err := o.RGWHandler.GetUser(uid)
+	user, err := o.RGWHandler.GetUserInfo(radosAPI.UserInfoConfig{UID: uid, Stats: "true", Sync: "true"})
 	if err != nil {
 		return nil, common.EOSSGETUSER
 	}
@@ -238,12 +252,12 @@ func (o *UserOp) GetUserInfo(uid string) (*UserInfo, error) {
 		return nil, common.EOSSGETQUOTAS
 	}
 
-	userInfo.Uid = user.UserID
-	userInfo.Display = user.DisplayName
+	userInfo.Uid = user.UID
+	userInfo.Display = user.Display
 	userInfo.AccessKey = user.Keys[0].AccessKey
 	userInfo.SecretKey = user.Keys[0].SecretKey
-	userInfo.UsedSize = 0
-	userInfo.UsedObjects = 0
+	userInfo.UsedSize = user.Stats.SizeKB / 1024 / 1024
+	userInfo.UsedObjects = user.Stats.NumObjects
 	userInfo.BucketsQuota = *bktQuota
 	userInfo.UserQuota = *userQuota
 	userInfo.CreatedTime = ""
@@ -334,13 +348,13 @@ func (o *CreateUserAndBucketOp) Predo() error {
 
 func (o *CreateUserAndBucketOp) Do() error {
 	// Get Endpoint via Region from config file
-	endpoint,err := o.conf.GetEndpointByRegion(o.Req.Region)
-	if nil!=err {
+	endpoint, err := o.conf.GetEndpointByRegion(o.Req.Region)
+	if nil != err {
 		return err
 	}
 	// Read Access & Secret keys
-	access, secret,err:= o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
-	if nil!=err {
+	access, secret, err := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
+	if nil != err {
 		return err
 	}
 	maxObjs := o.Req.UserMaxObjects
@@ -357,7 +371,7 @@ func (o *CreateUserAndBucketOp) Do() error {
 		if err != nil {
 			return err
 		}
-		err = userOperator.SetBucketsSizeQuotaInUser(o.Req.PlatformUserid, int(maxObjs))
+		err = userOperator.SetBucketsObjectsQuotaInUser(o.Req.PlatformUserid, int(maxObjs))
 		if err != nil {
 			return err
 		}
@@ -379,11 +393,31 @@ func (o *CreateUserAndBucketOp) Do() error {
 			return common.EOSSSETBUCKETPOLICY
 		}
 	}
+	bucketInfo, err := bucketOperator.GetBucketInfo(o.Req.BucketName)
+	if err != nil {
+		return common.EOSSGETBUCKET
+	}
+	bucketPolicy, err := bucketOperator.GetPolicy(bucketInfo.Name)
+	err = bucketOperator.ListBucketsInit()
+
 	o.Res.OssEndpoint = endpoint
 	o.Res.OssAccessKey = userInfo.AccessKey
 	o.Res.OssSecretKey = userInfo.SecretKey
-	o.Res.OssUser = &(oss.OssUser{OssUid: userInfo.Uid, OssUserCreatedTime: "", UserMaxSizeInG: 0, UserMaxObjects: 0, UserUseSizeInG: 0, UserUseObjects: 0, TotalBuckets: 0})                      // Todo...
-	o.Res.OssBucket = &(oss.OssBucket{BucketName: o.Req.BucketName, BucketPolicy: o.Req.BucketPolicy, BucketUseSizeInG: 0, BucketUseObjects: 0, BelongToUid: userInfo.Uid, BucketCreatedTime: ""}) // Todo...
+	o.Res.OssUser = &(oss.OssUser{
+		OssUid:             userInfo.Uid,
+		OssUserCreatedTime: time.Now().Format("2006-01-02 15:04:05"), // Current Time
+		UserMaxSizeInG:     int32(userInfo.UserQuota.MaxSize),
+		UserMaxObjects:     int32(userInfo.UserQuota.MaxObjects),
+		UserUseSizeInG:     int32(userInfo.UsedSize),
+		UserUseObjects:     int32(userInfo.UsedObjects),
+		TotalBuckets:       int32(bucketOperator.ListBucketsCount())})
+	o.Res.OssBucket = &(oss.OssBucket{
+		BucketName:        bucketInfo.Name,
+		BucketPolicy:      bucketPolicy,
+		BucketUseSizeInG:  int32(bucketInfo.UsedSize / 1024 / 1024),
+		BucketUseObjects:  int32(bucketInfo.UsedObjects),
+		BelongToUid:       bucketInfo.Owner,
+		BucketCreatedTime: TransUTCTime(bucketInfo.CreatedTime)})
 	return common.EOK
 }
 
@@ -417,13 +451,13 @@ func (o *GetBucketInfoOp) Predo() error {
 
 func (o *GetBucketInfoOp) Do() error {
 	// Get Endpoint via Region from config file
-	endpoint,err := o.conf.GetEndpointByRegion(o.Req.Region)
-	if nil!=err {
+	endpoint, err := o.conf.GetEndpointByRegion(o.Req.Region)
+	if nil != err {
 		return err
 	}
 	// Read Access & Secret keys
-	access, secret,err := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
-	if nil!=err {
+	access, secret, err := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
+	if nil != err {
 		return err
 	}
 
@@ -448,7 +482,7 @@ func (o *GetBucketInfoOp) Do() error {
 	o.Res.OssBucket.BucketUseSizeInG = int32(bucketInfo.UsedSize / 1024 / 1024)
 	o.Res.OssBucket.BucketUseObjects = int32(bucketInfo.UsedObjects)
 	o.Res.OssBucket.BelongToUid = bucketInfo.Owner
-	o.Res.OssBucket.BucketCreatedTime = bucketInfo.CreatedTime
+	o.Res.OssBucket.BucketCreatedTime = TransUTCTime(bucketInfo.CreatedTime)
 	return common.EOK
 }
 
@@ -485,13 +519,13 @@ func (o *ListBucketsInfoOp) Predo() error {
 
 func (o *ListBucketsInfoOp) Do() error {
 	// Get Endpoint via Region from config file
-	endpoint,err := o.conf.GetEndpointByRegion(o.Req.Region)
-	if nil!=err {
+	endpoint, err := o.conf.GetEndpointByRegion(o.Req.Region)
+	if nil != err {
 		return err
 	}
 	// Read Access & Secret keys
-	access, secret,err := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
-	if nil!=err {
+	access, secret, err := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
+	if nil != err {
 		return err
 	}
 
@@ -521,7 +555,7 @@ func (o *ListBucketsInfoOp) Do() error {
 		ossBucket.BucketUseSizeInG = int32(bucketInfo.UsedSize / 1024 / 1024)
 		ossBucket.BucketUseObjects = int32(bucketInfo.UsedObjects)
 		ossBucket.BelongToUid = bucketInfo.Owner
-		ossBucket.BucketCreatedTime = bucketInfo.CreatedTime
+		ossBucket.BucketCreatedTime = TransUTCTime(bucketInfo.CreatedTime)
 		o.Res.OssBuckets[idx] = ossBucket
 	}
 	return common.EOK
@@ -557,13 +591,13 @@ func (o *SetOssUserQuotaOp) Predo() error {
 
 func (o *SetOssUserQuotaOp) Do() error {
 	// Get Endpoint via Region from config file
-	endpoint,err := o.conf.GetEndpointByRegion(o.Req.Region)
-	if nil!=err {
+	endpoint, err := o.conf.GetEndpointByRegion(o.Req.Region)
+	if nil != err {
 		return err
 	}
 	// Read Access & Secret keys
-	access, secret,err := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
-	if nil!=err {
+	access, secret, err := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
+	if nil != err {
 		return err
 	}
 	userOperator := UserOp{EndpointAddr: endpoint, Access: access, Secret: secret}
@@ -629,13 +663,13 @@ func (o *RecoverKeyOp) Predo() error {
 
 func (o *RecoverKeyOp) Do() error {
 	// Get Endpoint via Region from config file
-	endpoint,err := o.conf.GetEndpointByRegion(o.Req.Region)
-	if nil!=err {
+	endpoint, err := o.conf.GetEndpointByRegion(o.Req.Region)
+	if nil != err {
 		return err
 	}
 	// Read Access & Secret keys
-	access, secret,err := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
-	if nil!=err {
+	access, secret, err := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
+	if nil != err {
 		return err
 	}
 	userOperator := UserOp{EndpointAddr: endpoint, Access: access, Secret: secret}
