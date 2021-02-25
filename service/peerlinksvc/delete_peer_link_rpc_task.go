@@ -179,12 +179,32 @@ func giveBackIPToSubnet(client *gophercloud.ServiceClient,
 	if len(subnet.AllocationPools) == 0 {
 		log.WithFields(log.Fields{
 			"subnetID": subnetID,
-		}).Error("subnet ip pool is empty")
+		}).Info("subnet ip pool is empty")
 	}
 
+	// 构造归还的子网ip pool，减少后续循环次数
+	newPool := make([]subnets.AllocationPool, 0)
 	for i := 0; i < length; i++ {
 		switch subnet.IPVersion {
 		case 4:
+			for _, pools := range subnet.AllocationPools { // 遍历现在的子网池
+				start := inetaton(pools.Start)
+				end := inetaton(pools.End)
+
+				if (ip[i] + 1) == start { // 归还的ip在当前子网池的头部
+					newPool = append(newPool, subnets.AllocationPool{
+						Start: inetntoa(ip[i]),
+						End:   pools.End,
+					})
+				} else if (end + 1) == ip[i] { //  归还的ip在当前子网池的尾部
+					newPool = append(newPool, subnets.AllocationPool{
+						Start: pools.Start,
+						End:   inetntoa(ip[i]),
+					})
+				} else { // 当前归还ip不在头尾
+					newPool = append(newPool, pools)
+				}
+			}
 			break
 		case 6: // 暂时没考虑ipv6
 			log.Error("not surpport ipv6")

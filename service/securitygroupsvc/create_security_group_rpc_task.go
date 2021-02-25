@@ -90,7 +90,7 @@ func (rpctask *CreateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 		SecurityGroupDesc:  group.Description,
 		CreatedTime:        group.CreatedAt.String(),
 		UpdatedTime:        group.UpdatedAt.String(),
-		SecurityGroupRules: make([]*securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule, 1),
+		SecurityGroupRules: make([]*securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule, 0),
 	}
 
 	if len(group.Rules) > 0 {

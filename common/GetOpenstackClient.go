@@ -3,28 +3,29 @@ package common
 import (
 	sdk "github.com/gophercloud/gophercloud"
 	openstack "github.com/gophercloud/gophercloud/openstack"
-	//	"os"
+	"iaas-api-server/common/config"
 )
 
 // GetOpenstackClient is for creating an openstack provider client
 func GetOpenstackClient(apikey string, tenantID string, platformUserID string,
 	resourceID ...string) (*sdk.ProviderClient, error) {
-	//	authResult := APIAuth(apikey, tenantID, platformUserID, resourceID...)
-	//	if !authResult {
-	//		return nil, EAPIAUTH
-	//	}
-	//	tenantInfo, err := QueryTenantInfoByTenantIdAndApikey(tenantID, apikey)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	identityEndPoint := os.Getenv("OPENSTACK_IDENTITY_ENDPOINT")
-	//获取provider
+	// TODO:
+	//   1. auth
+	//   2. get tenant info
+
+	identityEndpoint, _ := config.GetString("identity_endpoint")
+	username, _ := config.GetString("test_username")
+	passwd, _ := config.GetString("test_passwd")
+	prjID, _ := config.GetString("test_project_id")
+
 	opts := sdk.AuthOptions{
-		IdentityEndpoint: "http://192.168.66.131/identity",   // idenEndPoint,
-		Username:         "admin",                            // username,
-		Password:         "secret",                           // password,
-		DomainName:       "Default",                          // domain,
-		TenantID:         "e851733194d5460c9d3c21b801fe8831", // tenantID,
+		//IdentityEndpoint: "http://192.168.247.130/identity", // idenEndPoint,
+		IdentityEndpoint: identityEndpoint, // idenEndPoint,
+		Username:         username,         // username,
+		Password:         passwd,           // password,
+		DomainName:       "default",        // domain,
+		TenantID:         prjID,            // projectID,
 	}
+
 	return openstack.AuthenticatedClient(opts)
 }
