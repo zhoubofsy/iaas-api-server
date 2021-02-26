@@ -15,6 +15,8 @@ import (
 	gophercloud "github.com/gophercloud/gophercloud"
 	openstack "github.com/gophercloud/gophercloud/openstack"
 	servers "github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	flavors "github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
+	volumes "github.com/gophercloud/gophercloud/openstack/blockstorage/v3/volumes"
 	startstop "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/startstop"
 	suspendresume "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/suspendresume"
 	"golang.org/x/net/context"
@@ -31,6 +33,7 @@ type InstanceService struct {
 //   - 挂载系统盘、数据盘 (gosdk 暂不支持, 用原生 api 实现)
 //   - 修改 hostname、root密码
 func (is *InstanceService) CreateInstance(ctx context.Context, req *instance.CreateInstanceReq) (*instance.InstanceRes, error) {
+	timer := common.NewTimer()
 	log.Info("rpc CreateInstance req: ", req)
 	res := &instance.InstanceRes{}
 
@@ -227,12 +230,13 @@ func (is *InstanceService) CreateInstance(ctx context.Context, req *instance.Cre
 	}
 	 */
 
-	log.Info("rpc CreateInstance res: ", res)
+	log.Info("rpc CreateInstance res: ", res, ". time elapse: ", timer.Elapse())
 	return res, nil
 }
 
 // GetInstance 获取云主机信息
 func (is *InstanceService) GetInstance(ctx context.Context, req *instance.GetInstanceReq) (*instance.InstanceRes, error) {
+	timer := common.NewTimer()
 	log.Info("rpc GetInstance req: ", req)
 	res := &instance.InstanceRes{}
 
@@ -245,7 +249,6 @@ func (is *InstanceService) GetInstance(ctx context.Context, req *instance.GetIns
 	}
 
 	client, err := openstack.NewComputeV2(provider, gophercloud.EndpointOpts{})
-
 	if err != nil {
 		res.Code = common.ENEWCPU.Code
 		res.Msg = common.ENEWCPU.Msg
@@ -270,33 +273,99 @@ func (is *InstanceService) GetInstance(ctx context.Context, req *instance.GetIns
 	res.Instance = &instance.InstanceRes_Instance{
 		InstanceId:          ss.ID,
 		InstanceStatus:      ss.Status,
-		//InstanceAddr:        ss.AccessIPv4,  // TODO: 填充 AccessIPv4?
-		Flavor:              &instance.Flavor {  // TODO: 后续根据 FlavorMap 填充
-			FlavorId: "xxx",
-			FlavorName: "xxx",
-			FlavorVcpus: "xxx",
-			FlavorRam: "xxx",
-			FlavorDisk: "xxx",
-		},
-		//ImageRef:            req.ImageRef,
-		// TODO: SystemDisk:  ss.AttachedVolumes
-		//NetworkUuid:         req.NetworkUuid,
-		// TODO: SecurityGroupName: ss.SecurityGroups
 		InstanceName:        ss.Name,
 		CreatedTime:         ss.Created.Local().Format("2006-01-02 03:04:05"),
 		UpdatedTime:         ss.Updated.Local().Format("2006-01-02 03:04:05"),
 	}
 
-	// TODO:
-	//   - addr
-	//   - flavor sec
+	// ip address
+	for _, val := range ss.Addresses {
+		addrs, ok := val.([]interface{})
+		if ok && len(addrs) > 0 {
+			addr, ok := addrs[0].(map[string]interface{})["addr"].(string)
+			if ok {
+				res.Instance.InstanceAddr = addr
+				break
+			}
+		}
+	}
 
-	log.Info("rpc GetInstance res: ", res)
+	// image id
+	imageId, ok := ss.Image["id"].(string)
+	if ok {
+		res.Instance.ImageRef = imageId
+	}
+
+	// security group
+	for i := 0; i < len(ss.SecurityGroups); i++ {
+		secGroup, ok := ss.SecurityGroups[i]["name"].(string)
+		if ok {
+			res.Instance.SecurityGroupName = append(res.Instance.SecurityGroupName, secGroup)
+		}
+	}
+
+	// volume
+	volumeClient, err := openstack.NewBlockStorageV3(provider, gophercloud.EndpointOpts{})
+	if err != nil {
+		log.Error("openstack NewBlockStorageV3 failed: ", err)
+	} else {
+		for i := 0; i < len(ss.AttachedVolumes); i++ {
+			volume, err := volumes.Get(volumeClient, ss.AttachedVolumes[i].ID).Extract()
+			if err != nil {
+				log.Error("query volume failed: ", err, ", id: ", ss.AttachedVolumes[i].ID)
+				continue
+			}
+
+			// TODO: 暂时将 device name 为 /dev/vda 的卷作为系统卷，后续可能要根据实际情况调整
+			if len(volume.Attachments) > 0 && volume.Attachments[0].Device == "/dev/vda" {
+				res.Instance.SystemDisk = &instance.CloudDiskInfo{
+					VolumeType:  volume.VolumeType,
+					SizeInG:     int32(volume.Size),
+					Device:      volume.Attachments[0].Device,
+					VolumeId:    volume.ID,
+				}
+			} else {
+				dataDisk := &instance.CloudDiskInfo{
+					VolumeType:  volume.VolumeType,
+					SizeInG:     int32(volume.Size),
+					VolumeId:    volume.ID,
+				}
+				if len(volume.Attachments) > 0 {
+					dataDisk.Device = volume.Attachments[0].Device
+				}
+				res.Instance.DataDisks = append(res.Instance.DataDisks, dataDisk)
+			}
+		}
+	}
+
+	// flavor
+	flavorId, ok := ss.Flavor["id"].(string)
+	if ok {
+		x, err := flavors.Get(client, flavorId).Extract()
+		if err != nil {
+			log.Error("query flavor info failed: ", err, ", id: ", flavorId)
+		} else {
+			res.Instance.Flavor = &instance.Flavor{
+				FlavorId:     x.ID,
+				FlavorName:   x.Name,
+				FlavorVcpus:  strconv.Itoa(x.VCPUs),
+				FlavorRam:    strconv.Itoa(x.RAM),
+				FlavorDisk:   strconv.Itoa(x.Disk),
+			}
+		}
+	}
+
+	log.Info("rpc GetInstance res: ", res, ", time elapse: ", timer.Elapse())
 	return res, nil
 }
 
 // UpdateInstanceFlavor 修改云主机规格
+//   1. 需要修改 nova-ncpu, nova-api 上的 nova.conf:
+//      allow_resize_to_same_host=True
+//   2. instance 为 ACTIVE 或 SHUTOFF 状态，才能执行 resize 操作
+//   3. resize 后，要等 instance 变成 VERIFY_RESIZE 状态，才能执行 confirm_resize 操作
 func (is *InstanceService) UpdateInstanceFlavor(ctx context.Context, req *instance.UpdateInstanceFlavorReq) (*instance.InstanceRes, error) {
+	timer := common.NewTimer()
 	log.Info("rpc UpdateInstanceFlavor req: ", req)
 	res := &instance.InstanceRes{}
 
@@ -309,11 +378,19 @@ func (is *InstanceService) UpdateInstanceFlavor(ctx context.Context, req *instan
 	}
 
 	client, err := openstack.NewComputeV2(provider, gophercloud.EndpointOpts{})
-
 	if err != nil {
 		res.Code = common.ENEWCPU.Code
 		res.Msg = common.ENEWCPU.Msg
 		log.Error(res.Msg, ": ", err)
+		return res, err
+	}
+
+	// instance status 为 ACTIVE 或 SHUTOFF 时，才能执行 resize 操作
+	ss, err := servers.Get(client, req.InstanceId).Extract()
+	if err != nil || (ss.Status != "ACTIVE" && ss.Status != "SHUTOFF") {
+		res.Code = common.ENINSSTATUS.Code
+		res.Msg = common.ENINSSTATUS.Msg
+		log.Error(res.Msg, ": ", ss.Status)
 		return res, err
 	}
 
@@ -329,6 +406,37 @@ func (is *InstanceService) UpdateInstanceFlavor(ctx context.Context, req *instan
 		return res, err
 	}
 
+	// status 为 VERIFY_RESIZE 才能执行 confirm_resize 操作
+	resizeTimeout, err := config.GetInt("instance_resize_timeout")
+	if err != nil {
+		resizeTimeout = 20
+	}
+	resizeTimer := common.NewTimer()
+
+	for ;; {
+		ss, err := servers.Get(client, req.InstanceId).Extract()
+		if err != nil {
+			res.Code = common.ENINSGET.Code
+			res.Msg = common.ENINSGET.Msg
+			log.Error(res.Msg, ": ", err)
+			return res, err
+		}
+
+		if ss.Status == "VERIFY_RESIZE" {
+			break
+		}
+
+		if resizeTimer.Elapse().Seconds() > float64(resizeTimeout) {
+			log.Warn("resize timeout: ", resizeTimeout)
+			res.Code = common.ENINSUPFLAVOR.Code
+			res.Msg = common.ENINSUPFLAVOR.Msg
+			log.Error(res.Msg)
+			return res, nil
+		}
+
+		time.Sleep(time.Duration(1) * time.Second)
+	}
+
 	err = servers.ConfirmResize(client, req.InstanceId).ExtractErr()
 	if err != nil {
 		res.Code = common.ENINSCONFIRMRESIZE.Code
@@ -337,19 +445,31 @@ func (is *InstanceService) UpdateInstanceFlavor(ctx context.Context, req *instan
 		return res, err
 	}
 
-	res.Code = common.EOK.Code
-	res.Msg = common.EOK.Msg
-
-	res.Instance = &instance.InstanceRes_Instance{
-		InstanceId:          req.InstanceId,
+	getReq := &instance.GetInstanceReq{
+		Apikey:          req.Apikey,
+		TenantId:        req.TenantId,
+		PlatformUserid:  req.PlatformUserid,
+		InstanceId:      req.InstanceId,
 	}
 
-	log.Info("rpc UpdateInstanceFlavor res: ", res)
+	res, err = is.GetInstance(ctx, getReq)
+	if err != nil {
+		log.Warn("UpdateInstanceFlavor query instance failed: ", err)
+		res.Code = common.EOK.Code
+		res.Msg = common.EOK.Msg
+		res.Instance = &instance.InstanceRes_Instance{
+			InstanceId:  req.InstanceId,
+		}
+	} else {
+		log.Info("rpc UpdateInstanceFlavor res: ", res, ", time elapse: ", timer.Elapse())
+	}
+
 	return res, nil
 }
 
 // DeleteInstance 删除云主机
 func (is *InstanceService) DeleteInstance(ctx context.Context, req *instance.DeleteInstanceReq) (*instance.DeleteInstanceRes, error) {
+	timer := common.NewTimer()
 	log.Info("rpc DeleteInstance req: ", req)
 	res := &instance.DeleteInstanceRes{}
 	res.InstanceId = req.InstanceId;
@@ -363,7 +483,6 @@ func (is *InstanceService) DeleteInstance(ctx context.Context, req *instance.Del
 	}
 
 	client, err := openstack.NewComputeV2(provider, gophercloud.EndpointOpts{})
-
 	if err != nil {
 		res.Code = common.ENEWCPU.Code
 		res.Msg = common.ENEWCPU.Msg
@@ -383,12 +502,13 @@ func (is *InstanceService) DeleteInstance(ctx context.Context, req *instance.Del
 	res.Msg = common.EOK.Msg
 	res.DeletedTime = common.Now()
 
-	log.Info("rpc DeleteInstance res: ", res)
+	log.Info("rpc DeleteInstance res: ", res, ", time elapse: ", timer.Elapse())
 	return res, nil
 }
 
 // OperateInstance 启动-停止-挂起-重启云主机
 func (is *InstanceService) OperateInstance(ctx context.Context, req *instance.OperateInstanceReq) (*instance.OperateInstanceRes, error) {
+	timer := common.NewTimer()
 	log.Info("rpc OperateInstance req: ", req)
 	res := &instance.OperateInstanceRes{}
 	res.InstanceId = req.InstanceId
@@ -402,7 +522,6 @@ func (is *InstanceService) OperateInstance(ctx context.Context, req *instance.Op
 	}
 
 	client, err := openstack.NewComputeV2(provider, gophercloud.EndpointOpts{})
-
 	if err != nil {
 		res.Code = common.ENEWCPU.Code
 		res.Msg = common.ENEWCPU.Msg
@@ -447,7 +566,7 @@ func (is *InstanceService) OperateInstance(ctx context.Context, req *instance.Op
 	res.OperatedTime = common.Now()
 	res.OperateType = req.OperateType
 
-	log.Info("rpc OperateInstance res: ", res)
+	log.Info("rpc OperateInstance res: ", res, ", time elapse: ", timer.Elapse())
 	return res, nil
 }
 
@@ -572,10 +691,15 @@ func createVolume(volumeType string, sizeInG int32, projectID string, availZone 
 			return id, nil
 		}
 
-		time.Sleep(time.Duration(1) * time.Second)
+		timeout, err := config.GetInt("create_volume_timeout")
+		if err != nil {
+			timeout = 20
+		}
 
-		if timer.Elapse().Seconds() > 15 {
+		if timer.Elapse().Seconds() > float64(timeout){
 			return "", common.ENINSCREATEVOLUME
 		}
+
+		time.Sleep(time.Duration(1) * time.Second)
 	}
 }

@@ -7,13 +7,22 @@ import (
 	"iaas-api-server/proto/flavor"
 	"iaas-api-server/proto/image"
 	"iaas-api-server/proto/instance"
+	"iaas-api-server/proto/natgateway"
 	"iaas-api-server/proto/oss"
+	"iaas-api-server/proto/route"
 	"iaas-api-server/proto/securitygroup"
 	"iaas-api-server/proto/tenant"
+	"iaas-api-server/proto/vpc"
 	"iaas-api-server/service/flavorsvc"
 	"iaas-api-server/service/imagesvc"
 	"iaas-api-server/service/instancesvc"
+	"iaas-api-server/service/natgatewaysvc"
 	"iaas-api-server/service/osssvc"
+	"iaas-api-server/service/routesvc"
+	"iaas-api-server/service/vpcsvc"
+	"os"
+
+	//"iaas-api-server/service/routesvc"
 	"net"
 	"os"
 
@@ -50,6 +59,8 @@ func main() {
 	flag.Parse()
 	if *conf != "" {
 		config.InitConfig(*conf)
+	} else {
+		panic("no config file.. usage:\n\t./serv.exe -conf xx.conf")
 	}
 
 	rpcServer := grpc.NewServer()
@@ -61,9 +72,9 @@ func main() {
 	oss.RegisterOSSServiceServer(rpcServer, &osssvc.OSSService{})
 	securitygroup.RegisterSecurityGroupServiceServer(rpcServer, &securitygroupsvc.SecurityGroupService{})
 	tenant.RegisterTenantServiceServer(rpcServer, &tenantsvc.TenantService{})
-	//	vpc.RegisterVpcServiceServer(rpcServer, &vpcsvc.VpcService{})
-	//	route.RegisterRouteServiceServer(rpcServer, &routesvc.RouteService{})
-	//natgateway.RegisterNatGatewayServiceServer(rpcServer, &natgatewaysvc.NatGatewayService{})
+	vpc.RegisterVpcServiceServer(rpcServer, &vpcsvc.VpcService{})
+	route.RegisterRouterServiceServer(rpcServer, &routesvc.RouteService{})
+	natgateway.RegisterNatGatewayServiceServer(rpcServer, &natgatewaysvc.NatGatewayService{})
 	//peerlink.RegisterPeerLinkServiceServer(rpcServer, &peerlinksvc.PeerLinkService{})
 
 	listener, err := net.Listen("tcp", *addr)
