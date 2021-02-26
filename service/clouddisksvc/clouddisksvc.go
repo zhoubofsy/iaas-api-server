@@ -72,12 +72,6 @@ func (clouddisktask *CloudDiskService) CreateCloudDisk(ctx context.Context, req 
 		UpdatedTime:  ret.UpdatedAt.Local().Format("2006-01-02 03:04:05"),
 	}
 
-	if len(ret.Attachments) != 0 {
-		res.CloudDisk.AttachInstanceId = ret.Attachments[0].ServerID
-		res.CloudDisk.AttachInstanceDevice = ret.Attachments[0].Device
-		res.CloudDisk.AttachedTime = ret.Attachments[0].AttachedAt.Local().Format("2006-01-02 03:04:05")
-	}
-
 	timer := common.NewTimer()
 	for ;; {
 
@@ -93,8 +87,9 @@ func (clouddisktask *CloudDiskService) CreateCloudDisk(ctx context.Context, req 
 		if ret.Status == "error" {
 			res.Code = common.ENEWVOLUME.Code
 			res.Msg = common.ENEWVOLUME.Msg
+			res.CloudDisk.VolumeStatus = ret.Status
 
-			return res, err
+			break
 		}
 
 		if ret.Status == "available" {
