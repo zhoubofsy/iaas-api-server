@@ -89,7 +89,7 @@ var (
 	ETTGETENATSEQ     = &Error{Code: 91002, Msg: "mysql get seq failed"}
 	ETTTRANS          = &Error{Code: 91003, Msg: "seq transform failed"}
 
-	ETTEDITDOMAIN = &Error{Code: 95001, Msg: "openstack uodate domain failed"}
+	ETTEDITDOMAIN = &Error{Code: 94001, Msg: "openstack update domain failed"}
 
 	ETTCREATEDOMAIN       = &Error{Code: 95001, Msg: "openstack create domain failed"}
 	ETTCREATEPROJECT      = &Error{Code: 95002, Msg: "openstack create project failed"}
