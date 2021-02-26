@@ -18,6 +18,8 @@ var (
 	EPARAM            = &Error{Code: 10000, Msg: "param ckeck failed"}
 	EAPIAUTH          = &Error{Code: 10001, Msg: "api auth failed"}
 	EGETOPSTACKCLIENT = &Error{Code: 10002, Msg: "get openstack client failed"}
+	EPARSECIDR        = &Error{Code: 10003, Msg: "parse CIDR failed"}
+	EATOI             = &Error{Code: 10004, Msg: "call Atoi failed"}
 
 	ESGNEWNETWORK  = &Error{Code: 20000, Msg: "security group new network v2 failed"}
 	ESGCREATEGROUP = &Error{Code: 20001, Msg: "security group create group failed"}
@@ -26,21 +28,36 @@ var (
 	ESGUPDATEGROUP = &Error{Code: 20004, Msg: "security group update group failed"}
 	ESGOPERGROUP   = &Error{Code: 20005, Msg: "security group operate group failed"}
 
-	EOSSCREATEUSER      = &Error{Code: 31001, Msg: "OSS create user failed"}
-	EOSSCREATEBUCKET    = &Error{Code: 31002, Msg: "OSS create bucket failed"}
-	EOSSSETQUOTAS       = &Error{Code: 31003, Msg: "OSS set quotas failed"}
-	EOSSGETUSER         = &Error{Code: 31004, Msg: "OSS get user failed"}
-	EOSSSETBUCKETPOLICY = &Error{Code: 31005, Msg: "OSS set bucket policy failed"}
-	EOSSUNKNOWQUOTATYPE = &Error{Code: 31006, Msg: "OSS unknow quota type"}
-	EOSSGETQUOTAS       = &Error{Code: 31007, Msg: "OSS get quotas failed"}
-	EOSSGETBUCKET       = &Error{Code: 31008, Msg: "OSS get bucket failed"}
-	EOSSNOPAGE          = &Error{Code: 31009, Msg: "OSS no page failed"}
-	EOSSLISTBUCKETS     = &Error{Code: 31010, Msg: "OSS list buckets failed"}
+	ENEWNETWORK     = &Error{Code: 21000, Msg: "new network v2 failed"}
+	ENETWORKSCREATE = &Error{Code: 21001, Msg: "networks create failed"}
+	ENETWORKSGET    = &Error{Code: 21002, Msg: "networks get failed"}
+	ENETWORKSSET    = &Error{Code: 21003, Msg: "networks update failed"}
 
-	ENEWCPU            = &Error{Code: 40000, Msg: "nova new compute v2 failed"}
-	ENFLVLIST          = &Error{Code: 40001, Msg: "nova flavor list failed"}
-	ENFLVEXTRACT       = &Error{Code: 40002, Msg: "nova flavor extract failed"}
-	ENFLVGET           = &Error{Code: 40003, Msg: "nova flavor get failed"}
+	ESUBNETCREATE = &Error{Code: 22000, Msg: "subnet create failed"}
+	ESUBNETGET    = &Error{Code: 22001, Msg: "subnets get failed"}
+
+	EROUTERCREATE  = &Error{Code: 23000, Msg: "routers create failed"}
+	EROUTERLIST    = &Error{Code: 23001, Msg: "routers list failed"}
+	EROUTEREXTRACT = &Error{Code: 23002, Msg: "routers extract failed"}
+	EROUTERINFO    = &Error{Code: 23003, Msg: "routersInfo is not unique"}
+	EROUTERGET     = &Error{Code: 23004, Msg: "routers get failed"}
+	EROUTERSET     = &Error{Code: 23005, Msg: "routers set failed"}
+
+	EPORTSGET     = &Error{Code: 24000, Msg: "ports get failed"}
+	EPORTSLIST    = &Error{Code: 24001, Msg: "ports list failed"}
+	EPORTSEXTRACT = &Error{Code: 24002, Msg: "ports extract failed"}
+
+	EINTERFACEADD = &Error{Code: 25000, Msg: "router add interface failed"}
+
+	ENGCREATE = &Error{Code: 30000, Msg: "nat gateway create failed"}
+	ENGDELETE = &Error{Code: 30001, Msg: "nat gateway delete failed"}
+	ENGGET    = &Error{Code: 30002, Msg: "nat gateway get failed"}
+
+	ENEWCPU      = &Error{Code: 40000, Msg: "nova new compute v2 failed"}
+	ENFLVLIST    = &Error{Code: 40001, Msg: "nova flavor list failed"}
+	ENFLVEXTRACT = &Error{Code: 40002, Msg: "nova flavor extract failed"}
+	ENFLVGET     = &Error{Code: 40003, Msg: "nova flavor get failed"}
+
 	ENINSQUERYTENANT   = &Error{Code: 40100, Msg: "nova instance query tenant info failed"}
 	ENINSCREATEVOLUME  = &Error{Code: 40101, Msg: "nova instance create volume failed"}
 	ENINSCREATE        = &Error{Code: 40102, Msg: "nova instance create failed"}
@@ -51,6 +68,7 @@ var (
 	ENINSDEL           = &Error{Code: 40107, Msg: "nova instance delete failed"}
 	ENINSOPUNKNOWN     = &Error{Code: 40108, Msg: "nova instance operation not supported"}
 	ENINSOP            = &Error{Code: 40109, Msg: "nova instance operate failed"}
+	ENINSSTATUS        = &Error{Code: 40110, Msg: "nova instance update flavor invalid status"}
 
 	ENEWBLOCK         = &Error{Code: 50000, Msg: "cinder new block v3 failed"}
 	ENEWVOLUME        = &Error{Code: 50001, Msg: "cinder create volume failed"}
@@ -60,6 +78,17 @@ var (
 	EVOLUMEUPDATE     = &Error{Code: 50005, Msg: "cinder update volume failed"}
 	EVOLUMEATTACH     = &Error{Code: 50006, Msg: "cinder volume attach failed"}
 	EVOLUMEDETACH     = &Error{Code: 50006, Msg: "cinder volume detach failed"}
+
+	EOSSCREATEUSER      = &Error{Code: 51001, Msg: "OSS create user failed"}
+	EOSSCREATEBUCKET    = &Error{Code: 51002, Msg: "OSS create bucket failed"}
+	EOSSSETQUOTAS       = &Error{Code: 51003, Msg: "OSS set quotas failed"}
+	EOSSGETUSER         = &Error{Code: 51004, Msg: "OSS get user failed"}
+	EOSSSETBUCKETPOLICY = &Error{Code: 51005, Msg: "OSS set bucket policy failed"}
+	EOSSUNKNOWQUOTATYPE = &Error{Code: 51006, Msg: "OSS unknow quota type"}
+	EOSSGETQUOTAS       = &Error{Code: 51007, Msg: "OSS get quotas failed"}
+	EOSSGETBUCKET       = &Error{Code: 51008, Msg: "OSS get bucket failed"}
+	EOSSNOPAGE          = &Error{Code: 51009, Msg: "OSS no page failed"}
+	EOSSLISTBUCKETS     = &Error{Code: 51010, Msg: "OSS list buckets failed"}
 
 	ETTGETTENANT        = &Error{Code: 90000, Msg: "tenant get failed"}
 	ETTCREATETENANT     = &Error{Code: 90001, Msg: "tenant create failed"}
