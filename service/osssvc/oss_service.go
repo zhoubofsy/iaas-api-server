@@ -1,9 +1,11 @@
 package osssvc
 
 import (
-	"golang.org/x/net/context"
 	"iaas-api-server/common"
 	"iaas-api-server/proto/oss"
+
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
 )
 
 type OSSService struct {
@@ -11,6 +13,7 @@ type OSSService struct {
 }
 
 func (o *OSSService) CreateUserAndBucket(ctx context.Context, r *oss.CreateUserAndBucketReq) (*oss.CreateUserAndBucketRes, error) {
+	log.Info("[OSSService] CreateUserAndBucket request start. ", *r)
 	auth := &OpenstackAPIAuthorization{Apikey: r.Apikey, TenantId: r.TenantId, PlatformUserid: r.PlatformUserid}
 	op := new(CreateUserAndBucketOp)
 
@@ -20,6 +23,7 @@ func (o *OSSService) CreateUserAndBucket(ctx context.Context, r *oss.CreateUserA
 }
 
 func (o *OSSService) GetBucketInfo(ctx context.Context, r *oss.GetBucketInfoReq) (*oss.GetBucketInfoRes, error) {
+	log.Info("[OSSService] GetBucketInfo request start. ", *r)
 	auth := &OpenstackAPIAuthorization{Apikey: r.Apikey, TenantId: r.TenantId, PlatformUserid: r.PlatformUserid}
 	op := new(GetBucketInfoOp)
 
@@ -29,6 +33,7 @@ func (o *OSSService) GetBucketInfo(ctx context.Context, r *oss.GetBucketInfoReq)
 }
 
 func (o *OSSService) ListBucketsInfo(ctx context.Context, r *oss.ListBucketsInfoReq) (*oss.ListBucketsInfoRes, error) {
+	log.Info("[OSSService] ListBucketsInfo request start. ", *r)
 	auth := &OpenstackAPIAuthorization{Apikey: r.Apikey, TenantId: r.TenantId, PlatformUserid: r.PlatformUserid}
 	op := new(ListBucketsInfoOp)
 
@@ -38,6 +43,7 @@ func (o *OSSService) ListBucketsInfo(ctx context.Context, r *oss.ListBucketsInfo
 }
 
 func (o *OSSService) SetOssUserQuota(ctx context.Context, r *oss.SetOssUserQuotaReq) (*oss.SetOssUserQuotaRes, error) {
+	log.Info("[OSSService] SetOssUserQuota request start. ", *r)
 	auth := &OpenstackAPIAuthorization{Apikey: r.Apikey, TenantId: r.TenantId, PlatformUserid: r.PlatformUserid}
 	op := new(SetOssUserQuotaOp)
 
@@ -47,6 +53,7 @@ func (o *OSSService) SetOssUserQuota(ctx context.Context, r *oss.SetOssUserQuota
 }
 
 func (o *OSSService) RecoverKey(ctx context.Context, r *oss.RecoverKeyReq) (*oss.RecoverKeyRes, error) {
+	log.Info("[OSSService] RecoverKey request start. ", *r)
 	auth := &OpenstackAPIAuthorization{Apikey: r.Apikey, TenantId: r.TenantId, PlatformUserid: r.PlatformUserid}
 	op := new(RecoverKeyOp)
 
@@ -56,14 +63,18 @@ func (o *OSSService) RecoverKey(ctx context.Context, r *oss.RecoverKeyReq) (*oss
 }
 
 func (o *OSSService) Process(auth Authorization, op Op) (interface{}, error) {
+	defer log.Info("Request Done.")
 	err := op.Predo()
 
 	if err == common.EOK {
 		if auth.Auth() == false {
+			log.Info("[OSSService] Process Authorization Failure.")
 			err = common.EUNAUTHORED
 		} else {
 			err = op.Do()
 		}
+	} else {
+		log.Error("[OSSService] Process Predo Failure. ", err)
 	}
 
 	return op.Done(err)

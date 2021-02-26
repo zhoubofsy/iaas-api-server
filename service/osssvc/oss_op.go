@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	log "github.com/sirupsen/logrus"
 	"github.com/zhoubofsy/go-radosgw/pkg/api"
 )
 
@@ -33,7 +34,7 @@ type OpenstackAPIAuthorization struct {
 }
 
 func (o *OpenstackAPIAuthorization) Auth() bool {
-	return common.APIAuth(o.Apikey, o.TenantId,o.PlatformUserid)
+	return common.APIAuth(o.Apikey, o.TenantId, o.PlatformUserid)
 }
 
 type Op interface {
@@ -118,7 +119,13 @@ func (o *BucketOp) Init() error {
 		},
 	}))
 	o.S3Handler = s3.New(sess)
+	if o.S3Handler == nil {
+		log.Error("[OSSService] BucketOp S3 init falure. Endpoint: ", o.EndpointAddr)
+	}
 	o.RGWHandler, err = radosAPI.New(o.EndpointAddr, o.AdmAccess, o.AdmSecret)
+	if err != nil {
+		log.Error("[OSSService] BucketOp go-radosgw init falure. ", err)
+	}
 	return err
 }
 
@@ -141,6 +148,7 @@ func (o *BucketOp) GetBucketInfo(name string) (*BucketInfo, error) {
 	// Get Bucket Info , Include : CreateTime, Size of used, Objects os used, Owner
 	buckets, err := o.RGWHandler.GetBucket(radosAPI.BucketConfig{Bucket: name, Stats: true})
 	if err != nil {
+		log.Error("[OSSService] BucketOp GetBucketInfo failure. ", err)
 		return nil, err
 	}
 	bkt := buckets[0]
@@ -161,6 +169,7 @@ func (o *BucketOp) GetBucketInfo(name string) (*BucketInfo, error) {
 func (o *BucketOp) GetPolicy(name string) (string, error) {
 	res, err := o.S3Handler.GetBucketPolicy(&s3.GetBucketPolicyInput{Bucket: aws.String(name)})
 	if err != nil {
+		log.Error("[OSSService] BucketOp GetPolicy failure. ", err)
 		return "", err
 	}
 	return *(res.Policy), err
@@ -181,6 +190,8 @@ func (o *BucketOp) ListBucketsInit() error {
 	output, err := o.S3Handler.ListBuckets(&s3.ListBucketsInput{})
 	if err == nil {
 		o.buckets = output.Buckets
+	} else {
+		log.Error("[OSSService] BucketOp ListBucketInit failure. ", err)
 	}
 	return err
 }
@@ -223,6 +234,9 @@ type UserInfo struct {
 func (o *UserOp) Init() error {
 	var err error
 	o.RGWHandler, err = radosAPI.New(o.EndpointAddr, o.Access, o.Secret)
+	if err != nil {
+		log.Error("[OSSService] UserOp init failure. ", err)
+	}
 	return err
 }
 
@@ -230,7 +244,11 @@ func (o *UserOp) CreateUser(uid string, display string) (error, int) {
 	_, err, status := o.RGWHandler.CreateUser(radosAPI.UserConfig{UID: uid, DisplayName: display})
 	if err != nil {
 		if status != 409 {
+			log.Error("[OSSService] UserOp CreateUser failure. ", status, err)
 			return common.EOSSCREATEUSER, status
+		} else {
+			log.Info("[OSSService] UserOp CreateUser Existed. ", uid)
+			return nil, status
 		}
 	}
 
@@ -241,6 +259,7 @@ func (o *UserOp) GetUserInfo(uid string) (*UserInfo, error) {
 	var userInfo UserInfo
 	user, err := o.RGWHandler.GetUserInfo(radosAPI.UserInfoConfig{UID: uid, Stats: "true", Sync: "true"})
 	if err != nil {
+		log.Error("[OSSService] UserOp GetUserInfo failure. ", err)
 		return nil, common.EOSSGETUSER
 	}
 	bktQuota, err := o.GetQuota(uid, "bucket")
@@ -299,6 +318,7 @@ func (o *UserOp) GetQuota(uid string, qtype string) (*Quota, error) {
 
 	q, err := o.RGWHandler.GetQuotas(quotaConfig)
 	if err != nil {
+		log.Error("[OSSService] UserOp GetQuota failure. ", err)
 		return nil, err
 	}
 	if qtype == "user" {
@@ -407,7 +427,7 @@ func (o *CreateUserAndBucketOp) Do() error {
 		OssUid:             userInfo.Uid,
 		OssUserCreatedTime: time.Now().Format("2006-01-02 15:04:05"), // Current Time
 		UserMaxSizeInG:     int32(userInfo.UserQuota.MaxSize),
-		UserMaxObjects:     int32(userInfo.UserQuota.MaxObjects),
+		UserMaxObjects:     int32(userInfo.BucketsQuota.MaxObjects),
 		UserUseSizeInG:     int32(userInfo.UsedSize),
 		UserUseObjects:     int32(userInfo.UsedObjects),
 		TotalBuckets:       int32(bucketOperator.ListBucketsCount())})
@@ -617,7 +637,6 @@ func (o *SetOssUserQuotaOp) Do() error {
 	if err != nil {
 		return common.EOSSGETUSER
 	}
-	userQuota, err := userOperator.GetQuota(o.Req.OssUid, "user")
 
 	bucketOperator := BucketOp{EndpointAddr: endpoint, Access: userInfo.AccessKey, Secret: userInfo.SecretKey, AdmAccess: access, AdmSecret: secret}
 	bucketOperator.Init()
@@ -625,8 +644,8 @@ func (o *SetOssUserQuotaOp) Do() error {
 
 	o.Res.OssUser.OssUid = userInfo.Uid
 	o.Res.OssUser.OssUserCreatedTime = userInfo.CreatedTime
-	o.Res.OssUser.UserMaxSizeInG = int32(userQuota.MaxSize / 1024 / 1024)
-	o.Res.OssUser.UserMaxObjects = int32(userQuota.MaxObjects)
+	o.Res.OssUser.UserMaxSizeInG = int32(userInfo.UserQuota.MaxSize / 1024 / 1024)
+	o.Res.OssUser.UserMaxObjects = int32(userInfo.BucketsQuota.MaxObjects)
 	o.Res.OssUser.UserUseSizeInG = int32(userInfo.UsedSize / 1024 / 1024)
 	o.Res.OssUser.UserUseObjects = int32(userInfo.UsedObjects)
 	o.Res.OssUser.TotalBuckets = int32(bucketOperator.ListBucketsCount())
