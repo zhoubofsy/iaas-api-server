@@ -8,12 +8,16 @@ import (
 	"iaas-api-server/proto/image"
 	"iaas-api-server/proto/instance"
 	"iaas-api-server/proto/natgateway"
+	"iaas-api-server/proto/route"
 	"iaas-api-server/proto/securitygroup"
 	"iaas-api-server/proto/tenant"
+	"iaas-api-server/proto/vpc"
 	"iaas-api-server/service/flavorsvc"
 	"iaas-api-server/service/imagesvc"
 	"iaas-api-server/service/instancesvc"
 	"iaas-api-server/service/natgatewaysvc"
+	"iaas-api-server/service/routesvc"
+	"iaas-api-server/service/vpcsvc"
 	"os"
 
 	//"iaas-api-server/service/routesvc"
@@ -41,7 +45,7 @@ func init() {
 	log.SetOutput(os.Stdout)               //设置日志的输出为标准输出
 	log.SetLevel(log.InfoLevel)            //设置日志的显示级别，这一级别以及更高级别的日志信息将会输出
 	log.SetReportCaller(true)
-	if !common.InitDb() {                  //数据库初始化
+	if !common.InitDb() { //数据库初始化
 		panic("数据库初始化失败")
 	}
 }
@@ -53,7 +57,7 @@ var (
 
 func main() {
 	flag.Parse()
-	if (*conf != "") {
+	if *conf != "" {
 		config.InitConfig(*conf)
 	} else {
 		panic("no config file.. usage:\n\t./serv.exe -conf xx.conf")
@@ -68,8 +72,8 @@ func main() {
 	//	oss.RegisterOSSServiceServer(rpcServer, &osssvc.OssService{})
 	securitygroup.RegisterSecurityGroupServiceServer(rpcServer, &securitygroupsvc.SecurityGroupService{})
 	tenant.RegisterTenantServiceServer(rpcServer, &tenantsvc.TenantService{})
-	//	vpc.RegisterVpcServiceServer(rpcServer, &vpcsvc.VpcService{})
-	//	route.RegisterRouteServiceServer(rpcServer, &routesvc.RouteService{})
+	vpc.RegisterVpcServiceServer(rpcServer, &vpcsvc.VpcService{})
+	route.RegisterRouterServiceServer(rpcServer, &routesvc.RouteService{})
 	natgateway.RegisterNatGatewayServiceServer(rpcServer, &natgatewaysvc.NatGatewayService{})
 	//peerlink.RegisterPeerLinkServiceServer(rpcServer, &peerlinksvc.PeerLinkService{})
 
