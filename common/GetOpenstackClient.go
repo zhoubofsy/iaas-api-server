@@ -9,6 +9,7 @@ import (
 // GetOpenstackClient is for creating an openstack provider client
 func GetOpenstackClient(apikey string, tenantID string, platformUserID string,
 	resourceID ...string) (*sdk.ProviderClient, error) {
+<<<<<<< HEAD
 	// TODO:
 	//   1. auth
 	//   2. get tenant info
@@ -25,6 +26,24 @@ func GetOpenstackClient(apikey string, tenantID string, platformUserID string,
 		Password:         passwd,           // password,
 		DomainName:       "default",        // domain,
 		TenantID:         prjID,            // projectID,
+=======
+	authResult := APIAuth(apikey, tenantID, platformUserID, resourceID...)
+	if !authResult {
+		return nil, EAPIAUTH
+	}
+	tenantInfo, err := QueryTenantInfoByTenantIdAndApikey(tenantID, apikey)
+	if err != nil {
+		return nil, err
+	}
+	identityEndPoint := os.Getenv("OPENSTACK_IDENTITY_ENDPOINT")
+	//获取provider
+	opts := sdk.AuthOptions{
+		IdentityEndpoint: identityEndPoint,               // idenEndPoint,
+		Username:         tenantInfo.OpenstackUsername,   // username,
+		Password:         tenantInfo.OpenstackPassword,   // password,
+		DomainName:       tenantInfo.OpenstackDomainname, // domain,
+		TenantID:         tenantInfo.OpenstackProjectid,  // tenantID,
+>>>>>>> master
 	}
 
 	return openstack.AuthenticatedClient(opts)

@@ -9,15 +9,19 @@ import (
 	"iaas-api-server/proto/instance"
 	"iaas-api-server/proto/natgateway"
 	"iaas-api-server/proto/peerlink"
+	"iaas-api-server/proto/route"
 	"iaas-api-server/proto/securitygroup"
 	"iaas-api-server/proto/tenant"
+	"iaas-api-server/proto/vpc"
 	"iaas-api-server/service/flavorsvc"
 	"iaas-api-server/service/imagesvc"
 	"iaas-api-server/service/instancesvc"
 	"iaas-api-server/service/natgatewaysvc"
 	"iaas-api-server/service/peerlinksvc"
+	"iaas-api-server/service/routesvc"
 	"iaas-api-server/service/securitygroupsvc"
 	"iaas-api-server/service/tenantsvc"
+	"iaas-api-server/service/vpcsvc"
 
 	//"iaas-api-server/service/routesvc"
 	"net"
@@ -69,8 +73,8 @@ func main() {
 	//	oss.RegisterOSSServiceServer(rpcServer, &osssvc.OssService{})
 	securitygroup.RegisterSecurityGroupServiceServer(rpcServer, &securitygroupsvc.SecurityGroupService{})
 	tenant.RegisterTenantServiceServer(rpcServer, &tenantsvc.TenantService{})
-	//	vpc.RegisterVpcServiceServer(rpcServer, &vpcsvc.VpcService{})
-	//	route.RegisterRouteServiceServer(rpcServer, &routesvc.RouteService{})
+	vpc.RegisterVpcServiceServer(rpcServer, &vpcsvc.VpcService{})
+	route.RegisterRouterServiceServer(rpcServer, &routesvc.RouteService{})
 	natgateway.RegisterNatGatewayServiceServer(rpcServer, &natgatewaysvc.NatGatewayService{})
 	peerlink.RegisterPeerLinkServiceServer(rpcServer, &peerlinksvc.PeerLinkService{})
 
