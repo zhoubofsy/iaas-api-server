@@ -3,6 +3,9 @@ module iaas-api-server
 go 1.15
 
 require (
+	github.com/apparentlymart/go-cidr v1.1.0
+	github.com/bitly/go-simplejson v0.5.0
+	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.4.3
 	github.com/gophercloud/gophercloud v0.15.0
