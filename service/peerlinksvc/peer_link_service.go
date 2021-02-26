@@ -35,12 +35,13 @@ type PeerLinkService struct {
 // CreatePeerLink create peer link
 func (pls *PeerLinkService) CreatePeerLink(ctx context.Context, req *peerlink.PeerLinkReq) (*peerlink.PeerLinkRes, error) {
 	task := &CreatePeerLinkRPCTask{
-		Req: req,
-		Res: &peerlink.PeerLinkRes{},
-		Err: nil,
+		Req:         req,
+		Res:         &peerlink.PeerLinkRes{},
+		Err:         nil,
+		SharedNetID: "5f55f08b-d55a-45a2-8f3f-c5b3eb295856",
 	}
-	shareNetID, _ := config.GetString("ShareNetID")
-	task.ShareNetID = shareNetID
+	sharedSubnetID, _ := config.GetString("SharedSubnetID")
+	task.SharedSubnetID = sharedSubnetID
 
 	task.Run(ctx)
 
@@ -54,8 +55,8 @@ func (pls *PeerLinkService) GetPeerLink(ctx context.Context, req *peerlink.PeerL
 		Res: &peerlink.PeerLinkRes{},
 		Err: nil,
 	}
-	shareNetID, _ := config.GetString("ShareNetID")
-	task.ShareNetID = shareNetID
+	sharedSubnetID, _ := config.GetString("SharedSubnetID")
+	task.SharedSubnetID = sharedSubnetID
 
 	task.Run(ctx)
 
@@ -69,8 +70,8 @@ func (pls *PeerLinkService) DeletePeerLink(ctx context.Context, req *peerlink.Pe
 		Res: &peerlink.DeletePeerLinkRes{},
 		Err: nil,
 	}
-	shareNetID, _ := config.GetString("ShareNetID")
-	task.ShareNetID = shareNetID
+	sharedSubnetID, _ := config.GetString("SharedSubnetID")
+	task.SharedSubnetID = sharedSubnetID
 
 	task.Run(ctx)
 

@@ -25,10 +25,10 @@ import (
 
 // GetPeerLinkRPCTask rpc task
 type GetPeerLinkRPCTask struct {
-	Req        *peerlink.PeerLinkReq
-	Res        *peerlink.PeerLinkRes
-	Err        *common.Error
-	ShareNetID string
+	Req            *peerlink.PeerLinkReq
+	Res            *peerlink.PeerLinkRes
+	Err            *common.Error
+	SharedSubnetID string
 }
 
 // Run rpc start
@@ -112,7 +112,7 @@ func (rpctask *GetPeerLinkRPCTask) execute(providers *gophercloud.ProviderClient
 		wg.Add(1)
 		go getPortByRouterIDAndNetID(client,
 			rpctask.Req.GetPeerARouterid(),
-			rpctask.ShareNetID,
+			rpctask.SharedSubnetID,
 			&portsA,
 			&wg)
 	}
@@ -121,7 +121,7 @@ func (rpctask *GetPeerLinkRPCTask) execute(providers *gophercloud.ProviderClient
 		wg.Add(1)
 		go getPortByRouterIDAndNetID(client,
 			rpctask.Req.GetPeerBRouterid(),
-			rpctask.ShareNetID,
+			rpctask.SharedSubnetID,
 			&portsB,
 			&wg)
 	}

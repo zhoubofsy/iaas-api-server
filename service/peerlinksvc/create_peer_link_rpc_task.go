@@ -30,10 +30,11 @@ import (
 
 // CreatePeerLinkRPCTask rpc task
 type CreatePeerLinkRPCTask struct {
-	Req        *peerlink.PeerLinkReq
-	Res        *peerlink.PeerLinkRes
-	Err        *common.Error
-	ShareNetID string
+	Req            *peerlink.PeerLinkReq
+	Res            *peerlink.PeerLinkRes
+	Err            *common.Error
+	SharedSubnetID string
+	SharedNetID    string
 }
 
 // Run rpc start
@@ -89,7 +90,7 @@ func (rpctask *CreatePeerLinkRPCTask) execute(providers *gophercloud.ProviderCli
 
 	{
 		wg.Add(1)
-		go getIPFromSubnet(client, rpctask.ShareNetID, &availableIP, &wg)
+		go getIPFromSubnet(client, rpctask.SharedSubnetID, &availableIP, &wg)
 	}
 
 	wg.Wait()
@@ -103,7 +104,8 @@ func (rpctask *CreatePeerLinkRPCTask) execute(providers *gophercloud.ProviderCli
 	{
 		wg.Add(1)
 		go addRouteInterfaceToShareNet(client,
-			rpctask.ShareNetID,
+			rpctask.SharedSubnetID,
+			rpctask.SharedNetID,
 			rpctask.Req.GetPeerARouterid(),
 			availableIP[0],
 			&peerA,
@@ -112,7 +114,8 @@ func (rpctask *CreatePeerLinkRPCTask) execute(providers *gophercloud.ProviderCli
 	{
 		wg.Add(1)
 		go addRouteInterfaceToShareNet(client,
-			rpctask.ShareNetID,
+			rpctask.SharedSubnetID,
+			rpctask.SharedNetID,
 			rpctask.Req.GetPeerBRouterid(),
 			availableIP[1],
 			&peerB,
@@ -209,7 +212,8 @@ func addRouteToRouter(client *gophercloud.ServiceClient,
 }
 
 func addRouteInterfaceToShareNet(client *gophercloud.ServiceClient,
-	shareNetID string,
+	sharedSubnetID string,
+	sharedNetID string,
 	routeID string,
 	routeInterfaceIP string,
 	peer *peerlink.PeerLinkRes_LinkConf,
@@ -218,10 +222,10 @@ func addRouteInterfaceToShareNet(client *gophercloud.ServiceClient,
 
 	// 首先必须创建端口
 	port := ports.CreateOpts{
-		NetworkID: "5f55f08b-d55a-45a2-8f3f-c5b3eb295856",
+		NetworkID: sharedNetID,
 		FixedIPs: []ports.IP{
 			{
-				SubnetID:  shareNetID,
+				SubnetID:  sharedSubnetID,
 				IPAddress: routeInterfaceIP,
 			},
 		},
@@ -230,9 +234,10 @@ func addRouteInterfaceToShareNet(client *gophercloud.ServiceClient,
 	pt, err := ports.Create(client, port).Extract()
 	if nil != err {
 		log.WithFields(log.Fields{
-			"err":      err,
-			"SubnetID": shareNetID,
-			"ipaddr":   routeInterfaceIP,
+			"err":       err,
+			"networkID": sharedNetID,
+			"subnetID":  sharedSubnetID,
+			"ipaddr":    routeInterfaceIP,
 		}).Error("create ports failed.")
 		return
 	}
@@ -244,10 +249,10 @@ func addRouteInterfaceToShareNet(client *gophercloud.ServiceClient,
 
 	if nil != err {
 		log.WithFields(log.Fields{
-			"err":        err,
-			"routeID":    routeID,
-			"shareNetID": shareNetID,
-			"PortID":     pt.ID,
+			"err":            err,
+			"routeID":        routeID,
+			"sharedSubnetID": sharedSubnetID,
+			"PortID":         pt.ID,
 		}).Error("add interface error")
 		return
 	}
@@ -300,7 +305,7 @@ func getIPFromSubnet(client *gophercloud.ServiceClient, subnetID string, availab
 	switch subnet.IPVersion {
 	case 4:
 		pools := subnet.AllocationPools[0]
-		startIP := inetaton(pools.Start)
+		startIP := inetaton(pools.Start) + 1 // 默认第一个会被使用，从下一个开始分配
 		endIP := inetaton(pools.End)
 		for i := startIP; i <= endIP; i++ {
 			if len(*availableIP) >= 2 {
@@ -367,7 +372,7 @@ func (rpctask *CreatePeerLinkRPCTask) checkParam() error {
 		"" == rpctask.Req.GetPeerASubnetid() ||
 		"" == rpctask.Req.GetPeerBRouterid() ||
 		"" == rpctask.Req.GetPeerBSubnetid() ||
-		"" == rpctask.ShareNetID {
+		"" == rpctask.SharedSubnetID {
 		return errors.New("input params is wrong")
 	}
 	return nil

@@ -26,10 +26,10 @@ import (
 
 // DeletePeerLinkRPCTask rpc task
 type DeletePeerLinkRPCTask struct {
-	Req        *peerlink.PeerLinkReq
-	Res        *peerlink.DeletePeerLinkRes
-	Err        *common.Error
-	ShareNetID string
+	Req            *peerlink.PeerLinkReq
+	Res            *peerlink.DeletePeerLinkRes
+	Err            *common.Error
+	SharedSubnetID string
 }
 
 // Run rpc start
@@ -102,7 +102,7 @@ func (rpctask *DeletePeerLinkRPCTask) execute(providers *gophercloud.ProviderCli
 		go removeRouteFromRouter(client,
 			subnetACIDR,
 			rpctask.Req.GetPeerBRouterid(),
-			rpctask.ShareNetID,
+			rpctask.SharedSubnetID,
 			&routerIP[0],
 			&wg)
 	}
@@ -111,7 +111,7 @@ func (rpctask *DeletePeerLinkRPCTask) execute(providers *gophercloud.ProviderCli
 		go removeRouteFromRouter(client,
 			subnetBCIDR,
 			rpctask.Req.GetPeerARouterid(),
-			rpctask.ShareNetID,
+			rpctask.SharedSubnetID,
 			&routerIP[1],
 			&wg)
 	}
@@ -124,7 +124,7 @@ func (rpctask *DeletePeerLinkRPCTask) execute(providers *gophercloud.ProviderCli
 		wg.Add(1)
 		go getPortByRouterIDAndNetID(client,
 			rpctask.Req.GetPeerARouterid(),
-			rpctask.ShareNetID,
+			rpctask.SharedSubnetID,
 			&portsA,
 			&wg)
 		if 0 != len(portsA.FixedIPs) {
@@ -137,7 +137,7 @@ func (rpctask *DeletePeerLinkRPCTask) execute(providers *gophercloud.ProviderCli
 		wg.Add(1)
 		go getPortByRouterIDAndNetID(client,
 			rpctask.Req.GetPeerBRouterid(),
-			rpctask.ShareNetID,
+			rpctask.SharedSubnetID,
 			&portsB,
 			&wg)
 		if 0 != len(portsB.FixedIPs) {
@@ -150,7 +150,7 @@ func (rpctask *DeletePeerLinkRPCTask) execute(providers *gophercloud.ProviderCli
 	// 归还ip给子网池
 	{
 		wg.Add(1)
-		go giveBackIPToSubnet(client, rpctask.ShareNetID, routerIP, &wg)
+		go giveBackIPToSubnet(client, rpctask.SharedSubnetID, routerIP, &wg)
 	}
 
 	wg.Wait()
@@ -226,7 +226,7 @@ func giveBackIPToSubnet(client *gophercloud.ServiceClient,
 func removeRouteFromRouter(client *gophercloud.ServiceClient,
 	cidr string,
 	routerID string,
-	shareNetID string,
+	sharedSubnetID string,
 	routerIP *int64,
 	wg *sync.WaitGroup) {
 	defer wg.Done()
@@ -267,7 +267,7 @@ func removeRouteFromRouter(client *gophercloud.ServiceClient,
 
 	// 删除跟share网络的接口
 	_, err = routers.RemoveInterface(client, routerID, routers.RemoveInterfaceOpts{
-		SubnetID: shareNetID,
+		SubnetID: sharedSubnetID,
 	}).Extract()
 
 	if nil != err {
@@ -275,7 +275,7 @@ func removeRouteFromRouter(client *gophercloud.ServiceClient,
 			"err":      err,
 			"cidr":     cidr,
 			"routerid": routerID,
-			"SubnetID": shareNetID,
+			"SubnetID": sharedSubnetID,
 		}).Error("remove interface from router failed")
 	}
 }
@@ -288,7 +288,7 @@ func (rpctask *DeletePeerLinkRPCTask) checkParam() error {
 		"" == rpctask.Req.GetPeerASubnetid() ||
 		"" == rpctask.Req.GetPeerBRouterid() ||
 		"" == rpctask.Req.GetPeerBSubnetid() ||
-		"" == rpctask.ShareNetID {
+		"" == rpctask.SharedSubnetID {
 		return errors.New("input params is wrong")
 	}
 	return nil
