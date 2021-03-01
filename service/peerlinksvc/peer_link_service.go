@@ -35,11 +35,13 @@ type PeerLinkService struct {
 // CreatePeerLink create peer link
 func (pls *PeerLinkService) CreatePeerLink(ctx context.Context, req *peerlink.PeerLinkReq) (*peerlink.PeerLinkRes, error) {
 	task := &CreatePeerLinkRPCTask{
-		Req:         req,
-		Res:         &peerlink.PeerLinkRes{},
-		Err:         nil,
-		SharedNetID: "5f55f08b-d55a-45a2-8f3f-c5b3eb295856",
+		Req: req,
+		Res: &peerlink.PeerLinkRes{},
+		Err: nil,
 	}
+	sharedNetID, _ := config.GetString("SharedNetID")
+	task.SharedNetID = sharedNetID
+
 	sharedSubnetID, _ := config.GetString("SharedSubnetID")
 	task.SharedSubnetID = sharedSubnetID
 
