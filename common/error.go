@@ -1,6 +1,6 @@
 package common
 
-// basic error info for IAAS
+// Error basic error info for IAAS
 type Error struct {
 	Code int32
 	Msg  string
@@ -18,8 +18,10 @@ var (
 	EPARAM            = &Error{Code: 10000, Msg: "param ckeck failed"}
 	EAPIAUTH          = &Error{Code: 10001, Msg: "api auth failed"}
 	EGETOPSTACKCLIENT = &Error{Code: 10002, Msg: "get openstack client failed"}
-	EPARSECIDR        = &Error{Code: 10003, Msg: "parse CIDR failed"}
-	EATOI             = &Error{Code: 10004, Msg: "call Atoi failed"}
+	ENETWORKCLIENT    = &Error{Code: 10003, Msg: "get openstack network client failed"}
+	ECOMPUTECLIENT    = &Error{Code: 10004, Msg: "get openstack compute client failed"}
+	EPARSECIDR        = &Error{Code: 10005, Msg: "parse CIDR failed"}
+	EATOI             = &Error{Code: 10006, Msg: "call Atoi failed"}
 
 	ESGNEWNETWORK  = &Error{Code: 20000, Msg: "security group new network v2 failed"}
 	ESGCREATEGROUP = &Error{Code: 20001, Msg: "security group create group failed"}
@@ -104,4 +106,12 @@ var (
 
 	EIGGETIMAGE   = &Error{Code: 98000, Msg: "openstack get image failed"}
 	EIGLISTIMAGES = &Error{Code: 98001, Msg: "openstack list image failed"}
+
+	EPLGETPREPARE         = &Error{Code: 100000, Msg: "openstack peerlink get, prepare param failed"}
+	EPLDELETEPREPARE      = &Error{Code: 100001, Msg: "openstack peerlink delete, prepare param failed"}
+	EPLCREATEPREPARE      = &Error{Code: 100002, Msg: "openstack peerlink create, prepare param failed"}
+	EPLCREATEADDROUTE     = &Error{Code: 100003, Msg: "openstack peerlink create, add route to router failed"}
+	EPLCREATEADDINTERFACE = &Error{Code: 100004, Msg: "openstack peerlink create, add interface to router failed"}
+	EPLGETIPPOOL          = &Error{Code: 100005, Msg: "openstack get ip pool failed"}
+	EPLGETIPPOOLNONE      = &Error{Code: 100006, Msg: "openstack get ip pool none"}
 )

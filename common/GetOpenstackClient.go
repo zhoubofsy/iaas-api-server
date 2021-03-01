@@ -1,9 +1,10 @@
 package common
 
 import (
+	"os"
+
 	sdk "github.com/gophercloud/gophercloud"
 	openstack "github.com/gophercloud/gophercloud/openstack"
-	"os"
 )
 
 // GetOpenstackClient is for creating an openstack provider client
@@ -26,5 +27,6 @@ func GetOpenstackClient(apikey string, tenantID string, platformUserID string,
 		DomainName:       tenantInfo.OpenstackDomainname, // domain,
 		TenantID:         tenantInfo.OpenstackProjectid,  // tenantID,
 	}
+
 	return openstack.AuthenticatedClient(opts)
 }

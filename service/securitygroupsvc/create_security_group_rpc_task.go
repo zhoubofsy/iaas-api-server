@@ -62,7 +62,7 @@ func (rpctask *CreateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 			"err": err,
 			"req": rpctask.Req.String(),
 		}).Error("new network v2 failed.")
-		return common.ESGNEWNETWORK
+		return common.ENETWORKCLIENT
 	}
 
 	gopts := sg.CreateOpts{
@@ -90,11 +90,11 @@ func (rpctask *CreateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 		SecurityGroupDesc:  group.Description,
 		CreatedTime:        group.CreatedAt.String(),
 		UpdatedTime:        group.UpdatedAt.String(),
-		SecurityGroupRules: make([]*securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule, 1),
+		SecurityGroupRules: make([]*securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule, 0),
 	}
 
 	if len(group.Rules) > 0 {
-		cur := getCurTime()
+		cur := common.Now()
 		for _, rule := range group.Rules {
 			rpctask.Res.SecurityGroup.SecurityGroupRules = append(rpctask.Res.SecurityGroup.SecurityGroupRules, &securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule{
 				RuleId:          rule.ID,
@@ -136,7 +136,7 @@ func (rpctask *CreateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 				continue
 			}
 
-			cur := getCurTime()
+			cur := common.Now()
 			rpctask.Res.SecurityGroup.SecurityGroupRules = append(rpctask.Res.SecurityGroup.SecurityGroupRules, &securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule{
 				RuleId:          rl.ID,
 				RuleDesc:        rl.Description,
@@ -168,4 +168,9 @@ func (rpctask *CreateSecurityGroupRPCTask) checkParam() error {
 func (rpctask *CreateSecurityGroupRPCTask) setResult() {
 	rpctask.Res.Code = rpctask.Err.Code
 	rpctask.Res.Msg = rpctask.Err.Msg
+
+	log.WithFields(log.Fields{
+		"req": rpctask.Req,
+		"res": rpctask.Res,
+	}).Info("request end")
 }
