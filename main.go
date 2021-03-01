@@ -53,7 +53,6 @@ func init() {
 
 var (
 	conf = flag.String("conf", "", "config file")
-	addr = flag.String("addr", ":8080", "listening address")
 )
 
 func main() {
@@ -78,7 +77,11 @@ func main() {
 	natgateway.RegisterNatGatewayServiceServer(rpcServer, &natgatewaysvc.NatGatewayService{})
 	peerlink.RegisterPeerLinkServiceServer(rpcServer, &peerlinksvc.PeerLinkService{})
 
-	listener, err := net.Listen("tcp", *addr)
+	addr, _ := config.GetString("listening_addr")
+	if addr == "" {
+		addr = ":8080"
+	}
+	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatal("服务监听端口失败", err)
 	}
