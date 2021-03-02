@@ -81,6 +81,17 @@ var (
 	EVOLUMEATTACH     = &Error{Code: 50006, Msg: "cinder volume attach failed"}
 	EVOLUMEDETACH     = &Error{Code: 50006, Msg: "cinder volume detach failed"}
 
+	EOSSCREATEUSER      = &Error{Code: 51001, Msg: "OSS create user failed"}
+	EOSSCREATEBUCKET    = &Error{Code: 51002, Msg: "OSS create bucket failed"}
+	EOSSSETQUOTAS       = &Error{Code: 51003, Msg: "OSS set quotas failed"}
+	EOSSGETUSER         = &Error{Code: 51004, Msg: "OSS get user failed"}
+	EOSSSETBUCKETPOLICY = &Error{Code: 51005, Msg: "OSS set bucket policy failed"}
+	EOSSUNKNOWQUOTATYPE = &Error{Code: 51006, Msg: "OSS unknow quota type"}
+	EOSSGETQUOTAS       = &Error{Code: 51007, Msg: "OSS get quotas failed"}
+	EOSSGETBUCKET       = &Error{Code: 51008, Msg: "OSS get bucket failed"}
+	EOSSNOPAGE          = &Error{Code: 51009, Msg: "OSS no page failed"}
+	EOSSLISTBUCKETS     = &Error{Code: 51010, Msg: "OSS list buckets failed"}
+
 	ETTGETTENANT        = &Error{Code: 90000, Msg: "tenant get failed"}
 	ETTCREATETENANT     = &Error{Code: 90001, Msg: "tenant create failed"}
 	ETTDELETETENANT     = &Error{Code: 90002, Msg: "tenant delete failed"}
@@ -90,6 +101,7 @@ var (
 	ETTGETMYSQLCLIENT = &Error{Code: 91001, Msg: "mysql client get failed"}
 	ETTGETENATSEQ     = &Error{Code: 91002, Msg: "mysql get seq failed"}
 	ETTTRANS          = &Error{Code: 91003, Msg: "seq transform failed"}
+	EOSSGETCONFIG     = &Error{Code: 91005, Msg: "get oss config failed"}
 
 	ETTEDITDOMAIN = &Error{Code: 95001, Msg: "openstack uodate domain failed"}
 

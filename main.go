@@ -8,6 +8,7 @@ import (
 	"iaas-api-server/proto/image"
 	"iaas-api-server/proto/instance"
 	"iaas-api-server/proto/natgateway"
+	"iaas-api-server/proto/oss"
 	"iaas-api-server/proto/peerlink"
 	"iaas-api-server/proto/route"
 	"iaas-api-server/proto/securitygroup"
@@ -17,28 +18,18 @@ import (
 	"iaas-api-server/service/imagesvc"
 	"iaas-api-server/service/instancesvc"
 	"iaas-api-server/service/natgatewaysvc"
+	"iaas-api-server/service/osssvc"
 	"iaas-api-server/service/peerlinksvc"
 	"iaas-api-server/service/routesvc"
 	"iaas-api-server/service/securitygroupsvc"
 	"iaas-api-server/service/tenantsvc"
 	"iaas-api-server/service/vpcsvc"
 
-	//"iaas-api-server/service/routesvc"
 	"net"
 	"os"
 
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	//	"iaas-api-server/service/imagesvc"
-	//	"iaas-api-server/service/instancesvc"
-	//	"iaas-api-server/service/nasdisksvc"
-	//	"iaas-api-server/service/osssvc"
-	//	"iaas-api-server/service/routesvc"
-	//	"iaas-api-server/service/tenantsvc"
-	//	"iaas-api-server/service/vpcsvc"
-	//	"iaas-api-server/service/routesvc"
-	//"iaas-api-server/proto/peerlink"
-	//"iaas-api-server/service/peerlinksvc"
 )
 
 func init() {
@@ -69,7 +60,7 @@ func main() {
 	instance.RegisterInstanceServiceServer(rpcServer, &instancesvc.InstanceService{})
 	image.RegisterImageServiceServer(rpcServer, &imagesvc.ImageService{})
 	//	nasdisk.RegisterNasDiskServiceServer(rpcServer, &nasdisksvc.NasDiskService{})
-	//	oss.RegisterOSSServiceServer(rpcServer, &osssvc.OssService{})
+	oss.RegisterOSSServiceServer(rpcServer, &osssvc.OSSService{})
 	securitygroup.RegisterSecurityGroupServiceServer(rpcServer, &securitygroupsvc.SecurityGroupService{})
 	tenant.RegisterTenantServiceServer(rpcServer, &tenantsvc.TenantService{})
 	vpc.RegisterVpcServiceServer(rpcServer, &vpcsvc.VpcService{})
