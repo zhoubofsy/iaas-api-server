@@ -138,7 +138,7 @@ func (rpctask *GetPeerLinkRPCTask) execute(providers *gophercloud.ProviderClient
 	for _, route := range routerA.Routes {
 		if route.DestinationCIDR == subnetBCIDR {
 			rpctask.Res.LinkConfOnPeerA = &peerlink.PeerLinkRes_LinkConf{
-				CreatedTime: common.Now(),
+				//	CreatedTime: common.Now(),
 				RouteToPeer: &peerlink.PeerLinkRes_LinkConf_Route{
 					Destination: route.DestinationCIDR,
 					Nexthop:     route.NextHop,
@@ -153,7 +153,7 @@ func (rpctask *GetPeerLinkRPCTask) execute(providers *gophercloud.ProviderClient
 	for _, route := range routerB.Routes {
 		if route.DestinationCIDR == subnetACIDR {
 			rpctask.Res.LinkConfOnPeerB = &peerlink.PeerLinkRes_LinkConf{
-				CreatedTime: common.Now(),
+				//	CreatedTime: common.Now(),
 				RouteToPeer: &peerlink.PeerLinkRes_LinkConf_Route{
 					Destination: route.DestinationCIDR,
 					Nexthop:     route.NextHop,

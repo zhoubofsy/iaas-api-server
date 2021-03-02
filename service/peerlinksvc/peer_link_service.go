@@ -134,6 +134,10 @@ func getPortByRouterIDAndNetID(client *gophercloud.ServiceClient,
 	}
 }
 
+func addRouteToRouterByRawAPI(routerID string) error {
+	return nil
+}
+
 func inetntoa(ip int64) string {
 	return fmt.Sprintf("%d.%d.%d.%d",
 		byte(ip>>24), byte(ip>>16), byte(ip>>8), byte(ip))

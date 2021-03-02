@@ -119,33 +119,33 @@ func (rpctask *DeletePeerLinkRPCTask) execute(providers *gophercloud.ProviderCli
 	wg.Wait()
 
 	// TODO 如果上面的逻辑没有拿到router从sharenet获取的ip，那么从router的interface获取ip
-	if 0 == routerIP[0] {
-		var portsA ports.Port
-		wg.Add(1)
-		go getPortByRouterIDAndNetID(client,
-			rpctask.Req.GetPeerARouterid(),
-			rpctask.SharedSubnetID,
-			&portsA,
-			&wg)
-		if 0 != len(portsA.FixedIPs) {
-			routerIP[0] = inetaton(portsA.FixedIPs[0].IPAddress)
-		}
-	}
-
-	if 0 == routerIP[1] {
-		var portsB ports.Port
-		wg.Add(1)
-		go getPortByRouterIDAndNetID(client,
-			rpctask.Req.GetPeerBRouterid(),
-			rpctask.SharedSubnetID,
-			&portsB,
-			&wg)
-		if 0 != len(portsB.FixedIPs) {
-			routerIP[1] = inetaton(portsB.FixedIPs[0].IPAddress)
-		}
-	}
-
-	wg.Wait()
+	//	if 0 == routerIP[0] {
+	//		var portsA ports.Port
+	//		wg.Add(1)
+	//		go getPortByRouterIDAndNetID(client,
+	//			rpctask.Req.GetPeerARouterid(),
+	//			rpctask.SharedSubnetID,
+	//			&portsA,
+	//			&wg)
+	//		if 0 != len(portsA.FixedIPs) {
+	//			routerIP[0] = inetaton(portsA.FixedIPs[0].IPAddress)
+	//		}
+	//	}
+	//
+	//	if 0 == routerIP[1] {
+	//		var portsB ports.Port
+	//		wg.Add(1)
+	//		go getPortByRouterIDAndNetID(client,
+	//			rpctask.Req.GetPeerBRouterid(),
+	//			rpctask.SharedSubnetID,
+	//			&portsB,
+	//			&wg)
+	//		if 0 != len(portsB.FixedIPs) {
+	//			routerIP[1] = inetaton(portsB.FixedIPs[0].IPAddress)
+	//		}
+	//	}
+	//
+	//	wg.Wait()
 
 	// 归还ip给子网池
 	{
