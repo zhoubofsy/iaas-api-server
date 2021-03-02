@@ -9,6 +9,7 @@
 package peerlinksvc
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"net"
@@ -23,6 +24,7 @@ import (
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 
+	"iaas-api-server/common"
 	"iaas-api-server/common/config"
 	"iaas-api-server/proto/peerlink"
 )
@@ -134,10 +136,6 @@ func getPortByRouterIDAndNetID(client *gophercloud.ServiceClient,
 	}
 }
 
-func addRouteToRouterByRawAPI(routerID string) error {
-	return nil
-}
-
 func inetntoa(ip int64) string {
 	return fmt.Sprintf("%d.%d.%d.%d",
 		byte(ip>>24), byte(ip>>16), byte(ip>>8), byte(ip))
@@ -147,4 +145,48 @@ func inetaton(ip string) int64 {
 	ret := big.NewInt(0)
 	ret.SetBytes(net.ParseIP(ip).To4())
 	return ret.Int64()
+}
+
+type routesParam struct {
+	router struct {
+		routes []routers.Route `routes`
+	} `json: router`
+}
+
+func addRouteToRouterByRawAPI(client *gophercloud.ServiceClient, routerID string, routes []routers.Route) error {
+	url := client.ResourceBase + "routers/" + routerID + "add_extraroutes"
+
+	var params routesParam
+	params.router.routes = routes
+
+	jsonReq, err := json.Marshal(params)
+	if nil != err {
+		return err
+	}
+
+	_, err = common.CallRawAPI(url, "PUT", jsonReq, client.TokenID)
+	if nil != err {
+		return err
+	}
+
+	return nil
+}
+
+func delRouteToRouterByRawAPI(client *gophercloud.ServiceClient, routerID string, routes []routers.Route) error {
+	url := client.ResourceBase + "routers/" + routerID + "remove_extraroutes"
+
+	var params routesParam
+	params.router.routes = routes
+
+	jsonReq, err := json.Marshal(params)
+	if nil != err {
+		return err
+	}
+
+	_, err = common.CallRawAPI(url, "PUT", jsonReq, client.TokenID)
+	if nil != err {
+		return err
+	}
+
+	return nil
 }

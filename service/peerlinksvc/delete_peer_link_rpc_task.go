@@ -16,7 +16,6 @@ import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
@@ -244,25 +243,24 @@ func removeRouteFromRouter(client *gophercloud.ServiceClient,
 
 	routes := make([]routers.Route, 0)
 	for _, route := range router.Routes {
-		if route.DestinationCIDR != cidr {
-			routes = append(routes, route)
-		} else {
+		if route.DestinationCIDR == cidr {
 			*routerIP = inetaton(route.NextHop)
+			routes = append(routes, route)
+			break
 		}
 	}
 
 	// 更新路由表，把指定的对端路由表删除掉
-	router, err = routers.Update(client, routerID, routers.UpdateOpts{
-		Routes: &routes,
-	}).Extract()
-
-	if nil != err {
-		log.WithFields(log.Fields{
-			"err":      err.Error(),
-			"cidr":     cidr,
-			"routerid": routerID,
-		}).Error("detele route from router failed")
-		return
+	if len(routes) > 0 {
+		err = delRouteToRouterByRawAPI(client, routerID, routes)
+		if nil != err {
+			log.WithFields(log.Fields{
+				"err":      err.Error(),
+				"cidr":     cidr,
+				"routerid": routerID,
+			}).Error("detele route from router failed")
+			return
+		}
 	}
 
 	// 删除跟share网络的接口

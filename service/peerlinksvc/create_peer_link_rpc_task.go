@@ -173,27 +173,13 @@ func addRouteToRouter(client *gophercloud.ServiceClient,
 	wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	// 获取路由器信息
-	router, err := routers.Get(client, routerID).Extract()
-	if nil != err {
-		log.WithFields(log.Fields{
-			"err":      err.Error(),
-			"cidr":     cidr,
-			"nexthop":  nexthop,
-			"routerid": routerID,
-		}).Error("Get router info failed")
-		return
-	}
-
-	routes := append(router.Routes, routers.Route{
+	var routes []routers.Route
+	routes = append(routes, routers.Route{
 		DestinationCIDR: cidr,
 		NextHop:         nexthop,
 	})
 
-	// 更新路由表
-	router, err = routers.Update(client, routerID, routers.UpdateOpts{
-		Routes: &routes,
-	}).Extract()
+	err := addRouteToRouterByRawAPI(client, routerID, routes)
 	if nil != err {
 		log.WithFields(log.Fields{
 			"err":     err,
