@@ -71,7 +71,7 @@ func (rpctask *OperateSecurityGroupRPCTask) execute(providers *gophercloud.Provi
 			"nova err":    novaerr,
 			"req":         rpctask.Req.String(),
 		}).Error("new network v2 failed.")
-		return common.ESGNEWNETWORK
+		return common.ENETWORKCLIENT
 	}
 
 	// 获取安全组，保证要操作的安全组存在
@@ -133,7 +133,12 @@ func (rpctask *OperateSecurityGroupRPCTask) checkParam() error {
 func (rpctask *OperateSecurityGroupRPCTask) setResult() {
 	rpctask.Res.Code = rpctask.Err.Code
 	rpctask.Res.Msg = rpctask.Err.Msg
-	rpctask.Res.OperateedTime = getCurTime()
+	rpctask.Res.OperateedTime = common.Now()
 	rpctask.Res.OpsType = rpctask.Req.GetOpsType()
 	rpctask.Res.SecurityGroupId = rpctask.Req.GetSecurityGroupId()
+
+	log.WithFields(log.Fields{
+		"req": rpctask.Req,
+		"res": rpctask.Res,
+	}).Info("request end")
 }

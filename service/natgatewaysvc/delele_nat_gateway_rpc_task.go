@@ -63,7 +63,7 @@ func (rpctask *DeleteNatGatewayRPCTask) execute(providers *gophercloud.ProviderC
 			"err": err,
 			"req": rpctask.Req.String(),
 		}).Error("new network v2 failed.")
-		return common.ESGNEWNETWORK
+		return common.ENETWORKCLIENT
 	}
 
 	//TODO 此处路由外部网关需调用路由的update接口，不能使用removeInterface接口
@@ -101,5 +101,10 @@ func (rpctask *DeleteNatGatewayRPCTask) setResult() {
 	rpctask.Res.Msg = rpctask.Err.Msg
 	rpctask.Res.RouterId = rpctask.Req.GetRouterId()
 	rpctask.Res.GatewayId = rpctask.Req.GetGatewayId()
-	rpctask.Res.DeletedTime = getCurTime()
+	rpctask.Res.DeletedTime = common.Now()
+
+	log.WithFields(log.Fields{
+		"req": rpctask.Req,
+		"res": rpctask.Res,
+	}).Info("request end")
 }

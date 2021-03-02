@@ -9,8 +9,6 @@
 package natgatewaysvc
 
 import (
-	"time"
-
 	"golang.org/x/net/context"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -60,8 +58,4 @@ func (ngs *NatGatewayService) DeleteNatGateway(ctx context.Context, req *natgate
 	task.Run(ctx)
 
 	return task.Res, status.Error(codes.OK, "success")
-}
-
-func getCurTime() string {
-	return time.Now().Format("2006-01-02 15:04:05")
 }

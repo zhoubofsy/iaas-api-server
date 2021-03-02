@@ -149,3 +149,71 @@ type OssConfig struct {
 func (ossConfig OssConfig) IsEmpty() bool {
 	return reflect.DeepEqual(ossConfig, OssConfig{})
 }
+
+// QuerySharedSubnetUsedIP for shared subnet
+func QuerySharedSubnetUsedIP(subnetID string) (SharedSubnetIPPool, error) {
+	sqlStr := "SELECT used_ip FROM shared_subnet_ip_pool WHERE subnet_id =?"
+	var ip = SharedSubnetIPPool{
+		SubnetID: subnetID,
+	}
+	err := db.QueryRow(sqlStr, subnetID).Scan(&ip.UsedIP)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return ip, EPLGETIPPOOLNONE
+		}
+		log.WithFields(log.Fields{
+			"err":      err,
+			"subnetID": subnetID,
+			"sql":      sqlStr,
+		}).Error("query shared_subnet_ip_pool failed.")
+		return ip, EPLGETIPPOOL
+	}
+	return ip, nil
+}
+
+// CreateSharedSubnetUsedIP for shared subnet
+func CreateSharedSubnetUsedIP(subnetID string, usedIP string) bool {
+	sqlStr := "INSERT INTO shared_subnet_ip_pool(subnet_id, used_ip) VALUES (?,?)"
+	ret, err := db.Exec(sqlStr, subnetID, usedIP)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err":      err,
+			"sql":      sqlStr,
+			"subnetID": subnetID,
+			"usedIP":   usedIP,
+		}).Error("create shared subnet ip pool failed.")
+		return false
+	}
+	n, err := ret.RowsAffected()
+	if n > 0 {
+		return true
+	}
+	return false
+}
+
+// UpdateSharedSubnetUsedIP for shared subnet
+func UpdateSharedSubnetUsedIP(subnetID string, usedIP string) bool {
+	sqlStr := "UPDATE shared_subnet_ip_pool SET used_ip = ? WHERE subnet_id = ?"
+	ret, err := db.Exec(sqlStr, usedIP, subnetID)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err":      err,
+			"sql":      sqlStr,
+			"subnetID": subnetID,
+			"usedIP":   usedIP,
+		}).Error("update shared subnet ip pool failed.")
+		return false
+	}
+	n, err := ret.RowsAffected()
+	if n > 0 {
+		return true
+	}
+	return false
+}
+
+// SharedSubnetIPPool IP Pool
+type SharedSubnetIPPool struct {
+	SubnetID string
+	UsedIP   string
+	IPPool   string
+}
