@@ -173,20 +173,13 @@ func addRouteToRouter(client *gophercloud.ServiceClient,
 	wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	var routes []routers.Route
-	routes = append(routes, routers.Route{
-		DestinationCIDR: cidr,
-		NextHop:         nexthop,
-	})
-
-	err := addRouteToRouterByRawAPI(client, routerID, routes)
+	err := addRouteToRouterByRawAPI(client, routerID, cidr, nexthop)
 	if nil != err {
 		log.WithFields(log.Fields{
 			"err":     err,
 			"routeID": routerID,
 			"cidr":    cidr,
 			"nexthop": nexthop,
-			"routes":  routes,
 		}).Error("update route to router failed")
 		return
 	}

@@ -241,26 +241,25 @@ func removeRouteFromRouter(client *gophercloud.ServiceClient,
 		return
 	}
 
-	routes := make([]routers.Route, 0)
+	var destination, nexthop string
 	for _, route := range router.Routes {
 		if route.DestinationCIDR == cidr {
 			*routerIP = inetaton(route.NextHop)
-			routes = append(routes, route)
+			destination = route.DestinationCIDR
+			nexthop = route.NextHop
 			break
 		}
 	}
 
 	// 更新路由表，把指定的对端路由表删除掉
-	if len(routes) > 0 {
-		err = delRouteToRouterByRawAPI(client, routerID, routes)
-		if nil != err {
-			log.WithFields(log.Fields{
-				"err":      err.Error(),
-				"cidr":     cidr,
-				"routerid": routerID,
-			}).Error("detele route from router failed")
-			return
-		}
+	err = delRouteToRouterByRawAPI(client, routerID, destination, nexthop)
+	if nil != err {
+		log.WithFields(log.Fields{
+			"err":      err.Error(),
+			"cidr":     cidr,
+			"routerid": routerID,
+		}).Error("detele route from router failed")
+		return
 	}
 
 	// 删除跟share网络的接口

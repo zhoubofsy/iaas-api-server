@@ -9,12 +9,12 @@
 package peerlinksvc
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"net"
 	"sync"
 
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
 	"github.com/gophercloud/gophercloud"
@@ -147,19 +147,23 @@ func inetaton(ip string) int64 {
 	return ret.Int64()
 }
 
-type routesParam struct {
-	router struct {
-		routes []routers.Route `routes`
-	} `json: router`
-}
+func addRouteToRouterByRawAPI(client *gophercloud.ServiceClient, routerID string, destination string, nexthop string) error {
+	url := client.ResourceBase + "routers/" + routerID + "/add_extraroutes"
 
-func addRouteToRouterByRawAPI(client *gophercloud.ServiceClient, routerID string, routes []routers.Route) error {
-	url := client.ResourceBase + "routers/" + routerID + "add_extraroutes"
+	jsTemplate := `{
+	"router": {
+		"routes": [{
+			"destination": "{{.Destination}}",
+			"nexthop": "{{.NextHop}}"
+		}]
+	}
+}`
+	mp := map[string]string{
+		"Destination": destination,
+		"NextHop":     nexthop,
+	}
 
-	var params routesParam
-	params.router.routes = routes
-
-	jsonReq, err := json.Marshal(params)
+	jsonReq, err := common.CreateJsonByTmpl(jsTemplate, mp)
 	if nil != err {
 		return err
 	}
@@ -172,13 +176,23 @@ func addRouteToRouterByRawAPI(client *gophercloud.ServiceClient, routerID string
 	return nil
 }
 
-func delRouteToRouterByRawAPI(client *gophercloud.ServiceClient, routerID string, routes []routers.Route) error {
-	url := client.ResourceBase + "routers/" + routerID + "remove_extraroutes"
+func delRouteToRouterByRawAPI(client *gophercloud.ServiceClient, routerID string, destination string, nexthop string) error {
+	url := client.ResourceBase + "routers/" + routerID + "/remove_extraroutes"
 
-	var params routesParam
-	params.router.routes = routes
+	jsTemplate := `{
+	"router": {
+		"routes": [{
+			"destination": "{{.Destination}}",
+			"nexthop": "{{.NextHop}}"
+		}]
+	}
+}`
+	mp := map[string]string{
+		"Destination": destination,
+		"NextHop":     nexthop,
+	}
 
-	jsonReq, err := json.Marshal(params)
+	jsonReq, err := common.CreateJsonByTmpl(jsTemplate, mp)
 	if nil != err {
 		return err
 	}
