@@ -23,6 +23,7 @@ import (
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 
+	"iaas-api-server/common"
 	"iaas-api-server/common/config"
 	"iaas-api-server/proto/peerlink"
 )
@@ -143,4 +144,62 @@ func inetaton(ip string) int64 {
 	ret := big.NewInt(0)
 	ret.SetBytes(net.ParseIP(ip).To4())
 	return ret.Int64()
+}
+
+func addRouteToRouterByRawAPI(client *gophercloud.ServiceClient, routerID string, destination string, nexthop string) error {
+	url := client.ResourceBase + "routers/" + routerID + "/add_extraroutes"
+
+	jsTemplate := `{
+	"router": {
+		"routes": [{
+			"destination": "{{.Destination}}",
+			"nexthop": "{{.NextHop}}"
+		}]
+	}
+}`
+	mp := map[string]string{
+		"Destination": destination,
+		"NextHop":     nexthop,
+	}
+
+	jsonReq, err := common.CreateJsonByTmpl(jsTemplate, mp)
+	if nil != err {
+		return err
+	}
+
+	_, err = common.CallRawAPI(url, "PUT", jsonReq, client.TokenID)
+	if nil != err {
+		return err
+	}
+
+	return nil
+}
+
+func delRouteToRouterByRawAPI(client *gophercloud.ServiceClient, routerID string, destination string, nexthop string) error {
+	url := client.ResourceBase + "routers/" + routerID + "/remove_extraroutes"
+
+	jsTemplate := `{
+	"router": {
+		"routes": [{
+			"destination": "{{.Destination}}",
+			"nexthop": "{{.NextHop}}"
+		}]
+	}
+}`
+	mp := map[string]string{
+		"Destination": destination,
+		"NextHop":     nexthop,
+	}
+
+	jsonReq, err := common.CreateJsonByTmpl(jsTemplate, mp)
+	if nil != err {
+		return err
+	}
+
+	_, err = common.CallRawAPI(url, "PUT", jsonReq, client.TokenID)
+	if nil != err {
+		return err
+	}
+
+	return nil
 }

@@ -16,7 +16,6 @@ import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
@@ -119,33 +118,33 @@ func (rpctask *DeletePeerLinkRPCTask) execute(providers *gophercloud.ProviderCli
 	wg.Wait()
 
 	// TODO 如果上面的逻辑没有拿到router从sharenet获取的ip，那么从router的interface获取ip
-	if 0 == routerIP[0] {
-		var portsA ports.Port
-		wg.Add(1)
-		go getPortByRouterIDAndNetID(client,
-			rpctask.Req.GetPeerARouterid(),
-			rpctask.SharedSubnetID,
-			&portsA,
-			&wg)
-		if 0 != len(portsA.FixedIPs) {
-			routerIP[0] = inetaton(portsA.FixedIPs[0].IPAddress)
-		}
-	}
-
-	if 0 == routerIP[1] {
-		var portsB ports.Port
-		wg.Add(1)
-		go getPortByRouterIDAndNetID(client,
-			rpctask.Req.GetPeerBRouterid(),
-			rpctask.SharedSubnetID,
-			&portsB,
-			&wg)
-		if 0 != len(portsB.FixedIPs) {
-			routerIP[1] = inetaton(portsB.FixedIPs[0].IPAddress)
-		}
-	}
-
-	wg.Wait()
+	//	if 0 == routerIP[0] {
+	//		var portsA ports.Port
+	//		wg.Add(1)
+	//		go getPortByRouterIDAndNetID(client,
+	//			rpctask.Req.GetPeerARouterid(),
+	//			rpctask.SharedSubnetID,
+	//			&portsA,
+	//			&wg)
+	//		if 0 != len(portsA.FixedIPs) {
+	//			routerIP[0] = inetaton(portsA.FixedIPs[0].IPAddress)
+	//		}
+	//	}
+	//
+	//	if 0 == routerIP[1] {
+	//		var portsB ports.Port
+	//		wg.Add(1)
+	//		go getPortByRouterIDAndNetID(client,
+	//			rpctask.Req.GetPeerBRouterid(),
+	//			rpctask.SharedSubnetID,
+	//			&portsB,
+	//			&wg)
+	//		if 0 != len(portsB.FixedIPs) {
+	//			routerIP[1] = inetaton(portsB.FixedIPs[0].IPAddress)
+	//		}
+	//	}
+	//
+	//	wg.Wait()
 
 	// 归还ip给子网池
 	{
@@ -242,20 +241,18 @@ func removeRouteFromRouter(client *gophercloud.ServiceClient,
 		return
 	}
 
-	routes := make([]routers.Route, 0)
+	var destination, nexthop string
 	for _, route := range router.Routes {
-		if route.DestinationCIDR != cidr {
-			routes = append(routes, route)
-		} else {
+		if route.DestinationCIDR == cidr {
 			*routerIP = inetaton(route.NextHop)
+			destination = route.DestinationCIDR
+			nexthop = route.NextHop
+			break
 		}
 	}
 
 	// 更新路由表，把指定的对端路由表删除掉
-	router, err = routers.Update(client, routerID, routers.UpdateOpts{
-		Routes: &routes,
-	}).Extract()
-
+	err = delRouteToRouterByRawAPI(client, routerID, destination, nexthop)
 	if nil != err {
 		log.WithFields(log.Fields{
 			"err":      err.Error(),
