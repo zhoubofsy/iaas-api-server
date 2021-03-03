@@ -15,11 +15,11 @@
         "protocol": "TCP",
         "port": 8080,
         "targetPort": 8080,
-        "nodePort": 28080
+        "nodePort": 38080
       }
     ],
     "selector": {
-      "app": "all-in-one"
+      "app": "iaas-api-server"
     },
     "type": "NodePort"
   }
