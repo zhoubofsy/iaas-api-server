@@ -1,7 +1,7 @@
 variables:
-  GIT_HOST="liyongcool.nat300.top"
-  GIT_GROUP="iaas"
-  GIT_PROJECT="iaas-api-server"
+  GIT_HOST: "liyongcool.nat300.top"
+  GIT_GROUP: "iaas"
+  GIT_PROJECT: "iaas-api-server"
   REPOSITORY: ${GIT_HOST}/${GIT_GROUP}/${GIT_GROUP}
   DEPLOY_DIR: "deploy"
   HARBOR_HOST: "reg.iaas"
