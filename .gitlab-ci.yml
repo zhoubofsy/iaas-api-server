@@ -34,7 +34,8 @@ task_compile:
     GIT_STRATEGY: none
   script:
     - go mod tidy
-    - CGO_ENABLED=0 go build ${GIT_GROUP} -o ${DEPLOY_DIR}
+    - CGO_ENABLED=0 go build ${GIT_PROJECT}
+    - mv ${GIT_PROJECT} ${DEPLOY_DIR}/
   artifacts:
     paths:
       - ${DEPLOY_DIR}/
