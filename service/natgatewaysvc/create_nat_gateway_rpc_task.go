@@ -62,7 +62,7 @@ func (rpctask *CreateNatGatewayRPCTask) execute(providers *gophercloud.ProviderC
 			"err": err,
 			"req": rpctask.Req.String(),
 		}).Error("new network v2 failed.")
-		return common.ESGNEWNETWORK
+		return common.ENETWORKCLIENT
 	}
 
 	enableSnat := true
@@ -88,7 +88,7 @@ func (rpctask *CreateNatGatewayRPCTask) execute(providers *gophercloud.ProviderC
 		RouterId:          router.ID,
 		ExternalNetworkId: router.GatewayInfo.NetworkID,
 		EnableSnat:        *(router.GatewayInfo.EnableSNAT),
-		CreatedTime:       getCurTime(),
+		CreatedTime:       common.Now(),
 	}
 
 	// TODO ExternalFixedIPs 可能有多个，通常只会有一个，但是不能排除多个的情况
@@ -114,4 +114,9 @@ func (rpctask *CreateNatGatewayRPCTask) checkParam() error {
 func (rpctask *CreateNatGatewayRPCTask) setResult() {
 	rpctask.Res.Code = rpctask.Err.Code
 	rpctask.Res.Msg = rpctask.Err.Msg
+
+	log.WithFields(log.Fields{
+		"req": rpctask.Req,
+		"res": rpctask.Res,
+	}).Info("request end")
 }

@@ -8,6 +8,8 @@ import (
 	"iaas-api-server/proto/image"
 	"iaas-api-server/proto/instance"
 	"iaas-api-server/proto/natgateway"
+	"iaas-api-server/proto/oss"
+	"iaas-api-server/proto/peerlink"
 	"iaas-api-server/proto/route"
 	"iaas-api-server/proto/securitygroup"
 	"iaas-api-server/proto/tenant"
@@ -16,43 +18,32 @@ import (
 	"iaas-api-server/service/imagesvc"
 	"iaas-api-server/service/instancesvc"
 	"iaas-api-server/service/natgatewaysvc"
+	"iaas-api-server/service/osssvc"
+	"iaas-api-server/service/peerlinksvc"
 	"iaas-api-server/service/routesvc"
+	"iaas-api-server/service/securitygroupsvc"
+	"iaas-api-server/service/tenantsvc"
 	"iaas-api-server/service/vpcsvc"
-	"os"
 
-	//"iaas-api-server/service/routesvc"
 	"net"
+	"os"
 
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-
-	//	"iaas-api-server/service/imagesvc"
-	//	"iaas-api-server/service/instancesvc"
-	//	"iaas-api-server/service/nasdisksvc"
-	//	"iaas-api-server/service/osssvc"
-	//	"iaas-api-server/service/routesvc"
-	"iaas-api-server/service/securitygroupsvc"
-	//	"iaas-api-server/service/tenantsvc"
-	"iaas-api-server/service/tenantsvc"
-	//	"iaas-api-server/service/vpcsvc"
-	//	"iaas-api-server/service/routesvc"
-	//"iaas-api-server/proto/peerlink"
-	//"iaas-api-server/service/peerlinksvc"
 )
 
 func init() {
 	log.SetFormatter(&log.JSONFormatter{}) //设置日志的输出格式为json格式，还可以设置为text格式
 	log.SetOutput(os.Stdout)               //设置日志的输出为标准输出
 	log.SetLevel(log.InfoLevel)            //设置日志的显示级别，这一级别以及更高级别的日志信息将会输出
-	log.SetReportCaller(true)
-	if !common.InitDb() { //数据库初始化
+	log.SetReportCaller(true)              //设置日志的调用文件，调用函数
+	if !common.InitDb() {                  //数据库初始化
 		panic("数据库初始化失败")
 	}
 }
 
 var (
 	conf = flag.String("conf", "", "config file")
-	addr = flag.String("addr", ":8080", "listening address")
 )
 
 func main() {
@@ -69,15 +60,19 @@ func main() {
 	instance.RegisterInstanceServiceServer(rpcServer, &instancesvc.InstanceService{})
 	image.RegisterImageServiceServer(rpcServer, &imagesvc.ImageService{})
 	//	nasdisk.RegisterNasDiskServiceServer(rpcServer, &nasdisksvc.NasDiskService{})
-	//	oss.RegisterOSSServiceServer(rpcServer, &osssvc.OssService{})
+	oss.RegisterOSSServiceServer(rpcServer, &osssvc.OSSService{})
 	securitygroup.RegisterSecurityGroupServiceServer(rpcServer, &securitygroupsvc.SecurityGroupService{})
 	tenant.RegisterTenantServiceServer(rpcServer, &tenantsvc.TenantService{})
 	vpc.RegisterVpcServiceServer(rpcServer, &vpcsvc.VpcService{})
 	route.RegisterRouterServiceServer(rpcServer, &routesvc.RouteService{})
 	natgateway.RegisterNatGatewayServiceServer(rpcServer, &natgatewaysvc.NatGatewayService{})
-	//peerlink.RegisterPeerLinkServiceServer(rpcServer, &peerlinksvc.PeerLinkService{})
+	peerlink.RegisterPeerLinkServiceServer(rpcServer, &peerlinksvc.PeerLinkService{})
 
-	listener, err := net.Listen("tcp", *addr)
+	addr, _ := config.GetString("listening_addr")
+	if addr == "" {
+		addr = ":8080"
+	}
+	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatal("服务监听端口失败", err)
 	}

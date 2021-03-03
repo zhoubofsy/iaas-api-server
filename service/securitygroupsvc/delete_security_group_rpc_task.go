@@ -64,7 +64,7 @@ func (rpctask *DeleteSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 			"err": err,
 			"req": rpctask.Req.String(),
 		}).Error("new network v2 failed.")
-		return common.ESGNEWNETWORK
+		return common.ENETWORKCLIENT
 	}
 
 	defer func(start time.Time) {
@@ -102,5 +102,10 @@ func (rpctask *DeleteSecurityGroupRPCTask) setResult() {
 	rpctask.Res.Code = rpctask.Err.Code
 	rpctask.Res.Msg = rpctask.Err.Msg
 	rpctask.Res.SecurityGroupId = rpctask.Req.GetSecurityGroupId()
-	rpctask.Res.DeletedTime = getCurTime()
+	rpctask.Res.DeletedTime = common.Now()
+
+	log.WithFields(log.Fields{
+		"req": rpctask.Req,
+		"res": rpctask.Res,
+	}).Info("request end")
 }

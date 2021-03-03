@@ -1,6 +1,6 @@
 package common
 
-// basic error info for IAAS
+// Error basic error info for IAAS
 type Error struct {
 	Code int32
 	Msg  string
@@ -18,8 +18,10 @@ var (
 	EPARAM            = &Error{Code: 10000, Msg: "param ckeck failed"}
 	EAPIAUTH          = &Error{Code: 10001, Msg: "api auth failed"}
 	EGETOPSTACKCLIENT = &Error{Code: 10002, Msg: "get openstack client failed"}
-	EPARSECIDR        = &Error{Code: 10003, Msg: "parse CIDR failed"}
-	EATOI             = &Error{Code: 10004, Msg: "call Atoi failed"}
+	ENETWORKCLIENT    = &Error{Code: 10003, Msg: "get openstack network client failed"}
+	ECOMPUTECLIENT    = &Error{Code: 10004, Msg: "get openstack compute client failed"}
+	EPARSECIDR        = &Error{Code: 10005, Msg: "parse CIDR failed"}
+	EATOI             = &Error{Code: 10006, Msg: "call Atoi failed"}
 
 	ESGNEWNETWORK  = &Error{Code: 20000, Msg: "security group new network v2 failed"}
 	ESGCREATEGROUP = &Error{Code: 20001, Msg: "security group create group failed"}
@@ -79,6 +81,17 @@ var (
 	EVOLUMEATTACH     = &Error{Code: 50006, Msg: "cinder volume attach failed"}
 	EVOLUMEDETACH     = &Error{Code: 50006, Msg: "cinder volume detach failed"}
 
+	EOSSCREATEUSER      = &Error{Code: 51001, Msg: "OSS create user failed"}
+	EOSSCREATEBUCKET    = &Error{Code: 51002, Msg: "OSS create bucket failed"}
+	EOSSSETQUOTAS       = &Error{Code: 51003, Msg: "OSS set quotas failed"}
+	EOSSGETUSER         = &Error{Code: 51004, Msg: "OSS get user failed"}
+	EOSSSETBUCKETPOLICY = &Error{Code: 51005, Msg: "OSS set bucket policy failed"}
+	EOSSUNKNOWQUOTATYPE = &Error{Code: 51006, Msg: "OSS unknow quota type"}
+	EOSSGETQUOTAS       = &Error{Code: 51007, Msg: "OSS get quotas failed"}
+	EOSSGETBUCKET       = &Error{Code: 51008, Msg: "OSS get bucket failed"}
+	EOSSNOPAGE          = &Error{Code: 51009, Msg: "OSS no page failed"}
+	EOSSLISTBUCKETS     = &Error{Code: 51010, Msg: "OSS list buckets failed"}
+
 	ETTGETTENANT        = &Error{Code: 90000, Msg: "tenant get failed"}
 	ETTCREATETENANT     = &Error{Code: 90001, Msg: "tenant create failed"}
 	ETTDELETETENANT     = &Error{Code: 90002, Msg: "tenant delete failed"}
@@ -88,6 +101,7 @@ var (
 	ETTGETMYSQLCLIENT = &Error{Code: 91001, Msg: "mysql client get failed"}
 	ETTGETENATSEQ     = &Error{Code: 91002, Msg: "mysql get seq failed"}
 	ETTTRANS          = &Error{Code: 91003, Msg: "seq transform failed"}
+	EOSSGETCONFIG     = &Error{Code: 91005, Msg: "get oss config failed"}
 
 	ETTEDITDOMAIN = &Error{Code: 94001, Msg: "openstack update domain failed"}
 
@@ -104,4 +118,12 @@ var (
 
 	EIGGETIMAGE   = &Error{Code: 98000, Msg: "openstack get image failed"}
 	EIGLISTIMAGES = &Error{Code: 98001, Msg: "openstack list image failed"}
+
+	EPLGETPREPARE         = &Error{Code: 100000, Msg: "openstack peerlink get, prepare param failed"}
+	EPLDELETEPREPARE      = &Error{Code: 100001, Msg: "openstack peerlink delete, prepare param failed"}
+	EPLCREATEPREPARE      = &Error{Code: 100002, Msg: "openstack peerlink create, prepare param failed"}
+	EPLCREATEADDROUTE     = &Error{Code: 100003, Msg: "openstack peerlink create, add route to router failed"}
+	EPLCREATEADDINTERFACE = &Error{Code: 100004, Msg: "openstack peerlink create, add interface to router failed"}
+	EPLGETIPPOOL          = &Error{Code: 100005, Msg: "openstack get ip pool failed"}
+	EPLGETIPPOOLNONE      = &Error{Code: 100006, Msg: "openstack get ip pool none"}
 )
