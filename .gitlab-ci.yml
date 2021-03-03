@@ -63,8 +63,7 @@ task_docker_image_push:
     GIT_STRATEGY: none
   tags:
     - bcc-vm-runner-for-iaas-group   
-  script:    
-    - cd ${DEPLOY_DIR}
+  script:       
     - docker logout ${HARBOR_HOST}
     - echo "${HARBOR_PASS}" | docker login ${HARBOR_HOST} --username ${HARBOR_USER} --password-stdin
     - export DOCKER_IMAGE_TAG=$(git show -s --format=%ct $CI_COMMIT_SHA)
