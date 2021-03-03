@@ -59,7 +59,7 @@ func main() {
 	flavor.RegisterFlavorServiceServer(rpcServer, &flavorsvc.FlavorService{})
 	instance.RegisterInstanceServiceServer(rpcServer, &instancesvc.InstanceService{})
 	image.RegisterImageServiceServer(rpcServer, &imagesvc.ImageService{})
-	//	nasdisk.RegisterNasDiskServiceServer(rpcServer, &nasdisksvc.NasDiskService{})
+	//nasdisk.RegisterNasDiskServiceServer(rpcServer, &nasdisksvc.NasDiskService{})
 	oss.RegisterOSSServiceServer(rpcServer, &osssvc.OSSService{})
 	securitygroup.RegisterSecurityGroupServiceServer(rpcServer, &securitygroupsvc.SecurityGroupService{})
 	tenant.RegisterTenantServiceServer(rpcServer, &tenantsvc.TenantService{})
