@@ -1,0 +1,26 @@
+{
+  "kind": "Service",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "iaas-api-server",
+    "namespace": "iaas",
+    "labels": {
+      "app": "iaas-api-server"
+    }
+  },
+  "spec": {
+    "ports": [
+      {
+        "name": "port1",
+        "protocol": "TCP",
+        "port": 8080,
+        "targetPort": 8080,
+        "nodePort": 28080
+      }
+    ],
+    "selector": {
+      "app": "all-in-one"
+    },
+    "type": "NodePort"
+  }
+}
