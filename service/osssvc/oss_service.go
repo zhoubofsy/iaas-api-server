@@ -13,7 +13,8 @@ type OSSService struct {
 }
 
 func (o *OSSService) CreateUserAndBucket(ctx context.Context, r *oss.CreateUserAndBucketReq) (*oss.CreateUserAndBucketRes, error) {
-	log.Info("[OSSService] CreateUserAndBucket request start. ", *r)
+	log.Info("[OSSService] CreateUserAndBucket request start. ")
+	log.Debug("[OSSService] CreateUserAndBucketReq Apikey:", r.Apikey, ",TenantId:", r.TenantId, ",PlatformUserid:", r.PlatformUserid, ",Region:", r.Region, ",BucketName:", r.BucketName, ",StorageType:", r.StorageType, ",UserMaxSizeInG:", r.UserMaxSizeInG, ",UserMaxObjects:", r.UserMaxObjects, ",BucketPolicy:", r.BucketPolicy)
 	auth := &OpenstackAPIAuthorization{Apikey: r.Apikey, TenantId: r.TenantId, PlatformUserid: r.PlatformUserid}
 	op := new(CreateUserAndBucketOp)
 
@@ -23,7 +24,8 @@ func (o *OSSService) CreateUserAndBucket(ctx context.Context, r *oss.CreateUserA
 }
 
 func (o *OSSService) GetBucketInfo(ctx context.Context, r *oss.GetBucketInfoReq) (*oss.GetBucketInfoRes, error) {
-	log.Info("[OSSService] GetBucketInfo request start. ", *r)
+	log.Info("[OSSService] GetBucketInfo request start. ")
+	log.Debug("[OSSService] GetBucketInfoReq Apikey:", r.Apikey, ",TenantId:", r.TenantId, ",PlatformUserid:", r.PlatformUserid, ",Region:", r.Region, ",OssUid:", r.OssUid, ",BucketName:", r.BucketName)
 	auth := &OpenstackAPIAuthorization{Apikey: r.Apikey, TenantId: r.TenantId, PlatformUserid: r.PlatformUserid}
 	op := new(GetBucketInfoOp)
 
@@ -33,7 +35,8 @@ func (o *OSSService) GetBucketInfo(ctx context.Context, r *oss.GetBucketInfoReq)
 }
 
 func (o *OSSService) ListBucketsInfo(ctx context.Context, r *oss.ListBucketsInfoReq) (*oss.ListBucketsInfoRes, error) {
-	log.Info("[OSSService] ListBucketsInfo request start. ", *r)
+	log.Info("[OSSService] ListBucketsInfo request start. ")
+	log.Debug("[OSSService] ListBucketsInfoReq Apikey:", r.Apikey, ",TenantId:", r.TenantId, ",PlatformUserid:", r.PlatformUserid, ",Region:", r.Region, ",OssUid:", r.OssUid, ",PageNumber:", r.PageNumber, ",PageSize:", r.PageSize)
 	auth := &OpenstackAPIAuthorization{Apikey: r.Apikey, TenantId: r.TenantId, PlatformUserid: r.PlatformUserid}
 	op := new(ListBucketsInfoOp)
 
@@ -43,7 +46,8 @@ func (o *OSSService) ListBucketsInfo(ctx context.Context, r *oss.ListBucketsInfo
 }
 
 func (o *OSSService) SetOssUserQuota(ctx context.Context, r *oss.SetOssUserQuotaReq) (*oss.SetOssUserQuotaRes, error) {
-	log.Info("[OSSService] SetOssUserQuota request start. ", *r)
+	log.Info("[OSSService] SetOssUserQuota request start. ")
+	log.Debug("[OSSService] SetOssUserQuotaReq Apikey:", r.Apikey, ",TenantId:", r.TenantId, ",PlatformUserid:", r.PlatformUserid, ",Region:", r.Region, ",OssUid:", r.OssUid, ",UserMaxSizeInG:", r.UserMaxSizeInG, ",UserMaxObjects:", r.UserMaxObjects)
 	auth := &OpenstackAPIAuthorization{Apikey: r.Apikey, TenantId: r.TenantId, PlatformUserid: r.PlatformUserid}
 	op := new(SetOssUserQuotaOp)
 
@@ -53,7 +57,8 @@ func (o *OSSService) SetOssUserQuota(ctx context.Context, r *oss.SetOssUserQuota
 }
 
 func (o *OSSService) RecoverKey(ctx context.Context, r *oss.RecoverKeyReq) (*oss.RecoverKeyRes, error) {
-	log.Info("[OSSService] RecoverKey request start. ", *r)
+	log.Info("[OSSService] RecoverKey request start. ")
+	log.Debug("[OSSService] RecoverKeyReq Apikey:", r.Apikey, ",TenantId:", r.TenantId, ",PlatformUserid:", r.PlatformUserid, ",Region:", r.Region, ",OssUid:", r.OssUid)
 	auth := &OpenstackAPIAuthorization{Apikey: r.Apikey, TenantId: r.TenantId, PlatformUserid: r.PlatformUserid}
 	op := new(RecoverKeyOp)
 
