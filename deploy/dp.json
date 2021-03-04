@@ -65,6 +65,14 @@
           }
         },
         "automountServiceAccountToken": false,
+        "hostAliases": [
+          {
+            "hostnames": [
+              "controller"
+            ],
+            "ip": "120.92.19.57"
+          }
+        ],
         "imagePullSecrets": [
           {
             "name": "iaas-registry"
