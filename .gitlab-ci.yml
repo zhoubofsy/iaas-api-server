@@ -1,0 +1,90 @@
+variables:
+  GIT_HOST: "liyongcool.nat300.top"
+  GIT_GROUP: "iaas"
+  GIT_PROJECT: "iaas-api-server"
+  REPOSITORY: ${GIT_HOST}/${GIT_GROUP}/${GIT_GROUP}
+  DEPLOY_DIR: "deploy"
+  HARBOR_HOST: "reg.iaas"
+  HARBOR_PROJECT: ${GIT_GROUP}
+  DOCKER_IMAGE_NAME: ${GIT_PROJECT}
+  HARBOR_USER: ${GIT_GROUP}
+
+stages: 
+    - check
+    - compile
+    - docker-build
+    - docker-push
+    - k8s-deploy
+
+task_check:  
+  stage: check
+  variables:
+    GIT_STRATEGY: pull  
+  script:    
+    - go fmt $(go list ./... | grep -v /vendor/)
+    - go vet $(go list ./... | grep -v /vendor/)
+  only:    
+    - master
+      
+task_compile:
+  stage: compile
+  tags:
+    - bcc-vm-runner-for-iaas-group
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - go mod tidy
+    - CGO_ENABLED=0 go build ${GIT_PROJECT}
+    - mv ${GIT_PROJECT} ${DEPLOY_DIR}/
+  artifacts:
+    paths:
+      - ${DEPLOY_DIR}/
+  only:    
+    - master
+
+task_docker_image_build:
+  stage: docker-build
+  variables:
+    GIT_STRATEGY: none
+  tags:
+    - bcc-vm-runner-for-iaas-group
+  dependencies:
+    - task_compile
+  script:    
+    - cd ${DEPLOY_DIR}
+    - export DOCKER_IMAGE_TAG=$(git show -s --format=%ct $CI_COMMIT_SHA)
+    - docker build -t ${HARBOR_HOST}/${HARBOR_PROJECT}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .  
+  only:
+    - master
+
+task_docker_image_push:
+  stage: docker-push
+  variables:
+    GIT_STRATEGY: none
+  tags:
+    - bcc-vm-runner-for-iaas-group   
+  script:
+    - docker logout ${HARBOR_HOST}
+    - echo "${HARBOR_PASS}" | docker login ${HARBOR_HOST} --username ${HARBOR_USER} --password-stdin
+    - export DOCKER_IMAGE_TAG=$(git show -s --format=%ct $CI_COMMIT_SHA)
+    - docker push ${HARBOR_HOST}/${HARBOR_PROJECT}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+    - docker logout ${HARBOR_HOST}
+  only:
+    - master
+    
+task_k8s_deploy:
+  stage: k8s-deploy
+  variables:
+    GIT_STRATEGY: none
+  tags:
+    - bcc-vm-runner-for-iaas-group   
+  script:    
+    - cd ${DEPLOY_DIR}
+    - export DOCKER_IMAGE_TAG=$(git show -s --format=%ct $CI_COMMIT_SHA)
+    - cat dp.json |sed 's/$DOCKER_IMAGE_TAG/'"$DOCKER_IMAGE_TAG"'/g' |kubectl apply -f -
+    - kubectl apply -f svc.json
+  only:
+    - master
+
+
+

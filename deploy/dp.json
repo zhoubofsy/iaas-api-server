@@ -1,0 +1,172 @@
+{
+  "apiVersion": "apps/v1",
+  "kind": "Deployment",
+  "metadata": {
+    "labels": {
+      "app": "iaas-api-server"
+    },
+    "name": "iaas-api-server",
+    "namespace": "iaas"
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "matchLabels": {
+        "app": "iaas-api-server"
+      }
+    },
+    "strategy": {
+      "rollingUpdate": {
+        "maxSurge": 1,
+        "maxUnavailable": 0
+      },
+      "type": "RollingUpdate"
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "app": "iaas-api-server"
+        }
+      },
+      "spec": {
+        "affinity": {
+          "nodeAffinity": {
+            "preferredDuringSchedulingIgnoredDuringExecution": [
+              {
+                "preference": {
+                  "matchExpressions": [
+                    {
+                      "key": "kubernetes.io/hostname",
+                      "operator": "In",
+                      "values": [
+                        "k8s-master-node1"
+                      ]
+                    }
+                  ]
+                },
+                "weight": 1
+              }
+            ],
+            "requiredDuringSchedulingIgnoredDuringExecution": {
+              "nodeSelectorTerms": [
+                {
+                  "matchExpressions": [
+                    {
+                      "key": "kubernetes.io/hostname",
+                      "operator": "In",
+                      "values": [
+                        "k8s-master-node1"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "automountServiceAccountToken": false,
+        "imagePullSecrets": [
+          {
+            "name": "iaas-registry"
+          }
+        ],
+        "containers": [
+          {
+            "name": "iaas-api-server",
+            "image": "reg.iaas/iaas/iaas-api-server:$DOCKER_IMAGE_TAG",
+            "imagePullPolicy": "IfNotPresent",
+            "livenessProbe": {
+              "failureThreshold": 3,
+              "tcpSocket": {
+                "port": 8080
+	          },
+              "initialDelaySeconds": 120,
+              "periodSeconds": 20,
+              "successThreshold": 1,
+              "timeoutSeconds": 5
+            },
+            "readinessProbe": {
+              "failureThreshold": 1,
+              "tcpSocket": {
+                "port": 8080
+              },
+              "initialDelaySeconds": 0,
+              "periodSeconds": 20,
+              "successThreshold": 1,
+              "timeoutSeconds": 5
+            },
+            "env": [
+              {
+                "name": "DRIVER_NAME",
+                "value": "mysql"
+              },
+              {
+                "name": "DB_HOST_IP",
+                "value": "120.92.19.57:63306"
+              },
+              {
+                "name": "DB_USERNAME",
+                "value": "root"
+              },
+              {
+                "name": "DB_PASSWORD",
+                "value": "root"
+              },
+              {
+                "name": "DB_NAME",
+                "value": "iaas_api_server"
+              },
+              {
+                "name": "OPENSTACK_ADMIN",
+                "value": "admin"
+              },
+              {
+                "name": "OPENSTACK_ADMIN_PWD",
+                "value": "ADMIN_PASS"
+              },
+              {
+                "name": "OPENSTACK_ADMIN_PROJECT_ID",
+                "value": "b37bb68ac46943bdb134a7861553380a"
+              },
+              {
+                "name": "OPENSTACK_IDENTITY_ENDPOINT",
+                "value": "http://120.92.19.57:5000/identity"
+              },
+              {
+                "name": "OPENSTACK_ADMIN_ROLE_ID",
+                "value": "717326b924e04133921719c9dc169c96"
+              },
+              {
+                "name": "TOKEN_URL",
+                "value": "http://120.92.19.57:5000/identity/v3/auth/tokens"
+              }
+            ],
+            "ports": [
+              {
+                "containerPort": 8080,
+                "name": "port1",
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "4",
+                "memory": "8G"
+              },
+              "requests": {
+                "cpu": "0.4",
+                "memory": "6.4G"
+              }
+            },
+            "securityContext": {}
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "restartPolicy": "Always",
+        "schedulerName": "default-scheduler",
+        "securityContext": {},
+        "terminationGracePeriodSeconds": 30
+      }
+    }
+  }
+}
