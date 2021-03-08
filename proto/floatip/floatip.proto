@@ -1,0 +1,42 @@
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package floatip;
+
+//浮动IP相关服务
+service FloatIpService{
+  //创建浮动ip并绑定到instance
+  rpc BindFloatIpToInstance(BindFloatIpToInstanceReq) returns(BindFloatIpToInstanceRes);
+  //解绑浮动ip并回收
+  rpc RevokeFloatIpFromInstance(RevokeFloatIpFromInstanceReq) returns(RevokeFloatIpFromInstanceRes);
+}
+
+message BindFloatIpToInstanceReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string instance_id = 4;
+  int32 vpc_router_id = 5;
+}
+
+message BindFloatIpToInstanceRes {
+  int32 code = 1;
+  string msg = 2;
+  string float_ip = 3;
+  string binded_time = 4;
+}
+
+message RevokeFloatIpFromInstanceReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string instance_id = 4;
+  string float_ip = 5;
+}
+
+message RevokeFloatIpFromInstanceRes {
+  int32 code = 1;
+  string msg = 2;
+  string revoked_time = 3;
+}

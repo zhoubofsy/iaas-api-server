@@ -1325,7 +1325,70 @@ message DeletePeerLinkRes {
 1. 鉴权 && 查表获取该租户的openstack连接参数；
 2. 针对peer_a_routerid这个路由器：调用routers.RemoveInterface，删除subnetid为share网络id的那个接口，然后调用原生API的remove_extraroutes，删除peer_b_subnetid所对应cidr的路由条目；同理，针对peer_b_routerid这个路由器：调用routers.RemoveInterface，删除subnetid为share网络id的那个接口，调用原生API的remove_extraroutes，删除peer_a_subnetid所对应cidr的路由条目；
 
+## 浮动IP相关服务
 
+```
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package floatip;
+
+//浮动IP相关服务
+service FloatIpService{
+  //创建浮动ip并绑定到instance
+  rpc BindFloatIpToInstance(BindFloatIpToInstanceReq) returns(BindFloatIpToInstanceRes);
+  //解绑浮动ip并回收
+  rpc RevokeFloatIpFromInstance(RevokeFloatIpFromInstanceReq) returns(RevokeFloatIpFromInstanceRes);
+}
+
+message BindFloatIpToInstanceReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string instance_id = 4;
+  int32 vpc_router_id = 5;
+}
+
+message BindFloatIpToInstanceRes {
+  int32 code = 1;
+  string msg = 2;
+  string float_ip = 3;
+  string binded_time = 4;
+}
+
+message RevokeFloatIpFromInstanceReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string instance_id = 4;
+  string float_ip = 5;
+}
+
+message RevokeFloatIpFromInstanceRes {
+  int32 code = 1;
+  string msg = 2;
+  string revoked_time = 3;
+}
+```
+
+### 创建浮动ip并绑定到instance
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 根据传入的vpc_router_id（该instance所属的vpc的路由器的id），检查该路由器是否有Gatewayinfo，如果没有说明该vpc还没有外部网关，没有与外部public网络相连，给出报错提示：该实例所在vpc没有外部网关，返回不再往下执行
+3. 上述两步验证通过后，调用networking/v2/extensions/layer3/floatingips.Create方法产生一个新floating ip
+4. 调用compute/v2/extensions/floatingips.AssociateInstance方法将上一步产生的floating ip关联到传入的instance id
+
+### 解绑浮动ip并回收
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 调用compute/v2/extensions/floatingips..DisassociateInstance方法取消与instance id的关联
+3. 根据传入的floating ip，调用networking/v2/extensions/layer3/floatingips.list方法，找到该floating ip对象的id
+4. 根据上一步获得的floatingip的id，调用networking/v2/extensions/layer3/floatingips.Delete方法，删除该floating ip
 
 ## 统一注意事项
 
