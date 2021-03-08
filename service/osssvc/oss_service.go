@@ -67,6 +67,17 @@ func (o *OSSService) RecoverKey(ctx context.Context, r *oss.RecoverKeyReq) (*oss
 	return res.(*oss.RecoverKeyRes), err
 }
 
+func (o *OSSService) GetUserInfo(ctx context.Context, r *oss.GetUserInfoReq) (*oss.GetUserInfoRes, error) {
+	log.Info("[OSSService] GetUserInfo request start. ")
+	log.Debug("[OSSService] GetUserInfo Apikey:", r.Apikey, ",TenantId:", r.TenantId, ",PlatformUserid:", r.PlatformUserid, ",Region:", r.Region, ",OssUid:", r.OssUid)
+	auth := &OpenstackAPIAuthorization{Apikey: r.Apikey, TenantId: r.TenantId, PlatformUserid: r.PlatformUserid}
+	op := new(GetUserInfoOp)
+
+	op.Req = r
+	res, err := o.Process(auth, op)
+	return res.(*oss.GetUserInfoRes), err
+}
+
 func (o *OSSService) Process(auth Authorization, op Op) (interface{}, error) {
 	defer log.Info("Request Done.")
 	err := op.Predo()
