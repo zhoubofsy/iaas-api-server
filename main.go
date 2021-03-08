@@ -4,8 +4,9 @@ import (
 	"flag"
 	"iaas-api-server/common"
 	"iaas-api-server/common/config"
+	"iaas-api-server/proto/clouddisk"
 	"iaas-api-server/proto/flavor"
-	"iaas-api-server/proto/floatip"
+	//"iaas-api-server/proto/floatip"
 	"iaas-api-server/proto/image"
 	"iaas-api-server/proto/instance"
 	"iaas-api-server/proto/natgateway"
@@ -15,7 +16,9 @@ import (
 	"iaas-api-server/proto/securitygroup"
 	"iaas-api-server/proto/tenant"
 	"iaas-api-server/proto/vpc"
+	"iaas-api-server/service/clouddisksvc"
 	"iaas-api-server/service/flavorsvc"
+	//"iaas-api-server/service/floatipsvc"
 	"iaas-api-server/service/imagesvc"
 	"iaas-api-server/service/instancesvc"
 	"iaas-api-server/service/natgatewaysvc"
@@ -25,7 +28,6 @@ import (
 	"iaas-api-server/service/securitygroupsvc"
 	"iaas-api-server/service/tenantsvc"
 	"iaas-api-server/service/vpcsvc"
-	//"iaas-api-server/service/floatipsvc"
 
 	"net"
 	"os"
@@ -58,6 +60,7 @@ func main() {
 
 	rpcServer := grpc.NewServer()
 	//注册服务
+	clouddisk.RegisterCloudDiskServiceServer(rpcServer, &clouddisksvc.CloudDiskService{})
 	flavor.RegisterFlavorServiceServer(rpcServer, &flavorsvc.FlavorService{})
 	instance.RegisterInstanceServiceServer(rpcServer, &instancesvc.InstanceService{})
 	image.RegisterImageServiceServer(rpcServer, &imagesvc.ImageService{})
