@@ -14,7 +14,6 @@ import (
 	"iaas-api-server/common"
 	"iaas-api-server/proto/vpc"
 	"net"
-	"strconv"
 )
 
 type CreateVpcRPCTask struct {
@@ -97,18 +96,6 @@ func (rpctask *CreateVpcRPCTask) execute(providers *gophercloud.ProviderClient) 
 	endIp := cidr.Dec(broadCast)
 	gw := gwIp.String()
 	var enableDHCP = true
-	prefixLen := ipNet.Mask.String()
-	prefix, err := strconv.Atoi(prefixLen)
-	if nil != err {
-		log.WithFields(log.Fields{
-			"err": err,
-			"req": rpctask.Req.String(),
-		}).Error("call Atoi failed")
-		return &common.Error{
-			Code: common.EATOI.Code,
-			Msg:  err.Error(),
-		}
-	}
 
 	subnetOpts := subnets.CreateOpts{
 		NetworkID: networkInfo.ID,
@@ -122,7 +109,6 @@ func (rpctask *CreateVpcRPCTask) execute(providers *gophercloud.ProviderClient) 
 		},
 		GatewayIP:  &gw,
 		EnableDHCP: &enableDHCP,
-		Prefixlen:  prefix,
 	}
 
 	subnetInfo, err := subnets.Create(client, subnetOpts).Extract()

@@ -5,6 +5,7 @@ import (
 	"iaas-api-server/common"
 	"iaas-api-server/common/config"
 	"iaas-api-server/proto/flavor"
+	"iaas-api-server/proto/floatip"
 	"iaas-api-server/proto/image"
 	"iaas-api-server/proto/instance"
 	"iaas-api-server/proto/natgateway"
@@ -24,6 +25,7 @@ import (
 	"iaas-api-server/service/securitygroupsvc"
 	"iaas-api-server/service/tenantsvc"
 	"iaas-api-server/service/vpcsvc"
+	//"iaas-api-server/service/floatipsvc"
 
 	"net"
 	"os"
@@ -67,6 +69,7 @@ func main() {
 	route.RegisterRouterServiceServer(rpcServer, &routesvc.RouteService{})
 	natgateway.RegisterNatGatewayServiceServer(rpcServer, &natgatewaysvc.NatGatewayService{})
 	peerlink.RegisterPeerLinkServiceServer(rpcServer, &peerlinksvc.PeerLinkService{})
+	//floatip.RegisterFloatIpServiceServer(rpcServer, &floatipsvc.FloatIpService{})
 
 	addr, _ := config.GetString("listening_addr")
 	if addr == "" {

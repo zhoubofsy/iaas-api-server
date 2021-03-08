@@ -713,3 +713,62 @@ func (o *RecoverKeyOp) Done(e error) (interface{}, error) {
 	}
 	return o.Res, e
 }
+
+type GetUserInfoOp struct {
+	BasicOp
+	Req *oss.GetUserInfoReq
+	Res *oss.GetUserInfoRes
+}
+
+func (o *GetUserInfoOp) Predo() error {
+	if o.Req == nil {
+		return common.EPARAM
+	}
+	o.Res = new(oss.GetUserInfoRes)
+	o.conf = GetOSSConfigure()
+
+	return common.EOK
+}
+
+func (o *GetUserInfoOp) Do() error {
+	endpoint, err := o.conf.GetEndpointByRegion(o.Req.Region)
+	if nil != err {
+		return err
+	}
+	access, secret, err := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
+	if nil != err {
+		return err
+	}
+	userOperator := UserOp{EndpointAddr: endpoint, Access: access, Secret: secret}
+	userOperator.Init()
+	userInfo, err := userOperator.GetUserInfo(o.Req.OssUid)
+	if err != nil {
+		return common.EOSSGETUSER
+	}
+	bucketOperator := BucketOp{EndpointAddr: endpoint, Access: userInfo.AccessKey, Secret: userInfo.SecretKey, AdmAccess: access, AdmSecret: secret}
+	bucketOperator.Init()
+	err = bucketOperator.ListBucketsInit()
+	if err != nil {
+		return common.EOSSLISTBUCKETS
+	}
+
+	o.Res.OssUser = &(oss.OssUser{
+		OssUid:             userInfo.Uid,
+		OssUserCreatedTime: "",
+		UserMaxSizeInG:     int32(userInfo.UserQuota.MaxSize),
+		UserMaxObjects:     int32(userInfo.BucketsQuota.MaxObjects),
+		UserUseSizeInG:     int32(userInfo.UsedSize),
+		UserUseObjects:     int32(userInfo.UsedObjects),
+		TotalBuckets:       int32(bucketOperator.ListBucketsCount())})
+
+	return common.EOK
+}
+
+func (o *GetUserInfoOp) Done(e error) (interface{}, error) {
+	o.Res.Msg = e.Error()
+	if e == common.EOK {
+		o.Res.Code = common.EOK.Code
+		return o.Res, nil
+	}
+	return o.Res, e
+}
