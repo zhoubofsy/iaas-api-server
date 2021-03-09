@@ -17,7 +17,7 @@ message BindFloatIpToInstanceReq {
   string tenant_id = 2;
   string platform_userid = 3;
   string instance_id = 4;
-  int32 vpc_router_id = 5;
+  string vpc_router_id = 5;
 }
 
 message BindFloatIpToInstanceRes {
