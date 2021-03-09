@@ -34,6 +34,7 @@ message GetRouterRes {
       string intf_created_time = 5;
     }
     repeated Intf Intfs = 4;
+    repeated Route current_routes = 5;
   }
   Router router = 3;
 }
