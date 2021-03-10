@@ -45,14 +45,13 @@ func (rpctask *SetRoutesRPCTask) Run(context.Context) {
 
 func (rpctask *SetRoutesRPCTask) execute(providers *gophercloud.ProviderClient) *common.Error {
 	client, err := openstack.NewNetworkV2(providers, gophercloud.EndpointOpts{})
-
 	if nil != err {
 		log.WithFields(log.Fields{
 			"err": err,
 			"req": rpctask.Req.String(),
-		}).Error("new network v2 failed.")
+		}).Error("get openstack network client failed")
 		return &common.Error{
-			Code: common.ENEWNETWORK.Code,
+			Code: common.ENETWORKCLIENT.Code,
 			Msg:  err.Error(),
 		}
 	}
@@ -101,7 +100,7 @@ func (rpctask *SetRoutesRPCTask) execute(providers *gophercloud.ProviderClient) 
 			Msg:  err.Error(),
 		}
 	}
-	setTime := getCurTime()
+	setTime := common.Now()
 
 	result, err := simplejson.NewJson(res)
 	if nil != err {
@@ -178,4 +177,9 @@ func (rpctask *SetRoutesRPCTask) checkParam() error {
 func (rpctask *SetRoutesRPCTask) setResult() {
 	rpctask.Res.Code = rpctask.Err.Code
 	rpctask.Res.Msg = rpctask.Err.Msg
+
+	log.WithFields(log.Fields{
+		"req": rpctask.Req,
+		"res": rpctask.Res,
+	}).Info("request end")
 }
