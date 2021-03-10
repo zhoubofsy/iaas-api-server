@@ -2,8 +2,9 @@ package vpcsvc
 
 import (
 	"golang.org/x/net/context"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"iaas-api-server/proto/vpc"
-	"time"
 )
 
 type VpcService struct {
@@ -17,7 +18,7 @@ func (vpcs *VpcService) CreateVpc(ctx context.Context, req *vpc.CreateVpcReq) (*
 		Err: nil,
 	}
 	task.Run(ctx)
-	return task.Res, task.Err
+	return task.Res, status.Error(codes.OK, "success")
 }
 
 func (vpcs *VpcService) GetVpcInfo(ctx context.Context, req *vpc.GetVpcInfoReq) (*vpc.VpcRes, error) {
@@ -27,7 +28,7 @@ func (vpcs *VpcService) GetVpcInfo(ctx context.Context, req *vpc.GetVpcInfoReq) 
 		Err: nil,
 	}
 	task.Run(ctx)
-	return task.Res, task.Err
+	return task.Res, status.Error(codes.OK, "success")
 }
 
 func (vpcs *VpcService) SetVpcInfo(ctx context.Context, req *vpc.SetVpcInfoReq) (*vpc.VpcRes, error) {
@@ -37,9 +38,5 @@ func (vpcs *VpcService) SetVpcInfo(ctx context.Context, req *vpc.SetVpcInfoReq) 
 		Err: nil,
 	}
 	task.Run(ctx)
-	return task.Res, task.Err
-}
-
-func getCurTime() string {
-	return time.Now().Format("2006-01-02 15:04:05")
+	return task.Res, status.Error(codes.OK, "success")
 }

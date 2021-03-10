@@ -21,7 +21,6 @@ var (
 	ENETWORKCLIENT    = &Error{Code: 10003, Msg: "get openstack network client failed"}
 	ECOMPUTECLIENT    = &Error{Code: 10004, Msg: "get openstack compute client failed"}
 	EPARSECIDR        = &Error{Code: 10005, Msg: "parse CIDR failed"}
-	EATOI             = &Error{Code: 10006, Msg: "call Atoi failed"}
 
 	ESGNEWNETWORK  = &Error{Code: 20000, Msg: "security group new network v2 failed"}
 	ESGCREATEGROUP = &Error{Code: 20001, Msg: "security group create group failed"}
@@ -30,26 +29,33 @@ var (
 	ESGUPDATEGROUP = &Error{Code: 20004, Msg: "security group update group failed"}
 	ESGOPERGROUP   = &Error{Code: 20005, Msg: "security group operate group failed"}
 
-	ENEWNETWORK     = &Error{Code: 21000, Msg: "new network v2 failed"}
-	ENETWORKSCREATE = &Error{Code: 21001, Msg: "networks create failed"}
-	ENETWORKSGET    = &Error{Code: 21002, Msg: "networks get failed"}
-	ENETWORKSSET    = &Error{Code: 21003, Msg: "networks update failed"}
+	ENETWORKSCREATE = &Error{Code: 21000, Msg: "networks create failed"}
+	ENETWORKSGET    = &Error{Code: 21001, Msg: "networks get failed"}
+	ENETWORKSSET    = &Error{Code: 21002, Msg: "networks update failed"}
 
 	ESUBNETCREATE = &Error{Code: 22000, Msg: "subnet create failed"}
 	ESUBNETGET    = &Error{Code: 22001, Msg: "subnets get failed"}
 
-	EROUTERCREATE  = &Error{Code: 23000, Msg: "routers create failed"}
-	EROUTERLIST    = &Error{Code: 23001, Msg: "routers list failed"}
-	EROUTEREXTRACT = &Error{Code: 23002, Msg: "routers extract failed"}
-	EROUTERINFO    = &Error{Code: 23003, Msg: "routersInfo is not unique"}
-	EROUTERGET     = &Error{Code: 23004, Msg: "routers get failed"}
-	EROUTERSET     = &Error{Code: 23005, Msg: "routers set failed"}
+	EROUTERCREATE   = &Error{Code: 23000, Msg: "routers create failed"}
+	EROUTERLIST     = &Error{Code: 23001, Msg: "routers list failed"}
+	EROUTEREXTRACT  = &Error{Code: 23002, Msg: "routers extract failed"}
+	EROUTERINFO     = &Error{Code: 23003, Msg: "routersInfo is not unique"}
+	EROUTERGET      = &Error{Code: 23004, Msg: "routers get failed"}
+	EROUTERSET      = &Error{Code: 23005, Msg: "routers set failed"}
+	EROUTERNOGATWAY = &Error{Code: 23006, Msg: "The router has no external gateway"}
 
 	EPORTSGET     = &Error{Code: 24000, Msg: "ports get failed"}
 	EPORTSLIST    = &Error{Code: 24001, Msg: "ports list failed"}
 	EPORTSEXTRACT = &Error{Code: 24002, Msg: "ports extract failed"}
 
 	EINTERFACEADD = &Error{Code: 25000, Msg: "router add interface failed"}
+
+	EFLOATINGIPCREATE       = &Error{Code: 26000, Msg: "floating ip create failed"}
+	EFLOATINGIPASSOCIATE    = &Error{Code: 26001, Msg: "floating ip associate instance failed"}
+	EFLOATINGIPDISASSOCIATE = &Error{Code: 26002, Msg: "floating ip disassociate instance failed"}
+	EFLOATINGIPLIST         = &Error{Code: 26003, Msg: "floating ip list failed"}
+	EFLOATINGIPEXTRACT      = &Error{Code: 26004, Msg: "floating ip extract pages failed"}
+	EFLOATINGIPDELETE       = &Error{Code: 26005, Msg: "floating ip delete failed"}
 
 	ENGCREATE = &Error{Code: 30000, Msg: "nat gateway create failed"}
 	ENGDELETE = &Error{Code: 30001, Msg: "nat gateway delete failed"}

@@ -6,7 +6,7 @@ import (
 	"iaas-api-server/common/config"
 	"iaas-api-server/proto/clouddisk"
 	"iaas-api-server/proto/flavor"
-	//"iaas-api-server/proto/floatip"
+	"iaas-api-server/proto/floatip"
 	"iaas-api-server/proto/image"
 	"iaas-api-server/proto/instance"
 	"iaas-api-server/proto/natgateway"
@@ -18,7 +18,7 @@ import (
 	"iaas-api-server/proto/vpc"
 	"iaas-api-server/service/clouddisksvc"
 	"iaas-api-server/service/flavorsvc"
-	//"iaas-api-server/service/floatipsvc"
+	"iaas-api-server/service/floatipsvc"
 	"iaas-api-server/service/imagesvc"
 	"iaas-api-server/service/instancesvc"
 	"iaas-api-server/service/natgatewaysvc"
@@ -72,7 +72,7 @@ func main() {
 	route.RegisterRouterServiceServer(rpcServer, &routesvc.RouteService{})
 	natgateway.RegisterNatGatewayServiceServer(rpcServer, &natgatewaysvc.NatGatewayService{})
 	peerlink.RegisterPeerLinkServiceServer(rpcServer, &peerlinksvc.PeerLinkService{})
-	//floatip.RegisterFloatIpServiceServer(rpcServer, &floatipsvc.FloatIpService{})
+	floatip.RegisterFloatIpServiceServer(rpcServer, &floatipsvc.FloatIpService{})
 
 	addr, _ := config.GetString("listening_addr")
 	if addr == "" {
