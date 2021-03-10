@@ -108,6 +108,11 @@ var (
 	ETTGETENATSEQ     = &Error{Code: 91002, Msg: "mysql get seq failed"}
 	ETTTRANS          = &Error{Code: 91003, Msg: "seq transform failed"}
 	EOSSGETCONFIG     = &Error{Code: 91005, Msg: "get oss config failed"}
+	EPARSE            = &Error{Code: 91006, Msg: "parse failed"}
+	ECEPHMGRMKDIR     = &Error{Code: 91007, Msg: "Ceph MGR API Make Directory failed"}
+	ECEPHMGRRMDIR     = &Error{Code: 91008, Msg: "Ceph MGR API Remove Directory failed"}
+	ENASGETCONFIG     = &Error{Code: 91009, Msg: "get NAS config failed"}
+	EIO               = &Error{Code: 91010, Msg: "I/O failed"}
 
 	ETTEDITDOMAIN = &Error{Code: 94001, Msg: "openstack update domain failed"}
 

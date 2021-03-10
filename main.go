@@ -2,17 +2,15 @@ package main
 
 import (
 	"flag"
+	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 	"iaas-api-server/common/config"
 	"iaas-api-server/proto/clouddisk"
 	"iaas-api-server/proto/flavor"
 	"iaas-api-server/proto/floatip"
 	"iaas-api-server/proto/image"
 	"iaas-api-server/proto/instance"
-
-	log "github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-
-	//"iaas-api-server/proto/nasdisk"
+	"iaas-api-server/proto/nasdisk"
 	"iaas-api-server/proto/natgateway"
 	"iaas-api-server/proto/oss"
 	"iaas-api-server/proto/peerlink"
@@ -25,8 +23,7 @@ import (
 	"iaas-api-server/service/floatipsvc"
 	"iaas-api-server/service/imagesvc"
 	"iaas-api-server/service/instancesvc"
-
-	//"iaas-api-server/service/nasdisksvc"
+	"iaas-api-server/service/nasdisksvc"
 	"iaas-api-server/service/natgatewaysvc"
 	"iaas-api-server/service/osssvc"
 	"iaas-api-server/service/peerlinksvc"
@@ -68,7 +65,7 @@ func main() {
 	flavor.RegisterFlavorServiceServer(rpcServer, &flavorsvc.FlavorService{})
 	instance.RegisterInstanceServiceServer(rpcServer, &instancesvc.InstanceService{})
 	image.RegisterImageServiceServer(rpcServer, &imagesvc.ImageService{})
-	//nasdisk.RegisterNasDiskServiceServer(rpcServer, &nasdisksvc.NasDiskService{})
+	nasdisk.RegisterNasDiskServiceServer(rpcServer, &nasdisksvc.NasDiskService{})
 	oss.RegisterOSSServiceServer(rpcServer, &osssvc.OSSService{})
 	securitygroup.RegisterSecurityGroupServiceServer(rpcServer, &securitygroupsvc.SecurityGroupService{})
 	tenant.RegisterTenantServiceServer(rpcServer, &tenantsvc.TenantService{})
