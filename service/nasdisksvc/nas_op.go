@@ -65,18 +65,36 @@ func (o *CreateNasDiskOp) Do() error {
 	if err != nil {
 		return common.ENASGETCONFIG
 	}
-
-	cephMgr := common.CephMgrRestful{Endpoint: endpoint, User: user, Passwd: passwd, CephfsID: cephfsid}
-	cephfsPath := "/" + o.Req.PlatformUserid
-	// 1. 创建Cephfs目录
-	err = cephMgr.MakeCephFSDirectory(cephfsPath)
+	rootPath, err := o.conf.GetRootPath(o.Req.Region)
 	if err != nil {
+		return common.ENASGETCONFIG
+	}
+
+	cephMgr := common.CephMgrRestful{Endpoint: endpoint, User: user, Passwd: passwd}
+	dirPath := o.Req.PlatformUserid + o.Req.ShareId
+	cephfsPath := rootPath + "/" + o.Req.PlatformUserid
+	maxSize := 0
+	maxFiles := 0
+	// 1. 获取目录，判断目录是否存在
+	dirs, err := cephMgr.ListCephFSDirectory(cephfsid, rootPath)
+	for _, dir := range dirs {
+		if dir == dirPath {
+			err = common.ENASPATHEXISTED
+			goto CREATE_FAILED
+		}
+	}
+	// 2. 创建Cephfs目录
+	err = cephMgr.MakeCephFSDirectory(cephfsid, cephfsPath)
+	if err != common.EOK {
 		goto CREATE_FAILED
 	}
 	CEPHFS_DIR_FLAG = true
-	// 2. 设置Cephfs目录的配额
-
-	// 3. 创建NFS-Ganesha Export
+	// 3. 设置Cephfs目录的配额
+	err = cephMgr.SetCephFSQuotas(cephfsid, cephfsPath, maxSize, maxFiles)
+	if err != common.EOK {
+		goto CREATE_FAILED
+	}
+	// 4. 创建NFS-Ganesha Export
 	GANESHA_EXP_FLAG = true
 	return common.EOK
 
@@ -87,7 +105,7 @@ CREATE_FAILED:
 
 	if CEPHFS_DIR_FLAG {
 		// 删除 Cephfs 目录
-		cephMgr.RemoveCephFSDirectory(cephfsPath)
+		cephMgr.RemoveCephFSDirectory(cephfsid, cephfsPath)
 	}
 	return err
 }
