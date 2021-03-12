@@ -1,8 +1,10 @@
 package nasdisksvc
 
 import (
+	log "github.com/sirupsen/logrus"
 	"iaas-api-server/common"
 	"iaas-api-server/proto/nasdisk"
+	"strconv"
 )
 
 type Authorization interface {
@@ -50,31 +52,41 @@ func (o *CreateNasDiskOp) Predo() error {
 
 func (o *CreateNasDiskOp) Do() error {
 	var (
-		CEPHFS_DIR_FLAG  = false
-		GANESHA_EXP_FLAG = false
+		CEPHFS_DIR_FLAG = false
 	)
-	endpoint, err := o.conf.GetMGRRestfulAddr(o.Req.Region)
+	endpoint, user, passwd, err := o.conf.GetMGRConfig(o.Req.Region)
 	if err != nil {
 		return common.ENASGETCONFIG
 	}
-	user, passwd, err := o.conf.GetMGRUserPasswd(o.Req.Region)
-	if err != nil {
+	cephfsid, rootPath, err := o.conf.GetCephFSConfig(o.Req.Region)
+	if nil != err {
 		return common.ENASGETCONFIG
 	}
-	cephfsid, err := o.conf.GetCephfsID(o.Req.Region)
-	if err != nil {
-		return common.ENASGETCONFIG
-	}
-	rootPath, err := o.conf.GetRootPath(o.Req.Region)
+	clusterID, userID, err := o.conf.GetGaneshaConfig(o.Req.Region)
 	if err != nil {
 		return common.ENASGETCONFIG
 	}
 
 	cephMgr := common.CephMgrRestful{Endpoint: endpoint, User: user, Passwd: passwd}
-	dirPath := o.Req.PlatformUserid + o.Req.ShareId
-	cephfsPath := rootPath + "/" + o.Req.PlatformUserid
-	maxSize := 0
-	maxFiles := 0
+	dirPath := o.Req.PlatformUserid + "_" + o.Req.ShareName
+	cephfsPath := rootPath + "/" + dirPath
+	pseudoPath := "/" + dirPath
+
+	maxSizeInG, err := config.GetInt("nasdisk_share_quota_max_size_in_g")
+	if nil != err {
+		log.Error("[NASDISK] CreateNasDiskOp get nasdisk_max_size_in_g failure")
+		return common.ENASGETCONFIG
+	}
+	if o.Req.ShareSizeInG > 0 {
+		maxSizeInG = int(o.Req.ShareSizeInG)
+	}
+	maxSize := maxSizeInG * 1024 * 1024 * 1024
+	maxFiles, err := config.GetInt("nasdisk_share_quota_max_files")
+	if nil != err {
+		log.Error("[NASDISK] CreateNasDiskOp get nasdisk_share_quota_max_files failure")
+		return common.ENASGETCONFIG
+	}
+
 	// 1. 获取目录，判断目录是否存在
 	dirs, err := cephMgr.ListCephFSDirectory(cephfsid, rootPath)
 	for _, dir := range dirs {
@@ -95,14 +107,13 @@ func (o *CreateNasDiskOp) Do() error {
 		goto CREATE_FAILED
 	}
 	// 4. 创建NFS-Ganesha Export
-	GANESHA_EXP_FLAG = true
+	err = cephMgr.CreateGaneshaExport(clusterID, userID, cephfsPath, pseudoPath)
+	if err != common.EOK {
+		goto CREATE_FAILED
+	}
 	return common.EOK
 
 CREATE_FAILED:
-	if GANESHA_EXP_FLAG {
-		// 删除 NFS-Ganesha Export
-	}
-
 	if CEPHFS_DIR_FLAG {
 		// 删除 Cephfs 目录
 		cephMgr.RemoveCephFSDirectory(cephfsid, cephfsPath)
@@ -136,7 +147,43 @@ func (o *DeleteNasDiskOp) Predo() error {
 }
 
 func (o *DeleteNasDiskOp) Do() error {
-	return common.EOK
+	endpoint, user, passwd, err := o.conf.GetMGRConfig(o.Req.Region)
+	if err != nil {
+		return common.ENASGETCONFIG
+	}
+	cephfsid, rootPath, err := o.conf.GetCephFSConfig(o.Req.Region)
+	if nil != err {
+		return common.ENASGETCONFIG
+	}
+	clusterID, userID, err := o.conf.GetGaneshaConfig(o.Req.Region)
+	if err != nil {
+		return common.ENASGETCONFIG
+	}
+
+	cephMgr := common.CephMgrRestful{Endpoint: endpoint, User: user, Passwd: passwd}
+	dirPath := o.Req.PlatformUserid + "_" + o.Req.ShareName
+	cephfsPath := rootPath + "/" + dirPath
+	pseudoPath := "/" + dirPath
+	// 1. 获取Exports, 查找ExportID
+	var exportID string
+	exports, err := cephMgr.ListGaneshaExport()
+	for idx, export := range exports {
+		if pseudoPath == export.Pseudo && export.Path == cephfsPath && clusterID == export.ClusterID {
+			exportID = strconv.Itoa(export.ExportID)
+			break
+		}
+	}
+	// 2. 删除Ganesha Export
+	err = cephMgr.DeleteGaneshaExport(clusterID, exportID)
+	if err != common.EOK {
+		log.Error("[NASDISK] DeleteNasDiskOp delete ganesha export failure.")
+	}
+	// 3. 删除Cephfs 目录
+	err = cephMgr.RemoveCephFSDirectory(cephfsid, cephfsPath)
+	if err != common.EOK {
+		log.Error("[NASDISK] DeleteNasDiskOp remove cephfs directory failure.")
+	}
+	return err
 }
 
 func (o *DeleteNasDiskOp) Done(e error) (interface{}, error) {
