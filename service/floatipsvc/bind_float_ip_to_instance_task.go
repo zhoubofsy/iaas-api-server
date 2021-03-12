@@ -119,6 +119,12 @@ func (rpctask *BindFloatIpToInstanceTask) execute(providers *gophercloud.Provide
 			"err": err,
 			"req": rpctask.Req.String(),
 		}).Error("floating ip associate instance failed")
+
+		rollBackErr := netfloatip.Delete(netcl, floatingIp.ID).ExtractErr()
+		if nil != rollBackErr {
+			log.Info("rollback delete float ip err: ", rollBackErr)
+		}
+
 		return &common.Error{
 			Code: common.EFLOATINGIPASSOCIATE.Code,
 			Msg:  err.Error(),
