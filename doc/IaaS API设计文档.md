@@ -805,12 +805,14 @@ service OSSService {
   rpc CreateUserAndBucket(CreateUserAndBucketReq) returns(CreateUserAndBucketRes);
   //查看具体一个bucket详情
   rpc GetBucketInfo(GetBucketInfoReq) returns(GetBucketInfoRes);
-  //列出云管平台用户在一个entrypoint下的bucet列表
+  //列出云管平台用户在一个entrypoint下的bucket列表
   rpc ListBucketsInfo(ListBucketsInfoReq) returns(ListBucketsInfoRes);
   //扩容oss_user配额
   rpc SetOssUserQuota(SetOssUserQuotaReq) returns(SetOssUserQuotaRes);
   //找回key
   rpc RecoverKey(RecoverKeyReq) returns(RecoverKeyRes);
+  //获取用户信息
+  rpc GetUserInfo(GetUserInfoReq) returns(GetUserInfoRes);
 }
 
 message OssBucket {
@@ -918,9 +920,22 @@ message RecoverKeyRes {
   string oss_secret_key = 5;
 }
 
+message GetUserInfoReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string region = 4;
+  string oss_uid = 5;
+}
+
+message GetUserInfoRes {
+  int32 code = 1;
+  string msg = 2;
+  OssUser oss_user = 3;
+}
 ```
 
-### 首次创建账号并创建1个bucket
+### 创建Oss账号和bucket
 
 **要点**：
 
@@ -938,7 +953,7 @@ message RecoverKeyRes {
 2. 根据传入的region判断S3用户应建立在哪个ceph集群（每个region一个ceph集群）
 3. 根据传入的oss_uid和bucket名查询
 
-### 列出云管平台用户在一个ceph集群下的bucet列表
+### 列出云管平台用户在一个ceph集群下的bucket列表
 
 **要点**：
 
@@ -953,7 +968,8 @@ message RecoverKeyRes {
 
 1. 鉴权，无需查表获取该租户的openstack连接参数;
 2. 根据传入的region判断S3用户应建立在哪个ceph集群（每个region一个ceph集群）
-3. 根据传入的S3 uid 配额指标，修改该S3用户配额。
+3. 根据传入的uid和该用户的配额指标，修改该S3用户配额。
+4. 根据传入的uid进行查询，返回当前该S3用户信息
 
 ### 找回key
 
@@ -962,6 +978,14 @@ message RecoverKeyRes {
 1. 鉴权，无需查表获取该租户的openstack连接参数;
 2. 根据传入的region判断S3用户应建立在哪个ceph集群（每个region一个ceph集群）
 3. 根据传入的uid，返回key信息
+
+### 获取oss用户信息
+
+**要点**：
+
+1. 鉴权，无需查表获取该租户的openstack连接参数;
+2. 根据传入的region判断S3用户应建立在哪个ceph集群（每个region一个ceph集群）
+3. 根据传入的uid进行查询，返回当前该S3用户信息
 
 ## 专有网络相关服务
 
@@ -1110,6 +1134,7 @@ message GetRouterRes {
       string intf_created_time = 5;
     }
     repeated Intf Intfs = 4;
+    repeated Route current_routes = 5;
   }
   Router router = 3;
 }

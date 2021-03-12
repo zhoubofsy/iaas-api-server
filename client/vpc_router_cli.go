@@ -25,7 +25,7 @@ func vpcCreate(conn grpc.ClientConnInterface, data []byte) {
 
 	log.Printf("request is : %+v", req)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*timeout)*time.Second)
 	defer cancel()
 
 	r, err := c.CreateVpc(ctx, req)
@@ -46,7 +46,7 @@ func vpcGetInfo(conn grpc.ClientConnInterface, data []byte) {
 
 	log.Printf("request is : %+v", req)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*timeout)*time.Second)
 	defer cancel()
 
 	r, err := c.GetVpcInfo(ctx, req)
@@ -67,7 +67,7 @@ func vpcSetInfo(conn grpc.ClientConnInterface, data []byte) {
 
 	log.Printf("request is : %+v", req)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*timeout)*time.Second)
 	defer cancel()
 
 	r, err := c.SetVpcInfo(ctx, req)
@@ -88,7 +88,7 @@ func routerGet(conn grpc.ClientConnInterface, data []byte) {
 
 	log.Printf("request is : %+v", req)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*timeout)*time.Second)
 	defer cancel()
 
 	r, err := c.GetRouter(ctx, req)
@@ -109,7 +109,7 @@ func routerSet(conn grpc.ClientConnInterface, data []byte) {
 
 	log.Printf("request is : %+v", req)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*timeout)*time.Second)
 	defer cancel()
 
 	r, err := c.SetRoutes(ctx, req)

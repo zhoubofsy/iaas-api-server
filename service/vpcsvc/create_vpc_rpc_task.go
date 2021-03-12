@@ -49,14 +49,13 @@ func (rpctask *CreateVpcRPCTask) Run(context.Context) {
 
 func (rpctask *CreateVpcRPCTask) execute(providers *gophercloud.ProviderClient) *common.Error {
 	client, err := openstack.NewNetworkV2(providers, gophercloud.EndpointOpts{})
-
 	if nil != err {
 		log.WithFields(log.Fields{
 			"err": err,
 			"req": rpctask.Req.String(),
-		}).Error("new network v2 failed")
+		}).Error("get openstack network client failed")
 		return &common.Error{
-			Code: common.ENEWNETWORK.Code,
+			Code: common.ENETWORKCLIENT.Code,
 			Msg:  err.Error(),
 		}
 	}
@@ -122,7 +121,7 @@ func (rpctask *CreateVpcRPCTask) execute(providers *gophercloud.ProviderClient) 
 			Msg:  err.Error(),
 		}
 	}
-	createSubnetTime := getCurTime()
+	createSubnetTime := common.Now()
 
 	routerName := "router-" + rpctask.Req.GetVpcName()
 	routerInfo, err := routers.Create(client, routers.CreateOpts{Name: routerName}).Extract()
@@ -136,7 +135,7 @@ func (rpctask *CreateVpcRPCTask) execute(providers *gophercloud.ProviderClient) 
 			Msg:  err.Error(),
 		}
 	}
-	createRouterTime := getCurTime()
+	createRouterTime := common.Now()
 
 	interfaceOpts := routers.AddInterfaceOpts{
 		SubnetID: subnetInfo.ID,
@@ -153,7 +152,7 @@ func (rpctask *CreateVpcRPCTask) execute(providers *gophercloud.ProviderClient) 
 			Msg:  err.Error(),
 		}
 	}
-	createInterfaceTime := getCurTime()
+	createInterfaceTime := common.Now()
 
 	portInfo, err := ports.Get(client, interfaceInfo.PortID).Extract()
 	if nil != err {
@@ -220,4 +219,9 @@ func (rpctask *CreateVpcRPCTask) checkParam() error {
 func (rpctask *CreateVpcRPCTask) setResult() {
 	rpctask.Res.Code = rpctask.Err.Code
 	rpctask.Res.Msg = rpctask.Err.Msg
+
+	log.WithFields(log.Fields{
+		"req": rpctask.Req,
+		"res": rpctask.Res,
+	}).Info("request end")
 }

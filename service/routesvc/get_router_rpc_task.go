@@ -45,14 +45,13 @@ func (rpctask *GetRouterRPCTask) Run(context.Context) {
 
 func (rpctask *GetRouterRPCTask) execute(providers *gophercloud.ProviderClient) *common.Error {
 	client, err := openstack.NewNetworkV2(providers, gophercloud.EndpointOpts{})
-
 	if nil != err {
 		log.WithFields(log.Fields{
 			"err": err,
 			"req": rpctask.Req.String(),
-		}).Error("new network v2 failed")
+		}).Error("get openstack network client failed")
 		return &common.Error{
-			Code: common.ENEWNETWORK.Code,
+			Code: common.ENETWORKCLIENT.Code,
 			Msg:  err.Error(),
 		}
 	}
@@ -96,8 +95,9 @@ func (rpctask *GetRouterRPCTask) execute(providers *gophercloud.ProviderClient) 
 	rpctask.Res.Router = &route.GetRouterRes_Router{
 		RouterId:          router.ID,
 		RouterName:        router.Name,
-		RouterCreatedTime: getCurTime(),
+		RouterCreatedTime: "",
 		Intfs:             make([]*route.GetRouterRes_Router_Intf, 0),
+		CurrentRoutes:     make([]*route.Route, 0),
 	}
 
 	for _, v := range portsInfo {
@@ -107,6 +107,13 @@ func (rpctask *GetRouterRPCTask) execute(providers *gophercloud.ProviderClient) 
 			IntfIp:          v.FixedIPs[0].IPAddress,
 			SubnetId:        v.FixedIPs[0].SubnetID,
 			IntfCreatedTime: "",
+		})
+	}
+
+	for _, v := range router.Routes {
+		rpctask.Res.Router.CurrentRoutes = append(rpctask.Res.Router.CurrentRoutes, &route.Route{
+			Destination: v.DestinationCIDR,
+			Nexthop:     v.NextHop,
 		})
 	}
 
@@ -126,4 +133,9 @@ func (rpctask *GetRouterRPCTask) checkParam() error {
 func (rpctask *GetRouterRPCTask) setResult() {
 	rpctask.Res.Code = rpctask.Err.Code
 	rpctask.Res.Msg = rpctask.Err.Msg
+
+	log.WithFields(log.Fields{
+		"req": rpctask.Req,
+		"res": rpctask.Res,
+	}).Info("request end")
 }
