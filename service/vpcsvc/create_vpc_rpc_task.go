@@ -83,6 +83,10 @@ func (rpctask *CreateVpcRPCTask) execute(providers *gophercloud.ProviderClient) 
 			"err": err,
 			"req": rpctask.Req.String(),
 		}).Error("parse CIDR failed")
+		delErr := networks.Delete(client, networkInfo.ID).ExtractErr()
+		if nil != delErr {
+			log.Info("rollback delete network err: ", delErr)
+		}
 		return &common.Error{
 			Code: common.EPARSECIDR.Code,
 			Msg:  err.Error(),
@@ -116,6 +120,10 @@ func (rpctask *CreateVpcRPCTask) execute(providers *gophercloud.ProviderClient) 
 			"err": err,
 			"req": rpctask.Req.String(),
 		}).Error("subnet create failed")
+		delErr := networks.Delete(client, networkInfo.ID).ExtractErr()
+		if nil != delErr {
+			log.Info("rollback delete network err: ", delErr)
+		}
 		return &common.Error{
 			Code: common.ESUBNETCREATE.Code,
 			Msg:  err.Error(),
@@ -130,6 +138,14 @@ func (rpctask *CreateVpcRPCTask) execute(providers *gophercloud.ProviderClient) 
 			"err": err,
 			"req": rpctask.Req.String(),
 		}).Error("router create failed")
+		delErr := subnets.Delete(client, subnetInfo.ID).ExtractErr()
+		if nil != delErr {
+			log.Info("rollback delete subnet err: ", delErr)
+		}
+		delErr = networks.Delete(client, networkInfo.ID).ExtractErr()
+		if nil != delErr {
+			log.Info("rollback delete network err: ", delErr)
+		}
 		return &common.Error{
 			Code: common.EROUTERCREATE.Code,
 			Msg:  err.Error(),
@@ -147,6 +163,18 @@ func (rpctask *CreateVpcRPCTask) execute(providers *gophercloud.ProviderClient) 
 			"err": err,
 			"req": rpctask.Req.String(),
 		}).Error("router add interface failed")
+		delErr := routers.Delete(client, routerInfo.ID).ExtractErr()
+		if nil != delErr {
+			log.Info("rollback delete router err: ", delErr)
+		}
+		delErr = subnets.Delete(client, subnetInfo.ID).ExtractErr()
+		if nil != delErr {
+			log.Info("rollback delete subnet err: ", delErr)
+		}
+		delErr = networks.Delete(client, networkInfo.ID).ExtractErr()
+		if nil != delErr {
+			log.Info("rollback delete network err: ", delErr)
+		}
 		return &common.Error{
 			Code: common.EINTERFACEADD.Code,
 			Msg:  err.Error(),

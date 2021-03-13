@@ -91,6 +91,14 @@ func (rpctask *RevokeFloatIpFromInstanceTask) execute(providers *gophercloud.Pro
 			"err": err,
 			"req": rpctask.Req.String(),
 		}).Error("floating ip list failed")
+
+		rollBackErr := computefloatip.AssociateInstance(comcl, rpctask.Req.InstanceId, computefloatip.AssociateOpts{
+			FloatingIP: rpctask.Req.FloatIp,
+		}).ExtractErr()
+		if nil != rollBackErr {
+			log.Info("rollback AssociateInstance err: ", rollBackErr)
+		}
+
 		return &common.Error{
 			Code: common.EFLOATINGIPLIST.Code,
 			Msg:  err.Error(),
@@ -103,6 +111,14 @@ func (rpctask *RevokeFloatIpFromInstanceTask) execute(providers *gophercloud.Pro
 			"err": err,
 			"req": rpctask.Req.String(),
 		}).Error("floating ip extract pages failed")
+
+		rollBackErr := computefloatip.AssociateInstance(comcl, rpctask.Req.InstanceId, computefloatip.AssociateOpts{
+			FloatingIP: rpctask.Req.FloatIp,
+		}).ExtractErr()
+		if nil != rollBackErr {
+			log.Info("rollback AssociateInstance err: ", rollBackErr)
+		}
+
 		return &common.Error{
 			Code: common.EFLOATINGIPEXTRACT.Code,
 			Msg:  err.Error(),
@@ -116,6 +132,14 @@ func (rpctask *RevokeFloatIpFromInstanceTask) execute(providers *gophercloud.Pro
 			"err": err,
 			"req": rpctask.Req.String(),
 		}).Error("floating ip delete failed")
+
+		rollBackErr := computefloatip.AssociateInstance(comcl, rpctask.Req.InstanceId, computefloatip.AssociateOpts{
+			FloatingIP: rpctask.Req.FloatIp,
+		}).ExtractErr()
+		if nil != rollBackErr {
+			log.Info("rollback AssociateInstance err: ", rollBackErr)
+		}
+
 		return &common.Error{
 			Code: common.EFLOATINGIPDELETE.Code,
 			Msg:  err.Error(),
