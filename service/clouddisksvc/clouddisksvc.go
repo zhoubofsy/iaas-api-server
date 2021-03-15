@@ -68,8 +68,8 @@ func (clouddisktask *CloudDiskService) CreateCloudDisk(ctx context.Context, req 
 		VolumeDesc:   ret.Description,
 		Region:       req.Region,
 		VolumeStatus: ret.Status,
-		CreatedTime:  ret.CreatedAt.Local().Format("2006-01-02 03:04:05"),
-		UpdatedTime:  ret.UpdatedAt.Local().Format("2006-01-02 03:04:05"),
+		CreatedTime:  ret.CreatedAt.Local().Format("2006-01-02 15:04:05"),
+		UpdatedTime:  ret.UpdatedAt.Local().Format("2006-01-02 15:04:05"),
 	}
 
 	timer := common.NewTimer()
@@ -190,14 +190,14 @@ func (clouddisktask *CloudDiskService) GetCloudDisk(ctx context.Context, req *cl
 		},
 		VolumeDesc:   ret.Description,
 		VolumeStatus: ret.Status,
-		CreatedTime:  ret.CreatedAt.Local().Format("2006-01-02 03:04:05"),
-		UpdatedTime:  ret.UpdatedAt.Local().Format("2006-01-02 03:04:05"),
+		CreatedTime:  ret.CreatedAt.Local().Format("2006-01-02 15:04:05"),
+		UpdatedTime:  ret.UpdatedAt.Local().Format("2006-01-02 15:04:05"),
 	}
 
 	if len(ret.Attachments) != 0 {
 		res.CloudDisk.AttachInstanceId = ret.Attachments[0].ServerID
 		res.CloudDisk.AttachInstanceDevice = ret.Attachments[0].Device
-		res.CloudDisk.AttachedTime = ret.Attachments[0].AttachedAt.Local().Format("2006-01-02 03:04:05")
+		res.CloudDisk.AttachedTime = ret.Attachments[0].AttachedAt.Local().Format("2006-01-02 15:04:05")
 	}
 	log.Info("rpc CreateVolume: ", res, ". time elapse: ", timer_elasp.Elapse())
 	return res, err
