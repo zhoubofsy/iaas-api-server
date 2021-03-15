@@ -14,7 +14,6 @@ import (
 	"iaas-api-server/common"
 	"iaas-api-server/proto/vpc"
 	"net"
-	"strconv"
 )
 
 type CreateVpcRPCTask struct {
@@ -50,14 +49,13 @@ func (rpctask *CreateVpcRPCTask) Run(context.Context) {
 
 func (rpctask *CreateVpcRPCTask) execute(providers *gophercloud.ProviderClient) *common.Error {
 	client, err := openstack.NewNetworkV2(providers, gophercloud.EndpointOpts{})
-
 	if nil != err {
 		log.WithFields(log.Fields{
 			"err": err,
 			"req": rpctask.Req.String(),
-		}).Error("new network v2 failed")
+		}).Error("get openstack network client failed")
 		return &common.Error{
-			Code: common.ENEWNETWORK.Code,
+			Code: common.ENETWORKCLIENT.Code,
 			Msg:  err.Error(),
 		}
 	}
@@ -85,6 +83,10 @@ func (rpctask *CreateVpcRPCTask) execute(providers *gophercloud.ProviderClient) 
 			"err": err,
 			"req": rpctask.Req.String(),
 		}).Error("parse CIDR failed")
+		delErr := networks.Delete(client, networkInfo.ID).ExtractErr()
+		if nil != delErr {
+			log.Info("rollback delete network err: ", delErr)
+		}
 		return &common.Error{
 			Code: common.EPARSECIDR.Code,
 			Msg:  err.Error(),
@@ -97,18 +99,6 @@ func (rpctask *CreateVpcRPCTask) execute(providers *gophercloud.ProviderClient) 
 	endIp := cidr.Dec(broadCast)
 	gw := gwIp.String()
 	var enableDHCP = true
-	prefixLen := ipNet.Mask.String()
-	prefix, err := strconv.Atoi(prefixLen)
-	if nil != err {
-		log.WithFields(log.Fields{
-			"err": err,
-			"req": rpctask.Req.String(),
-		}).Error("call Atoi failed")
-		return &common.Error{
-			Code: common.EATOI.Code,
-			Msg:  err.Error(),
-		}
-	}
 
 	subnetOpts := subnets.CreateOpts{
 		NetworkID: networkInfo.ID,
@@ -122,7 +112,6 @@ func (rpctask *CreateVpcRPCTask) execute(providers *gophercloud.ProviderClient) 
 		},
 		GatewayIP:  &gw,
 		EnableDHCP: &enableDHCP,
-		Prefixlen:  prefix,
 	}
 
 	subnetInfo, err := subnets.Create(client, subnetOpts).Extract()
@@ -131,12 +120,16 @@ func (rpctask *CreateVpcRPCTask) execute(providers *gophercloud.ProviderClient) 
 			"err": err,
 			"req": rpctask.Req.String(),
 		}).Error("subnet create failed")
+		delErr := networks.Delete(client, networkInfo.ID).ExtractErr()
+		if nil != delErr {
+			log.Info("rollback delete network err: ", delErr)
+		}
 		return &common.Error{
 			Code: common.ESUBNETCREATE.Code,
 			Msg:  err.Error(),
 		}
 	}
-	createSubnetTime := getCurTime()
+	createSubnetTime := common.Now()
 
 	routerName := "router-" + rpctask.Req.GetVpcName()
 	routerInfo, err := routers.Create(client, routers.CreateOpts{Name: routerName}).Extract()
@@ -145,12 +138,20 @@ func (rpctask *CreateVpcRPCTask) execute(providers *gophercloud.ProviderClient) 
 			"err": err,
 			"req": rpctask.Req.String(),
 		}).Error("router create failed")
+		delErr := subnets.Delete(client, subnetInfo.ID).ExtractErr()
+		if nil != delErr {
+			log.Info("rollback delete subnet err: ", delErr)
+		}
+		delErr = networks.Delete(client, networkInfo.ID).ExtractErr()
+		if nil != delErr {
+			log.Info("rollback delete network err: ", delErr)
+		}
 		return &common.Error{
 			Code: common.EROUTERCREATE.Code,
 			Msg:  err.Error(),
 		}
 	}
-	createRouterTime := getCurTime()
+	createRouterTime := common.Now()
 
 	interfaceOpts := routers.AddInterfaceOpts{
 		SubnetID: subnetInfo.ID,
@@ -162,12 +163,24 @@ func (rpctask *CreateVpcRPCTask) execute(providers *gophercloud.ProviderClient) 
 			"err": err,
 			"req": rpctask.Req.String(),
 		}).Error("router add interface failed")
+		delErr := routers.Delete(client, routerInfo.ID).ExtractErr()
+		if nil != delErr {
+			log.Info("rollback delete router err: ", delErr)
+		}
+		delErr = subnets.Delete(client, subnetInfo.ID).ExtractErr()
+		if nil != delErr {
+			log.Info("rollback delete subnet err: ", delErr)
+		}
+		delErr = networks.Delete(client, networkInfo.ID).ExtractErr()
+		if nil != delErr {
+			log.Info("rollback delete network err: ", delErr)
+		}
 		return &common.Error{
 			Code: common.EINTERFACEADD.Code,
 			Msg:  err.Error(),
 		}
 	}
-	createInterfaceTime := getCurTime()
+	createInterfaceTime := common.Now()
 
 	portInfo, err := ports.Get(client, interfaceInfo.PortID).Extract()
 	if nil != err {
@@ -234,4 +247,9 @@ func (rpctask *CreateVpcRPCTask) checkParam() error {
 func (rpctask *CreateVpcRPCTask) setResult() {
 	rpctask.Res.Code = rpctask.Err.Code
 	rpctask.Res.Msg = rpctask.Err.Msg
+
+	log.WithFields(log.Fields{
+		"req": rpctask.Req,
+		"res": rpctask.Res,
+	}).Info("request end")
 }

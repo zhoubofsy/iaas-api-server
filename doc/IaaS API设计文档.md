@@ -805,12 +805,14 @@ service OSSService {
   rpc CreateUserAndBucket(CreateUserAndBucketReq) returns(CreateUserAndBucketRes);
   //查看具体一个bucket详情
   rpc GetBucketInfo(GetBucketInfoReq) returns(GetBucketInfoRes);
-  //列出云管平台用户在一个entrypoint下的bucet列表
+  //列出云管平台用户在一个entrypoint下的bucket列表
   rpc ListBucketsInfo(ListBucketsInfoReq) returns(ListBucketsInfoRes);
   //扩容oss_user配额
   rpc SetOssUserQuota(SetOssUserQuotaReq) returns(SetOssUserQuotaRes);
   //找回key
   rpc RecoverKey(RecoverKeyReq) returns(RecoverKeyRes);
+  //获取用户信息
+  rpc GetUserInfo(GetUserInfoReq) returns(GetUserInfoRes);
 }
 
 message OssBucket {
@@ -918,9 +920,22 @@ message RecoverKeyRes {
   string oss_secret_key = 5;
 }
 
+message GetUserInfoReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string region = 4;
+  string oss_uid = 5;
+}
+
+message GetUserInfoRes {
+  int32 code = 1;
+  string msg = 2;
+  OssUser oss_user = 3;
+}
 ```
 
-### 首次创建账号并创建1个bucket
+### 创建Oss账号和bucket
 
 **要点**：
 
@@ -938,7 +953,7 @@ message RecoverKeyRes {
 2. 根据传入的region判断S3用户应建立在哪个ceph集群（每个region一个ceph集群）
 3. 根据传入的oss_uid和bucket名查询
 
-### 列出云管平台用户在一个ceph集群下的bucet列表
+### 列出云管平台用户在一个ceph集群下的bucket列表
 
 **要点**：
 
@@ -953,7 +968,8 @@ message RecoverKeyRes {
 
 1. 鉴权，无需查表获取该租户的openstack连接参数;
 2. 根据传入的region判断S3用户应建立在哪个ceph集群（每个region一个ceph集群）
-3. 根据传入的S3 uid 配额指标，修改该S3用户配额。
+3. 根据传入的uid和该用户的配额指标，修改该S3用户配额。
+4. 根据传入的uid进行查询，返回当前该S3用户信息
 
 ### 找回key
 
@@ -962,6 +978,14 @@ message RecoverKeyRes {
 1. 鉴权，无需查表获取该租户的openstack连接参数;
 2. 根据传入的region判断S3用户应建立在哪个ceph集群（每个region一个ceph集群）
 3. 根据传入的uid，返回key信息
+
+### 获取oss用户信息
+
+**要点**：
+
+1. 鉴权，无需查表获取该租户的openstack连接参数;
+2. 根据传入的region判断S3用户应建立在哪个ceph集群（每个region一个ceph集群）
+3. 根据传入的uid进行查询，返回当前该S3用户信息
 
 ## 专有网络相关服务
 
@@ -1110,6 +1134,7 @@ message GetRouterRes {
       string intf_created_time = 5;
     }
     repeated Intf Intfs = 4;
+    repeated Route current_routes = 5;
   }
   Router router = 3;
 }
@@ -1325,7 +1350,70 @@ message DeletePeerLinkRes {
 1. 鉴权 && 查表获取该租户的openstack连接参数；
 2. 针对peer_a_routerid这个路由器：调用routers.RemoveInterface，删除subnetid为share网络id的那个接口，然后调用原生API的remove_extraroutes，删除peer_b_subnetid所对应cidr的路由条目；同理，针对peer_b_routerid这个路由器：调用routers.RemoveInterface，删除subnetid为share网络id的那个接口，调用原生API的remove_extraroutes，删除peer_a_subnetid所对应cidr的路由条目；
 
+## 浮动IP相关服务
 
+```
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package floatip;
+
+//浮动IP相关服务
+service FloatIpService{
+  //创建浮动ip并绑定到instance
+  rpc BindFloatIpToInstance(BindFloatIpToInstanceReq) returns(BindFloatIpToInstanceRes);
+  //解绑浮动ip并回收
+  rpc RevokeFloatIpFromInstance(RevokeFloatIpFromInstanceReq) returns(RevokeFloatIpFromInstanceRes);
+}
+
+message BindFloatIpToInstanceReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string instance_id = 4;
+  int32 vpc_router_id = 5;
+}
+
+message BindFloatIpToInstanceRes {
+  int32 code = 1;
+  string msg = 2;
+  string float_ip = 3;
+  string binded_time = 4;
+}
+
+message RevokeFloatIpFromInstanceReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string instance_id = 4;
+  string float_ip = 5;
+}
+
+message RevokeFloatIpFromInstanceRes {
+  int32 code = 1;
+  string msg = 2;
+  string revoked_time = 3;
+}
+```
+
+### 创建浮动ip并绑定到instance
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 根据传入的vpc_router_id（该instance所属的vpc的路由器的id），检查该路由器是否有Gatewayinfo，如果没有说明该vpc还没有外部网关，没有与外部public网络相连，给出报错提示：该实例所在vpc没有外部网关，返回不再往下执行
+3. 上述两步验证通过后，调用networking/v2/extensions/layer3/floatingips.Create方法产生一个新floating ip
+4. 调用compute/v2/extensions/floatingips.AssociateInstance方法将上一步产生的floating ip关联到传入的instance id
+
+### 解绑浮动ip并回收
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 调用compute/v2/extensions/floatingips..DisassociateInstance方法取消与instance id的关联
+3. 根据传入的floating ip，调用networking/v2/extensions/layer3/floatingips.list方法，找到该floating ip对象的id
+4. 根据上一步获得的floatingip的id，调用networking/v2/extensions/layer3/floatingips.Delete方法，删除该floating ip
 
 ## 统一注意事项
 

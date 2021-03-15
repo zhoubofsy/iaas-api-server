@@ -9,7 +9,7 @@
     "namespace": "iaas"
   },
   "spec": {
-    "replicas": 2,
+    "replicas": 1,
     "selector": {
       "matchLabels": {
         "app": "iaas-api-server"
@@ -29,7 +29,50 @@
         }
       },
       "spec": {
+        "affinity": {
+          "nodeAffinity": {
+            "preferredDuringSchedulingIgnoredDuringExecution": [
+              {
+                "preference": {
+                  "matchExpressions": [
+                    {
+                      "key": "kubernetes.io/hostname",
+                      "operator": "In",
+                      "values": [
+                        "k8s-master-node1"
+                      ]
+                    }
+                  ]
+                },
+                "weight": 1
+              }
+            ],
+            "requiredDuringSchedulingIgnoredDuringExecution": {
+              "nodeSelectorTerms": [
+                {
+                  "matchExpressions": [
+                    {
+                      "key": "kubernetes.io/hostname",
+                      "operator": "In",
+                      "values": [
+                        "k8s-master-node1"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
         "automountServiceAccountToken": false,
+        "hostAliases": [
+          {
+            "hostnames": [
+              "controller"
+            ],
+            "ip": "120.92.19.57"
+          }
+        ],
         "imagePullSecrets": [
           {
             "name": "iaas-registry"

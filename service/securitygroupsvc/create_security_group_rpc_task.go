@@ -88,8 +88,8 @@ func (rpctask *CreateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 		SecurityGroupId:    group.ID,
 		SecurityGroupName:  group.Name,
 		SecurityGroupDesc:  group.Description,
-		CreatedTime:        group.CreatedAt.String(),
-		UpdatedTime:        group.UpdatedAt.String(),
+		CreatedTime:        group.CreatedAt.Local().Format("2006-01-02 15:04:05"),
+		UpdatedTime:        group.UpdatedAt.Local().Format("2006-01-02 15:04:05"),
 		SecurityGroupRules: make([]*securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule, 0),
 	}
 
