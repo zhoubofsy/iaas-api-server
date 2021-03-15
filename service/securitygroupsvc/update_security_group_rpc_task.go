@@ -140,8 +140,8 @@ func (rpctask *UpdateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 		SecurityGroupId:   newgroup.ID,
 		SecurityGroupName: newgroup.Name,
 		SecurityGroupDesc: newgroup.Description,
-		CreatedTime:       newgroup.CreatedAt.String(),
-		UpdatedTime:       newgroup.UpdatedAt.String(),
+		CreatedTime:       newgroup.CreatedAt.Local().Format("2006-01-02 15:04:05"),
+		UpdatedTime:       newgroup.UpdatedAt.Local().Format("2006-01-02 15:04:05"),
 	}
 	if len(newgroup.Rules) > 0 {
 		rpctask.Res.SecurityGroup.SecurityGroupRules = make([]*securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule, len(newgroup.Rules))
@@ -155,8 +155,8 @@ func (rpctask *UpdateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 				PortRangeMax:    int32(rule.PortRangeMax),
 				RemoteIpPrefix:  rule.RemoteIPPrefix,
 				SecurityGroupId: rule.SecGroupID,
-				CreatedTime:     newgroup.CreatedAt.String(),
-				UpdatedTime:     newgroup.UpdatedAt.String(),
+				CreatedTime:     newgroup.CreatedAt.Local().Format("2006-01-02 15:04:05"),
+				UpdatedTime:     newgroup.UpdatedAt.Local().Format("2006-01-02 15:04:05"),
 			}
 		}
 	}
