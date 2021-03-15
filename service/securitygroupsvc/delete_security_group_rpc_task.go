@@ -67,12 +67,6 @@ func (rpctask *DeleteSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 		return common.ENETWORKCLIENT
 	}
 
-	defer func(start time.Time) {
-		tc := time.Since(start)
-		log.WithFields(log.Fields{
-			"cost": tc / (1000 * 1000),
-		}).Info("")
-	}(time.Now())
 	err = sg.Delete(client, rpctask.Req.GetSecurityGroupId()).ExtractErr()
 	if nil != err {
 		log.WithFields(log.Fields{

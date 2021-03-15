@@ -2,8 +2,9 @@ package routesvc
 
 import (
 	"golang.org/x/net/context"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"iaas-api-server/proto/route"
-	"time"
 )
 
 type RouteService struct {
@@ -17,7 +18,7 @@ func (rs *RouteService) GetRouter(ctx context.Context, req *route.GetRouterReq) 
 		Err: nil,
 	}
 	task.Run(ctx)
-	return task.Res, task.Err
+	return task.Res, status.Error(codes.OK, "success")
 }
 
 func (rs *RouteService) SetRoutes(ctx context.Context, req *route.SetRoutesReq) (*route.SetRoutesRes, error) {
@@ -27,9 +28,5 @@ func (rs *RouteService) SetRoutes(ctx context.Context, req *route.SetRoutesReq) 
 		Err: nil,
 	}
 	task.Run(ctx)
-	return task.Res, task.Err
-}
-
-func getCurTime() string {
-	return time.Now().Format("2006-01-02 15:04:05")
+	return task.Res, status.Error(codes.OK, "success")
 }

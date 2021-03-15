@@ -2,6 +2,7 @@ package osssvc
 
 import (
 	"iaas-api-server/common"
+	"iaas-api-server/common/config"
 	"iaas-api-server/proto/oss"
 	"strconv"
 	"time"
@@ -120,11 +121,11 @@ func (o *BucketOp) Init() error {
 	}))
 	o.S3Handler = s3.New(sess)
 	if o.S3Handler == nil {
-		log.Error("[OSSService] BucketOp S3 init falure. Endpoint: ", o.EndpointAddr)
+		log.Error("[OSSService] BucketOp S3 init failure. Endpoint: ", o.EndpointAddr)
 	}
 	o.RGWHandler, err = radosAPI.New(o.EndpointAddr, o.AdmAccess, o.AdmSecret)
 	if err != nil {
-		log.Error("[OSSService] BucketOp go-radosgw init falure. ", err)
+		log.Error("[OSSService] BucketOp go-radosgw init failure. ", err)
 	}
 	return err
 }
@@ -377,8 +378,23 @@ func (o *CreateUserAndBucketOp) Do() error {
 	if nil != err {
 		return err
 	}
-	maxObjs := o.Req.UserMaxObjects
-	maxSize := o.Req.UserMaxSizeInG * 1024 * 1024
+	maxObjs, err := config.GetInt("oss_user_max_objects")
+	if nil != err {
+		log.Error("[OSSService] CreateUserAndBucketOp get oss_user_max_objects failure")
+		return common.EOSSGETCONFIG
+	}
+	if o.Req.UserMaxObjects > 0 {
+		maxObjs = int(o.Req.UserMaxObjects)
+	}
+	maxSizeInG, err := config.GetInt("oss_user_max_size_in_g")
+	if nil != err {
+		log.Error("[OSSService] CreateUserAndBucketOp get oss_user_max_size_in_g failure")
+		return common.EOSSGETCONFIG
+	}
+	maxSize := maxSizeInG * 1024 * 1024
+	if o.Req.UserMaxSizeInG > 0 {
+		maxSize = int(o.Req.UserMaxSizeInG * 1024 * 1024)
+	}
 
 	userOperator := UserOp{EndpointAddr: endpoint, Access: access, Secret: secret}
 	userOperator.Init()
@@ -426,7 +442,7 @@ func (o *CreateUserAndBucketOp) Do() error {
 	o.Res.OssUser = &(oss.OssUser{
 		OssUid:             userInfo.Uid,
 		OssUserCreatedTime: time.Now().Format("2006-01-02 15:04:05"), // Current Time
-		UserMaxSizeInG:     int32(userInfo.UserQuota.MaxSize),
+		UserMaxSizeInG:     int32(userInfo.UserQuota.MaxSize / 1024 / 1024),
 		UserMaxObjects:     int32(userInfo.BucketsQuota.MaxObjects),
 		UserUseSizeInG:     int32(userInfo.UsedSize),
 		UserUseObjects:     int32(userInfo.UsedObjects),
@@ -706,6 +722,65 @@ func (o *RecoverKeyOp) Do() error {
 
 func (o *RecoverKeyOp) Done(e error) (interface{}, error) {
 	//Translate error code
+	o.Res.Msg = e.Error()
+	if e == common.EOK {
+		o.Res.Code = common.EOK.Code
+		return o.Res, nil
+	}
+	return o.Res, e
+}
+
+type GetUserInfoOp struct {
+	BasicOp
+	Req *oss.GetUserInfoReq
+	Res *oss.GetUserInfoRes
+}
+
+func (o *GetUserInfoOp) Predo() error {
+	if o.Req == nil {
+		return common.EPARAM
+	}
+	o.Res = new(oss.GetUserInfoRes)
+	o.conf = GetOSSConfigure()
+
+	return common.EOK
+}
+
+func (o *GetUserInfoOp) Do() error {
+	endpoint, err := o.conf.GetEndpointByRegion(o.Req.Region)
+	if nil != err {
+		return err
+	}
+	access, secret, err := o.conf.GetRGWAdminAccessSecretKeys(o.Req.Region)
+	if nil != err {
+		return err
+	}
+	userOperator := UserOp{EndpointAddr: endpoint, Access: access, Secret: secret}
+	userOperator.Init()
+	userInfo, err := userOperator.GetUserInfo(o.Req.OssUid)
+	if err != nil {
+		return common.EOSSGETUSER
+	}
+	bucketOperator := BucketOp{EndpointAddr: endpoint, Access: userInfo.AccessKey, Secret: userInfo.SecretKey, AdmAccess: access, AdmSecret: secret}
+	bucketOperator.Init()
+	err = bucketOperator.ListBucketsInit()
+	if err != nil {
+		return common.EOSSLISTBUCKETS
+	}
+
+	o.Res.OssUser = &(oss.OssUser{
+		OssUid:             userInfo.Uid,
+		OssUserCreatedTime: "",
+		UserMaxSizeInG:     int32(userInfo.UserQuota.MaxSize),
+		UserMaxObjects:     int32(userInfo.BucketsQuota.MaxObjects),
+		UserUseSizeInG:     int32(userInfo.UsedSize),
+		UserUseObjects:     int32(userInfo.UsedObjects),
+		TotalBuckets:       int32(bucketOperator.ListBucketsCount())})
+
+	return common.EOK
+}
+
+func (o *GetUserInfoOp) Done(e error) (interface{}, error) {
 	o.Res.Msg = e.Error()
 	if e == common.EOK {
 		o.Res.Code = common.EOK.Code

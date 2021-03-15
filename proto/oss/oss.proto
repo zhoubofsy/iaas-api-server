@@ -16,6 +16,8 @@ service OSSService {
   rpc SetOssUserQuota(SetOssUserQuotaReq) returns(SetOssUserQuotaRes);
   //找回key
   rpc RecoverKey(RecoverKeyReq) returns(RecoverKeyRes);
+  //获取用户信息
+  rpc GetUserInfo(GetUserInfoReq) returns(GetUserInfoRes);
 }
 
 message OssBucket {
@@ -122,7 +124,19 @@ message RecoverKeyRes {
   string oss_secret_key = 5;
 }
 
+message GetUserInfoReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string region = 4;
+  string oss_uid = 5;
+}
 
+message GetUserInfoRes {
+  int32 code = 1;
+  string msg = 2;
+  OssUser oss_user = 3;
+}
 
 
 

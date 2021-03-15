@@ -47,14 +47,13 @@ func (rpctask *SetVpcInfoRPCTask) Run(context.Context) {
 
 func (rpctask *SetVpcInfoRPCTask) execute(providers *gophercloud.ProviderClient) *common.Error {
 	client, err := openstack.NewNetworkV2(providers, gophercloud.EndpointOpts{})
-
 	if nil != err {
 		log.WithFields(log.Fields{
 			"err": err,
 			"req": rpctask.Req.String(),
-		}).Error("new network v2 failed.")
+		}).Error("get openstack network client failed")
 		return &common.Error{
-			Code: common.ENEWNETWORK.Code,
+			Code: common.ENETWORKCLIENT.Code,
 			Msg:  err.Error(),
 		}
 	}
@@ -131,12 +130,12 @@ func (rpctask *SetVpcInfoRPCTask) execute(providers *gophercloud.ProviderClient)
 	//根据名称查到的路由信息应该唯一
 	if 1 != len(routersInfo) {
 		log.WithFields(log.Fields{
-			"err": "",
+			"err": "routersInfo is not unique",
 			"req": rpctask.Req.String(),
 		}).Error("routersInfo is not unique")
 		return &common.Error{
 			Code: common.EROUTERINFO.Code,
-			Msg:  "",
+			Msg:  "routersInfo is not unique",
 		}
 	}
 
@@ -210,4 +209,9 @@ func (rpctask *SetVpcInfoRPCTask) checkParam() error {
 func (rpctask *SetVpcInfoRPCTask) setResult() {
 	rpctask.Res.Code = rpctask.Err.Code
 	rpctask.Res.Msg = rpctask.Err.Msg
+
+	log.WithFields(log.Fields{
+		"req": rpctask.Req,
+		"res": rpctask.Res,
+	}).Info("request end")
 }
