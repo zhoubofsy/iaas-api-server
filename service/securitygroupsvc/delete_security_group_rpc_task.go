@@ -10,7 +10,6 @@ package securitygroupsvc
 
 import (
 	"errors"
-	"time"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
