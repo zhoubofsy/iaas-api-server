@@ -3,6 +3,7 @@ package nasdisksvc
 import (
 	log "github.com/sirupsen/logrus"
 	"iaas-api-server/common"
+	"iaas-api-server/common/config"
 	"iaas-api-server/proto/nasdisk"
 	"strconv"
 )
