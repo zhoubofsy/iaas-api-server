@@ -187,6 +187,9 @@ func (o *DeleteNasDiskOp) Do() error {
 			break
 		}
 	}
+	if exportID == "" {
+		return common.ECEPHMGRNOGANESHAEXPORT
+	}
 	// 2. 删除Ganesha Export
 	err = cephMgr.DeleteGaneshaExport(clusterID, exportID)
 	if err != common.EOK {
@@ -198,7 +201,6 @@ func (o *DeleteNasDiskOp) Do() error {
 		log.Error("[NASDISK] DeleteNasDiskOp remove cephfs directory failure.")
 	}
 	return err
-	return common.EOK
 }
 
 func (o *DeleteNasDiskOp) Done(e error) (interface{}, error) {

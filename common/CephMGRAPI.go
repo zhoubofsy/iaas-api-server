@@ -394,14 +394,20 @@ type CephMgrRESTDeleteGaneshaExport struct {
 func (o *CephMgrRESTDeleteGaneshaExport) DoRequest(endpoint string, token string) error {
 	url := o.Url
 	header := make(map[string]string)
-	header["Content-Type"] = "application/json"
 	header["Authorization"] = "Bearer " + token
 
 	res, err := CallRestAPI(endpoint+url, "DELETE", header, nil)
-	if err != nil || res.StatusCode != 200 {
-		return ECEPHMGRDELETEGANESHAEXPORT
+	if err == nil {
+		switch res.StatusCode {
+		case 204:
+			return EOK
+		case 200:
+			return EOK
+		default:
+			return ECEPHMGRDELETEGANESHAEXPORT
+		}
 	}
-	return EOK
+	return ECEPHMGRDELETEGANESHAEXPORT
 }
 
 func (o *CephMgrRestful) DeleteGaneshaExport(clusterID string, exportID string) error {

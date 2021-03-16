@@ -120,6 +120,7 @@ var (
 	ECEPHMGRLISTGANESHAEXPORT   = &Error{Code: 91012, Msg: "Ceph MGR API list ganesha exports"}
 	ECEPHMGRCREATEGANESHAEXPORT = &Error{Code: 91013, Msg: "Ceph MGR API create ganesha exports"}
 	ECEPHMGRDELETEGANESHAEXPORT = &Error{Code: 91014, Msg: "Ceph MGR API delete ganesha exports"}
+	ECEPHMGRNOGANESHAEXPORT     = &Error{Code: 91015, Msg: "Ceph MGR API no ganesha export"}
 
 	ETTEDITDOMAIN = &Error{Code: 94001, Msg: "openstack update domain failed"}
 
