@@ -3,7 +3,7 @@ package nasdisksvc
 type NasDiskConfigure interface {
 	GetMGRConfig(string) (string, string, string, error)
 	GetCephFSConfig(string) (string, string, error)
-	GetGaneshaConfig(string) (string, string, error)
+	GetGaneshaConfig(string) (string, string, string, error)
 }
 
 type NasDiskSimpleConfigure struct {
@@ -17,8 +17,8 @@ func (o *NasDiskSimpleConfigure) GetCephFSConfig(r string) (string, string, erro
 	return "1", "/nasroot", nil
 }
 
-func (o *NasDiskSimpleConfigure) GetGaneshaConfig(r string) (string, string, error) {
-	return "ganesha-myfs", "admin", nil // cluster-id, user-id
+func (o *NasDiskSimpleConfigure) GetGaneshaConfig(r string) (string, string, string, error) {
+	return "i.layyou.hahaha", "ganesha-myfs", "admin", nil // cluster-id, user-id
 }
 
 func GetNasDiskConfigure() NasDiskConfigure {

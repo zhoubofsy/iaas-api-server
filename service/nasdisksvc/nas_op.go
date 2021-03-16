@@ -63,7 +63,7 @@ func (o *CreateNasDiskOp) Do() error {
 	if nil != err {
 		return common.ENASGETCONFIG
 	}
-	clusterID, userID, err := o.conf.GetGaneshaConfig(o.Req.Region)
+	nfsDomain, clusterID, userID, err := o.conf.GetGaneshaConfig(o.Req.Region)
 	if err != nil {
 		return common.ENASGETCONFIG
 	}
@@ -88,6 +88,16 @@ func (o *CreateNasDiskOp) Do() error {
 		return common.ENASGETCONFIG
 	}
 
+	o.Res.NasDisk = &(nasdisk.CreateNasDiskRes_NasDisk{
+		ShareId:      dirPath,
+		ShareName:    o.Req.ShareName,
+		ShareDesc:    o.Req.ShareDesc,
+		ShareProto:   o.Req.ShareProto,
+		ShareSizeInG: int32(maxSizeInG),
+		Region:       o.Req.Region,
+		NetworkId:    o.Req.NetworkId,
+		MountPoint:   nfsDomain + ":" + pseudoPath,
+		CreatedTime:  common.Now()})
 	var daemons []common.GaneshaDaemonInfo
 	var dispatchDaemons []string
 	// 1. 获取目录，判断目录是否存在
@@ -168,7 +178,7 @@ func (o *DeleteNasDiskOp) Do() error {
 	if nil != err {
 		return common.ENASGETCONFIG
 	}
-	clusterID, _, err := o.conf.GetGaneshaConfig(o.Req.Region)
+	_, clusterID, _, err := o.conf.GetGaneshaConfig(o.Req.Region)
 	if err != nil {
 		return common.ENASGETCONFIG
 	}
@@ -178,6 +188,9 @@ func (o *DeleteNasDiskOp) Do() error {
 	dirPath := o.Req.ShareId
 	cephfsPath := rootPath + "/" + dirPath
 	pseudoPath := "/" + dirPath
+
+	o.Res.ShareId = o.Req.ShareId
+	o.Res.DeletedTime = common.Now()
 	// 1. 获取Exports, 查找ExportID
 	var exportID string
 	exports, err := cephMgr.ListGaneshaExport()
