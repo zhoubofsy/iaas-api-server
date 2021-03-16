@@ -222,7 +222,7 @@ func (o *CephMgrRESTSetCephFSQuotas) DoRequest(endpoint string, token string) er
 }
 
 func (o *CephMgrRestful) SetCephFSQuotas(cephfsID string, path string, maxsize int, maxfiles int) error {
-	req := &CephMgrRESTSetCephFSQuotas{Url: "/api/ceph/" + cephfsID + "/set_quotas", Path: path, MaxSize: maxsize, MaxFiles: maxfiles}
+	req := &CephMgrRESTSetCephFSQuotas{Url: "/api/cephfs/" + cephfsID + "/set_quotas", Path: path, MaxSize: maxsize, MaxFiles: maxfiles}
 	return o.Process(req)
 }
 
@@ -331,7 +331,7 @@ func (o *CephMgrRESTCreateGaneshaExport) DoRequest(endpoint string, token string
 	header["Authorization"] = "Bearer " + token
 
 	res, err := CallRestAPI(endpoint+url, "POST", header, o.Body)
-	if err != nil || res.StatusCode != 200 {
+	if err != nil || res.StatusCode != 201 {
 		return ECEPHMGRCREATEGANESHAEXPORT
 	}
 	return EOK
@@ -360,9 +360,10 @@ type CreateGaneshaSExportWithCephFS struct {
 	Transports    []string   `json:"transports"`
 }
 
-func (o *CephMgrRestful) CreateGaneshaExport(clusterID string, userID string, path string, pseudo string) error {
-	body, _ := json.Marshal(&CreateGaneshaSExportWithCephFS{
+func (o *CephMgrRestful) CreateGaneshaExport(clusterID string, userID string, path string, pseudo string, dispatch []string) error {
+	exportConfig := &CreateGaneshaSExportWithCephFS{
 		AccessType: "RW",
+		Clients:    []string{},
 		ClusterID:  clusterID,
 		FSAL: FSALCephfs{
 			FSName: "cephfs",
@@ -371,12 +372,17 @@ func (o *CephMgrRestful) CreateGaneshaExport(clusterID string, userID string, pa
 		},
 		Path:          path,
 		Protocols:     []int{4},
+		Daemons:       dispatch,
 		Pseudo:        pseudo,
 		ReloadDaemons: true,
 		SecurityLable: true,
 		Squash:        "no_root_squash",
 		Transports:    []string{"TCP"},
-	})
+	}
+	body, err := json.Marshal(exportConfig)
+	if err != nil {
+		return EPARSE
+	}
 	req := &CephMgrRESTCreateGaneshaExport{Url: "/api/nfs-ganesha/export", Body: body}
 	return o.Process(req)
 }
