@@ -160,45 +160,44 @@ func (o *DeleteNasDiskOp) Predo() error {
 }
 
 func (o *DeleteNasDiskOp) Do() error {
-	/*
-		endpoint, user, passwd, err := o.conf.GetMGRConfig(o.Req.Region)
-		if err != nil {
-			return common.ENASGETCONFIG
-		}
-		cephfsid, rootPath, err := o.conf.GetCephFSConfig(o.Req.Region)
-		if nil != err {
-			return common.ENASGETCONFIG
-		}
-		clusterID, userID, err := o.conf.GetGaneshaConfig(o.Req.Region)
-		if err != nil {
-			return common.ENASGETCONFIG
-		}
+	endpoint, user, passwd, err := o.conf.GetMGRConfig(o.Req.Region)
+	if err != nil {
+		return common.ENASGETCONFIG
+	}
+	cephfsid, rootPath, err := o.conf.GetCephFSConfig(o.Req.Region)
+	if nil != err {
+		return common.ENASGETCONFIG
+	}
+	clusterID, _, err := o.conf.GetGaneshaConfig(o.Req.Region)
+	if err != nil {
+		return common.ENASGETCONFIG
+	}
 
-		cephMgr := common.CephMgrRestful{Endpoint: endpoint, User: user, Passwd: passwd}
-		dirPath := o.Req.PlatformUserid + "_" + o.Req.ShareName
-		cephfsPath := rootPath + "/" + dirPath
-		pseudoPath := "/" + dirPath
-		// 1. 获取Exports, 查找ExportID
-		var exportID string
-		exports, err := cephMgr.ListGaneshaExport()
-		for idx, export := range exports {
-			if pseudoPath == export.Pseudo && export.Path == cephfsPath && clusterID == export.ClusterID {
-				exportID = strconv.Itoa(export.ExportID)
-				break
-			}
+	cephMgr := common.CephMgrRestful{Endpoint: endpoint, User: user, Passwd: passwd}
+	//dirPath := o.Req.PlatformUserid + "_" + o.Req.ShareName
+	dirPath := o.Req.ShareId
+	cephfsPath := rootPath + "/" + dirPath
+	pseudoPath := "/" + dirPath
+	// 1. 获取Exports, 查找ExportID
+	var exportID string
+	exports, err := cephMgr.ListGaneshaExport()
+	for _, export := range exports {
+		if pseudoPath == export.Pseudo && export.Path == cephfsPath && clusterID == export.ClusterID {
+			exportID = strconv.Itoa(export.ExportID)
+			break
 		}
-		// 2. 删除Ganesha Export
-		err = cephMgr.DeleteGaneshaExport(clusterID, exportID)
-		if err != common.EOK {
-			log.Error("[NASDISK] DeleteNasDiskOp delete ganesha export failure.")
-		}
-		// 3. 删除Cephfs 目录
-		err = cephMgr.RemoveCephFSDirectory(cephfsid, cephfsPath)
-		if err != common.EOK {
-			log.Error("[NASDISK] DeleteNasDiskOp remove cephfs directory failure.")
-		}
-		return err
-	*/
+	}
+	// 2. 删除Ganesha Export
+	err = cephMgr.DeleteGaneshaExport(clusterID, exportID)
+	if err != common.EOK {
+		log.Error("[NASDISK] DeleteNasDiskOp delete ganesha export failure.")
+	}
+	// 3. 删除Cephfs 目录
+	err = cephMgr.RemoveCephFSDirectory(cephfsid, cephfsPath)
+	if err != common.EOK {
+		log.Error("[NASDISK] DeleteNasDiskOp remove cephfs directory failure.")
+	}
+	return err
 	return common.EOK
 }
 
