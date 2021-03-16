@@ -164,6 +164,7 @@ message Image {
   string image_name = 2;
   string image_diskformat = 3;
   string image_containerformat = 4;
+  float image_size_in_g = 5;
 }
 
 message ListImagesReq {
