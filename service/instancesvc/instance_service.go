@@ -274,8 +274,8 @@ func (is *InstanceService) GetInstance(ctx context.Context, req *instance.GetIns
 		InstanceId:          ss.ID,
 		InstanceStatus:      ss.Status,
 		InstanceName:        ss.Name,
-		CreatedTime:         ss.Created.Local().Format("2006-01-02 03:04:05"),
-		UpdatedTime:         ss.Updated.Local().Format("2006-01-02 03:04:05"),
+		CreatedTime:         ss.Created.Local().Format("2006-01-02 15:04:05"),
+		UpdatedTime:         ss.Updated.Local().Format("2006-01-02 15:04:05"),
 	}
 
 	// ip address

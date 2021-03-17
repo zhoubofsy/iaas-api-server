@@ -56,7 +56,7 @@ func QueryTenantInfoByTenantIdAndApikey(tenantID string, apiKey string) (TenantI
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
-		}).Error("query tenantInfoByTenantName failed.")
+		}).Error("query tenantInfo By tenantName failed.")
 		return tenantInfo, ETTGETTENANT
 	}
 	return tenantInfo, nil
@@ -69,7 +69,7 @@ func QueryTenantInfoByTenantName(name string) (string, error) {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
-		}).Error("query tenantInfoByTenantName failed.")
+		}).Error("query tenantInfo by tenantName failed.")
 		return "", ETTGETTENANT
 	}
 	return tenantInfo.TenantID, nil
@@ -97,7 +97,7 @@ func CreateTenantInfo(tenantInfo TenantInfo) (createTenantFlag bool) {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
-		}).Error("createTenantInfo failed.")
+		}).Error("create tenantInfo failed.")
 		return false
 	}
 	n, err := ret.RowsAffected()
@@ -113,7 +113,7 @@ func DeleteTenantInfo(tenantID string) {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
-		}).Error("delete tenant info failed.")
+		}).Error("delete tenantInfo failed.")
 	}
 }
 

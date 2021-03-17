@@ -164,6 +164,7 @@ message Image {
   string image_name = 2;
   string image_diskformat = 3;
   string image_containerformat = 4;
+  float image_size_in_g = 5;
 }
 
 message ListImagesReq {
@@ -686,7 +687,7 @@ message DeleteCloudDiskRes {
 ## NAS存储相关服务
 
 ```jsx
-/ 指定的当前proto语法的版本，有2和3
+// 指定的当前proto语法的版本，有2和3
 syntax = "proto3";
 
 // 指定文件生成出来的package
@@ -713,13 +714,8 @@ message CreateNasDiskRes {
     int32  share_size_in_g = 5;
     string region = 6;
     string  network_id = 7;
-    string share_status = 8;
-    string share_progress = 9;
-    string share_server_id = 10;
-    string share_server_host = 11;
-    string share_network_id = 12;
-    string created_time = 13;
-    string updated_time = 14;
+    string mount_point = 8;
+    string created_time = 9;
   }
   NasDisk nas_disk = 3;
 }
@@ -741,6 +737,7 @@ message DeleteNasDiskReq {
   string tenant_id = 2;
   string platform_userid = 3;
   string share_id = 4;
+  string region = 5;
 }
 
 message DeleteNasDiskRes {
@@ -755,6 +752,7 @@ message GetMountClientsReq {
   string tenant_id = 2;
   string platform_userid = 3;
   string share_id = 4;
+  string region = 5;
 }
 
 message GetMountClientsRes {
@@ -762,7 +760,6 @@ message GetMountClientsRes {
   string msg = 2;
   repeated string instance_id = 3;
 }
-
 ```
 
 **注：以下描述是基于使用manila方案的实现，只看文档没使用过，不能保证准确性和完整性。**
