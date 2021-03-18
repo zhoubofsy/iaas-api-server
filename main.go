@@ -49,6 +49,9 @@ func init() {
 	}
 }
 
+var (
+	conf = flag.String("conf", "", "config file")
+)
 
 func main() {
 	flag.Parse()
