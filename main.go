@@ -46,7 +46,7 @@ func init() {
 	log.SetFormatter(&log.JSONFormatter{})         //设置日志格式
 	if !common.InitDb() {                  //数据库初始化
 		panic("数据库初始化失败")
-	}
+
 }
 
 var (
