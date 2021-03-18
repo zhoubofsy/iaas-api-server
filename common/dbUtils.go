@@ -25,20 +25,28 @@ func InitDb() bool {
 	dbUserName := os.Getenv("DB_USERNAME")
 	dbPassWord := os.Getenv("DB_PASSWORD")
 	dbName := os.Getenv("DB_NAME")
+
 	dns := dbUserName + ":" + dbPassWord + "@tcp(" + dbBHostIP + ")/" + dbName
-	var err error
-	db, err = sql.Open(driverName, dns+"?charset=utf8")
-	if err != nil {
-		log.WithFields(log.Fields{
-			"err": err,
-		}).Error("get mysql client failed.")
+	db, _ = sql.Open(driverName, dns+"?charset=utf8")
+	//设置数据库最大连接数
+	db.SetConnMaxLifetime(200)
+	//设置上数据库最大闲置连接数
+	db.SetMaxIdleConns(10)
+	//验证连接
+	if err := db.Ping(); err != nil {
+		fmt.Println("open database fail")
 		return false
 	}
 	return true
 }
 func QueryOssConfigByRegion(region string) (OssConfig, error) {
-	sqlStr := "SELECT id, region, access_key, secret_key, endpoint, description FROM oss_config where region = ? "
 	var ossConfig OssConfig
+
+	if !InitDb(){
+		return ossConfig, ETTGETMYSQLCLIENT
+	}
+
+	sqlStr := "SELECT id, region, access_key, secret_key, endpoint, description FROM oss_config where region = ? "
 	err := db.QueryRow(sqlStr, region).Scan(&ossConfig.ID, &ossConfig.Region, &ossConfig.AccessKey, &ossConfig.SecretKey, &ossConfig.Endpoint, &ossConfig.Description)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -52,6 +60,11 @@ func QueryOssConfigByRegion(region string) (OssConfig, error) {
 func QueryTenantInfoByTenantIdAndApikey(tenantID string, apiKey string) (TenantInfo, error) {
 	sqlStr := "SELECT tenant_id,tenant_name,openstack_domainname,openstack_domainid,openstack_projectname,openstack_projectid,openstack_username,openstack_userid,openstack_password,openstack_rolename,openstack_roleid,apikey FROM tenant_info where tenant_id =? and apikey=?"
 	var tenantInfo TenantInfo
+
+	if !InitDb(){
+		return tenantInfo, ETTGETMYSQLCLIENT
+	}
+
 	err := db.QueryRow(sqlStr, tenantID, apiKey).Scan(&tenantInfo.TenantID, &tenantInfo.TenantName, &tenantInfo.OpenstackDomainname, &tenantInfo.OpenstackDomainid, &tenantInfo.OpenstackProjectname, &tenantInfo.OpenstackProjectid, &tenantInfo.OpenstackUsername, &tenantInfo.OpenstackUserid, &tenantInfo.OpenstackPassword, &tenantInfo.OpenstackRolename, &tenantInfo.OpenstackRoleid, &tenantInfo.ApiKey)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -59,12 +72,18 @@ func QueryTenantInfoByTenantIdAndApikey(tenantID string, apiKey string) (TenantI
 		}).Error("query tenantInfo By tenantName failed.")
 		return tenantInfo, ETTGETTENANT
 	}
+	defer db.Close()
 	return tenantInfo, nil
 }
 
 func QueryTenantInfoByTenantName(name string) (string, error) {
 	sqlStr := "SELECT tenant_id,tenant_name FROM tenant_info where tenant_name =?"
 	var tenantInfo TenantInfo
+
+	if !InitDb(){
+		return "", ETTGETMYSQLCLIENT
+	}
+
 	err := db.QueryRow(sqlStr, name).Scan(&tenantInfo.TenantID, &tenantInfo.TenantName)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -72,10 +91,14 @@ func QueryTenantInfoByTenantName(name string) (string, error) {
 		}).Error("query tenantInfo by tenantName failed.")
 		return "", ETTGETTENANT
 	}
+	defer db.Close()
 	return tenantInfo.TenantID, nil
 }
 
 func GetTenantIDSeq() (string, error) {
+	if !InitDb(){
+		return "",ETTGETMYSQLCLIENT
+	}
 	sqlStr := "select nextval(seq)"
 	var nextVal int32
 	err := db.QueryRow(sqlStr).Scan(&nextVal)
@@ -86,12 +109,16 @@ func GetTenantIDSeq() (string, error) {
 		return "", ETTGETENATSEQ
 	}
 	valStr := fmt.Sprintf("%010d", nextVal)
+	defer db.Close()
 	return valStr, nil
 }
 
 func CreateTenantInfo(tenantInfo TenantInfo) (createTenantFlag bool) {
 	log.Info("dbutils insert tenantInfo :", tenantInfo)
 	log.Info("create tenant flag :", createTenantFlag)
+	if !InitDb(){
+		return false
+	}
 	sqlStr := "insert into tenant_info(tenant_id, tenant_name, openstack_domainname, openstack_domainid, openstack_projectname, openstack_projectid, openstack_username, openstack_userid, openstack_password, openstack_rolename, openstack_roleid, apikey) values (?,?,?,?,?,?,?,?,?,?,?,?)"
 	ret, err := db.Exec(sqlStr, tenantInfo.TenantID, tenantInfo.TenantName, tenantInfo.OpenstackDomainname, tenantInfo.OpenstackDomainid, tenantInfo.OpenstackProjectname, tenantInfo.OpenstackProjectid, tenantInfo.OpenstackUsername, tenantInfo.OpenstackUserid, tenantInfo.OpenstackPassword, tenantInfo.OpenstackRolename, tenantInfo.OpenstackRoleid, tenantInfo.ApiKey)
 	if err != nil {
@@ -104,17 +131,24 @@ func CreateTenantInfo(tenantInfo TenantInfo) (createTenantFlag bool) {
 	if n > 0 {
 		return true
 	}
+	defer db.Close()
 	return false
 }
 
-func DeleteTenantInfo(tenantID string) {
+func DeleteTenantInfo(tenantID string) (error){
+	if !InitDb(){
+		return ETTGETMYSQLCLIENT
+	}
 	sqlStr := "delete from tenant_info where tenant_id = ?"
 	_, err := db.Exec(sqlStr, tenantID)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
 		}).Error("delete tenantInfo failed.")
+		return ETTDELETETENANT
 	}
+	defer db.Close()
+	return nil
 }
 
 // TenantInfo for tenant

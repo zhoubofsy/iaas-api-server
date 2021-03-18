@@ -2,13 +2,16 @@ package main
 
 import (
 	"flag"
-	"iaas-api-server/common"
 	"iaas-api-server/common/config"
 	"iaas-api-server/proto/clouddisk"
 	"iaas-api-server/proto/flavor"
 	"iaas-api-server/proto/floatip"
 	"iaas-api-server/proto/image"
 	"iaas-api-server/proto/instance"
+
+	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+
 	//"iaas-api-server/proto/nasdisk"
 	"iaas-api-server/proto/natgateway"
 	"iaas-api-server/proto/oss"
@@ -22,6 +25,7 @@ import (
 	"iaas-api-server/service/floatipsvc"
 	"iaas-api-server/service/imagesvc"
 	"iaas-api-server/service/instancesvc"
+
 	//"iaas-api-server/service/nasdisksvc"
 	"iaas-api-server/service/natgatewaysvc"
 	"iaas-api-server/service/osssvc"
@@ -30,12 +34,9 @@ import (
 	"iaas-api-server/service/securitygroupsvc"
 	"iaas-api-server/service/tenantsvc"
 	"iaas-api-server/service/vpcsvc"
-
 	"net"
+	_ "net/http/pprof"
 	"os"
-
-	log "github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 )
 
 func init() {
@@ -43,10 +44,7 @@ func init() {
 	log.SetOutput(os.Stdout)               //设置日志的输出为标准输出
 	log.SetLevel(log.InfoLevel)            //设置日志的显示级别，这一级别以及更高级别的日志信息将会输出
 	log.SetReportCaller(true)              //设置日志的调用文件，调用函数
-	log.SetFormatter(&log.JSONFormatter{})         //设置日志格式
-	if !common.InitDb() {                  //数据库初始化
-		panic("数据库初始化失败")
-
+	log.SetFormatter(&log.JSONFormatter{}) //设置日志格式
 }
 
 var (
@@ -61,6 +59,9 @@ func main() {
 		panic("no config file.. usage:\n\t./serv.exe -conf xx.conf")
 	}
 
+	//go func() {
+	//	log.Println(http.ListenAndServe(":10001", nil))
+	//}()
 	rpcServer := grpc.NewServer()
 	//注册服务
 	clouddisk.RegisterCloudDiskServiceServer(rpcServer, &clouddisksvc.CloudDiskService{})
