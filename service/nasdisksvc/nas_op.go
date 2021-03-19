@@ -1,6 +1,10 @@
 package nasdisksvc
 
 import (
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	log "github.com/sirupsen/logrus"
 	"iaas-api-server/common"
 	"iaas-api-server/common/config"
@@ -39,6 +43,34 @@ type CreateNasDiskOp struct {
 	BasicOp
 	Req *nasdisk.CreateNasDiskReq
 	Res *nasdisk.CreateNasDiskRes
+	Ops *gophercloud.ProviderClient
+}
+
+func (o *CreateNasDiskOp) getGatewayByNetworkID(networkID string) (string, error) {
+	client, err := openstack.NewNetworkV2(o.Ops, gophercloud.EndpointOpts{})
+	if err != nil {
+		return "", common.ENETWORKCLIENT
+	}
+	networkInfo, err := networks.Get(client, networkID).Extract()
+	if err != nil {
+		return "", common.ENETWORKSGET
+	}
+	routerName := "router-" + networkInfo.Name
+	routerPages, err := routers.List(client, routers.ListOpts{Name: routerName}).AllPages()
+	if err != nil {
+		return "", common.EROUTERLIST
+	}
+	routersInfo, err := routers.ExtractRouters(routerPages)
+	if err != nil {
+		return "", common.EROUTEREXTRACT
+	}
+	if 1 != len(routersInfo) {
+		return "", common.EROUTERINFO
+	}
+	if 0 >= len(routersInfo[0].GatewayInfo.ExternalFixedIPs) {
+		return "", common.EROUTERINFO
+	}
+	return routersInfo[0].GatewayInfo.ExternalFixedIPs[0].IPAddress, common.EOK
 }
 
 func (o *CreateNasDiskOp) Predo() error {
@@ -47,6 +79,11 @@ func (o *CreateNasDiskOp) Predo() error {
 	}
 	o.Res = new(nasdisk.CreateNasDiskRes)
 	o.conf = GetNasDiskConfigure()
+	ops, err := common.GetOpenstackClient(o.Req.Apikey, o.Req.TenantId, o.Req.PlatformUserid)
+	if err != nil {
+		return common.EGETOPSTACKCLIENT
+	}
+	o.Ops = ops
 
 	return common.EOK
 }
@@ -100,6 +137,7 @@ func (o *CreateNasDiskOp) Do() error {
 		CreatedTime:  common.Now()})
 	var daemons []common.GaneshaDaemonInfo
 	var dispatchDaemons []string
+	var gatewayIP string
 	// 1. 获取目录，判断目录是否存在
 	dirs, err := cephMgr.ListCephFSDirectory(cephfsid, rootPath)
 	for _, dir := range dirs {
@@ -107,6 +145,10 @@ func (o *CreateNasDiskOp) Do() error {
 			err = common.ENASPATHEXISTED
 			goto CREATE_FAILED
 		}
+	}
+	gatewayIP, err = o.getGatewayByNetworkID(o.Req.NetworkId)
+	if err != common.EOK {
+		goto CREATE_FAILED
 	}
 	// 2. 创建Cephfs目录
 	err = cephMgr.MakeCephFSDirectory(cephfsid, cephfsPath)
@@ -130,7 +172,7 @@ func (o *CreateNasDiskOp) Do() error {
 			dispatchDaemons = append(dispatchDaemons, daemon.DaemonID)
 		}
 	}
-	err = cephMgr.CreateGaneshaExport(clusterID, userID, cephfsPath, pseudoPath, dispatchDaemons)
+	err = cephMgr.CreateGaneshaExport(clusterID, userID, cephfsPath, pseudoPath, dispatchDaemons, gatewayIP)
 	if err != common.EOK {
 		goto CREATE_FAILED
 	}
@@ -200,13 +242,12 @@ func (o *DeleteNasDiskOp) Do() error {
 			break
 		}
 	}
-	if exportID == "" {
-		return common.ECEPHMGRNOGANESHAEXPORT
-	}
-	// 2. 删除Ganesha Export
-	err = cephMgr.DeleteGaneshaExport(clusterID, exportID)
-	if err != common.EOK {
-		log.Error("[NASDISK] DeleteNasDiskOp delete ganesha export failure.")
+	if exportID != "" {
+		// 2. 删除Ganesha Export
+		err = cephMgr.DeleteGaneshaExport(clusterID, exportID)
+		if err != common.EOK {
+			log.Error("[NASDISK] DeleteNasDiskOp delete ganesha export failure.")
+		}
 	}
 	// 3. 删除Cephfs 目录
 	err = cephMgr.RemoveCephFSDirectory(cephfsid, cephfsPath)

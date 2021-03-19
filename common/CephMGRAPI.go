@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"os"
 	"strconv"
 )
 
@@ -139,10 +140,22 @@ func (o *CephMgrRESTRemoveCephFSDirectory) DoRequest(endpoint string, token stri
 	body, err := CreateJsonByTmpl(bodyTmpl, mp)
 
 	res, err := CallRestAPI(endpoint+url, "POST", header, body)
-	if err != nil || res.StatusCode != 200 {
-		return ECEPHMGRRMDIR
+	if err == nil {
+		switch res.StatusCode {
+		case 200:
+			return EOK
+		case 500:
+			suberr := os.RemoveAll(o.Path)
+			if suberr != nil {
+				log.Error("os remove failed, ", suberr, o.Path)
+				return ECEPHMGRRMDIR
+			}
+			return EOK
+		default:
+			return ECEPHMGRRMDIR
+		}
 	}
-	return EOK
+	return ECEPHMGRRMDIR
 }
 
 func (o *CephMgrRestful) RemoveCephFSDirectory(cephfsID string, path string) error {
@@ -344,27 +357,41 @@ type FSALCephfs struct {
 	UserID        string  `json:"user_id"`
 }
 
-type CreateGaneshaSExportWithCephFS struct {
-	AccessType    string     `json:"access_type"`
-	Clients       []string   `json:"clients"`
-	ClusterID     string     `json:"cluster_id"`
-	Daemons       []string   `json:"daemons"`
-	FSAL          FSALCephfs `json:"fsal"`
-	Path          string     `json:"path"`
-	Protocols     []int      `json:"protocols"`
-	Pseudo        string     `json:"pseudo"`
-	ReloadDaemons bool       `json:"reload_daemons"`
-	SecurityLable bool       `json:"security_label"`
-	Squash        string     `json:"squash"`
-	Tag           *string    `json:"tag"`
-	Transports    []string   `json:"transports"`
+type GaneshaClients struct {
+	AccessType string   `json:"access_type"`
+	Addresses  []string `json:"addresses"`
+	Squash     string   `json:"squash"`
 }
 
-func (o *CephMgrRestful) CreateGaneshaExport(clusterID string, userID string, path string, pseudo string, dispatch []string) error {
+type CreateGaneshaSExportWithCephFS struct {
+	AccessType    string           `json:"access_type"`
+	Clients       []GaneshaClients `json:"clients"`
+	ClusterID     string           `json:"cluster_id"`
+	Daemons       []string         `json:"daemons"`
+	FSAL          FSALCephfs       `json:"fsal"`
+	Path          string           `json:"path"`
+	Protocols     []int            `json:"protocols"`
+	Pseudo        string           `json:"pseudo"`
+	ReloadDaemons bool             `json:"reload_daemons"`
+	SecurityLable bool             `json:"security_label"`
+	Squash        string           `json:"squash"`
+	Tag           *string          `json:"tag"`
+	Transports    []string         `json:"transports"`
+}
+
+func (o *CephMgrRestful) CreateGaneshaExport(clusterID string, userID string, path string, pseudo string, dispatch []string, ip string) error {
+	addresses := []string{}
+	addresses = append(addresses, ip)
 	exportConfig := &CreateGaneshaSExportWithCephFS{
-		AccessType: "RW",
-		Clients:    []string{},
-		ClusterID:  clusterID,
+		AccessType: "NONE",
+		Clients: []GaneshaClients{
+			GaneshaClients{
+				AccessType: "RW",
+				Squash:     "no_root_squash",
+				Addresses:  addresses,
+			},
+		},
+		ClusterID: clusterID,
 		FSAL: FSALCephfs{
 			FSName: "cephfs",
 			Name:   "CEPH",
