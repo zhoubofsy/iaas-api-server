@@ -42,10 +42,11 @@ func InitDb() bool {
 func QueryOssConfigByRegion(region string) (OssConfig, error) {
 	var ossConfig OssConfig
 
-	if !InitDb(){
+	if !InitDb() {
 		return ossConfig, ETTGETMYSQLCLIENT
 	}
 
+	defer db.Close()
 	sqlStr := "SELECT id, region, access_key, secret_key, endpoint, description FROM oss_config where region = ? "
 	err := db.QueryRow(sqlStr, region).Scan(&ossConfig.ID, &ossConfig.Region, &ossConfig.AccessKey, &ossConfig.SecretKey, &ossConfig.Endpoint, &ossConfig.Description)
 	if err != nil {
@@ -54,7 +55,6 @@ func QueryOssConfigByRegion(region string) (OssConfig, error) {
 		}).Error("query sssConfig by region failed.")
 		return ossConfig, EOSSGETCONFIG
 	}
-	defer db.Close()
 	return ossConfig, nil
 }
 
@@ -62,10 +62,11 @@ func QueryTenantInfoByTenantIdAndApikey(tenantID string, apiKey string) (TenantI
 	sqlStr := "SELECT tenant_id,tenant_name,openstack_domainname,openstack_domainid,openstack_projectname,openstack_projectid,openstack_username,openstack_userid,openstack_password,openstack_rolename,openstack_roleid,apikey FROM tenant_info where tenant_id =? and apikey=?"
 	var tenantInfo TenantInfo
 
-	if !InitDb(){
+	if !InitDb() {
 		return tenantInfo, ETTGETMYSQLCLIENT
 	}
 
+	defer db.Close()
 	err := db.QueryRow(sqlStr, tenantID, apiKey).Scan(&tenantInfo.TenantID, &tenantInfo.TenantName, &tenantInfo.OpenstackDomainname, &tenantInfo.OpenstackDomainid, &tenantInfo.OpenstackProjectname, &tenantInfo.OpenstackProjectid, &tenantInfo.OpenstackUsername, &tenantInfo.OpenstackUserid, &tenantInfo.OpenstackPassword, &tenantInfo.OpenstackRolename, &tenantInfo.OpenstackRoleid, &tenantInfo.ApiKey)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -73,7 +74,6 @@ func QueryTenantInfoByTenantIdAndApikey(tenantID string, apiKey string) (TenantI
 		}).Error("query tenantInfo By tenantName failed.")
 		return tenantInfo, ETTGETTENANT
 	}
-	defer db.Close()
 	return tenantInfo, nil
 }
 
@@ -81,10 +81,11 @@ func QueryTenantInfoByTenantName(name string) (string, error) {
 	sqlStr := "SELECT tenant_id,tenant_name FROM tenant_info where tenant_name =?"
 	var tenantInfo TenantInfo
 
-	if !InitDb(){
+	if !InitDb() {
 		return "", ETTGETMYSQLCLIENT
 	}
 
+	defer db.Close()
 	err := db.QueryRow(sqlStr, name).Scan(&tenantInfo.TenantID, &tenantInfo.TenantName)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -92,14 +93,14 @@ func QueryTenantInfoByTenantName(name string) (string, error) {
 		}).Error("query tenantInfo by tenantName failed.")
 		return "", ETTGETTENANT
 	}
-	defer db.Close()
 	return tenantInfo.TenantID, nil
 }
 
 func GetTenantIDSeq() (string, error) {
-	if !InitDb(){
-		return "",ETTGETMYSQLCLIENT
+	if !InitDb() {
+		return "", ETTGETMYSQLCLIENT
 	}
+	defer db.Close()
 	sqlStr := "select nextval(seq)"
 	var nextVal int32
 	err := db.QueryRow(sqlStr).Scan(&nextVal)
@@ -110,16 +111,16 @@ func GetTenantIDSeq() (string, error) {
 		return "", ETTGETENATSEQ
 	}
 	valStr := fmt.Sprintf("%010d", nextVal)
-	defer db.Close()
 	return valStr, nil
 }
 
 func CreateTenantInfo(tenantInfo TenantInfo) (createTenantFlag bool) {
 	log.Info("dbutils insert tenantInfo :", tenantInfo)
 	log.Info("create tenant flag :", createTenantFlag)
-	if !InitDb(){
+	if !InitDb() {
 		return false
 	}
+	defer db.Close()
 	sqlStr := "insert into tenant_info(tenant_id, tenant_name, openstack_domainname, openstack_domainid, openstack_projectname, openstack_projectid, openstack_username, openstack_userid, openstack_password, openstack_rolename, openstack_roleid, apikey) values (?,?,?,?,?,?,?,?,?,?,?,?)"
 	ret, err := db.Exec(sqlStr, tenantInfo.TenantID, tenantInfo.TenantName, tenantInfo.OpenstackDomainname, tenantInfo.OpenstackDomainid, tenantInfo.OpenstackProjectname, tenantInfo.OpenstackProjectid, tenantInfo.OpenstackUsername, tenantInfo.OpenstackUserid, tenantInfo.OpenstackPassword, tenantInfo.OpenstackRolename, tenantInfo.OpenstackRoleid, tenantInfo.ApiKey)
 	if err != nil {
@@ -132,14 +133,14 @@ func CreateTenantInfo(tenantInfo TenantInfo) (createTenantFlag bool) {
 	if n > 0 {
 		return true
 	}
-	defer db.Close()
 	return false
 }
 
-func DeleteTenantInfo(tenantID string) (error){
-	if !InitDb(){
+func DeleteTenantInfo(tenantID string) error {
+	if !InitDb() {
 		return ETTGETMYSQLCLIENT
 	}
+	defer db.Close()
 	sqlStr := "delete from tenant_info where tenant_id = ?"
 	_, err := db.Exec(sqlStr, tenantID)
 	if err != nil {
@@ -148,7 +149,6 @@ func DeleteTenantInfo(tenantID string) (error){
 		}).Error("delete tenantInfo failed.")
 		return ETTDELETETENANT
 	}
-	defer db.Close()
 	return nil
 }
 
@@ -187,10 +187,15 @@ func (ossConfig OssConfig) IsEmpty() bool {
 
 // QuerySharedSubnetUsedIP for shared subnet
 func QuerySharedSubnetUsedIP(subnetID string) (SharedSubnetIPPool, error) {
-	sqlStr := "SELECT used_ip FROM shared_subnet_ip_pool WHERE subnet_id =?"
 	var ip = SharedSubnetIPPool{
 		SubnetID: subnetID,
 	}
+	if !InitDb() {
+		return ip, EPLGETIPPOOL
+	}
+
+	defer db.Close()
+	sqlStr := "SELECT used_ip FROM shared_subnet_ip_pool WHERE subnet_id =?"
 	err := db.QueryRow(sqlStr, subnetID).Scan(&ip.UsedIP)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -208,6 +213,10 @@ func QuerySharedSubnetUsedIP(subnetID string) (SharedSubnetIPPool, error) {
 
 // CreateSharedSubnetUsedIP for shared subnet
 func CreateSharedSubnetUsedIP(subnetID string, usedIP string) bool {
+	if !InitDb() {
+		return false
+	}
+	defer db.Close()
 	sqlStr := "INSERT INTO shared_subnet_ip_pool(subnet_id, used_ip) VALUES (?,?)"
 	ret, err := db.Exec(sqlStr, subnetID, usedIP)
 	if err != nil {
@@ -228,6 +237,10 @@ func CreateSharedSubnetUsedIP(subnetID string, usedIP string) bool {
 
 // UpdateSharedSubnetUsedIP for shared subnet
 func UpdateSharedSubnetUsedIP(subnetID string, usedIP string) bool {
+	if !InitDb() {
+		return false
+	}
+	defer db.Close()
 	sqlStr := "UPDATE shared_subnet_ip_pool SET used_ip = ? WHERE subnet_id = ?"
 	ret, err := db.Exec(sqlStr, usedIP, subnetID)
 	if err != nil {

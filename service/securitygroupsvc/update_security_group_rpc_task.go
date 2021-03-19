@@ -84,7 +84,8 @@ func (rpctask *UpdateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 	}
 
 	// TODO 下面的操作理论上得考虑事务性，
-	//TODO 添加新的安全组规则
+	// 添加新的安全组规则
+	var existRule map[int]bool // 记录一下已经存在的而且又在本地更新的安全组规则
 	for _, rule := range rpctask.Req.GetSecurityGroupRuleSets() {
 		ropts := sr.CreateOpts{
 			SecGroupID:     rpctask.Req.GetSecurityGroupId(),
@@ -94,7 +95,7 @@ func (rpctask *UpdateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 			Description:    rule.GetRuleDesc(),
 			Protocol:       sr.RuleProtocol(rule.GetProtocol()),
 			RemoteIPPrefix: rule.GetRemoteIpPrefix(),
-			EtherType:      sr.EtherType4,
+			EtherType:      sr.EtherType4, // 兼容 ipv6 需要修改此处
 		}
 
 		_, err := sr.Create(client, ropts).Extract()
@@ -103,12 +104,26 @@ func (rpctask *UpdateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 				"err":  err,
 				"rule": rule.String(),
 			}).Warn("update security, insert new rules failed")
+
+			for idx, oldrule := range oldgroup.Rules {
+				if oldrule.Direction == rule.Direction &&
+					oldrule.PortRangeMin == int(rule.PortRangeMin) &&
+					oldrule.PortRangeMax == int(rule.PortRangeMax) &&
+					oldrule.Protocol == rule.Protocol &&
+					oldrule.RemoteIPPrefix == rule.RemoteIpPrefix { // 后续兼容ipv6，此处需要添加ipv6的判断
+					existRule[idx] = true
+					break
+				}
+			}
 			continue
 		}
 	}
 
-	//TODO 删除旧的安全组规则
-	for _, rule := range oldgroup.Rules {
+	// 删除旧的安全组规则
+	for idx, rule := range oldgroup.Rules {
+		if existRule[idx] { // 该旧规则在本次的更新又存在了，
+			continue
+		}
 		err := sr.Delete(client, rule.ID).ExtractErr()
 		if nil != err {
 			log.WithFields(log.Fields{
@@ -118,7 +133,7 @@ func (rpctask *UpdateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 		}
 	}
 
-	//TODO 更新安全组
+	// 更新安全组
 	uopts := sg.UpdateOpts{
 		Name: rpctask.Req.GetSecurityGroupName(),
 	}
@@ -135,7 +150,6 @@ func (rpctask *UpdateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 		}
 	}
 
-	//TODO 时间返回后续修改为接口需要的格式
 	rpctask.Res.SecurityGroup = &securitygroup.SecurityGroupRes_SecurityGroup{
 		SecurityGroupId:   newgroup.ID,
 		SecurityGroupName: newgroup.Name,
