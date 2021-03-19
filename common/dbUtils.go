@@ -41,8 +41,12 @@ func InitDb() bool {
 }
 
 func QueryNasDiskConfigByRegion(region string) (NasDiskConfig, error) {
-	sqlStr := "SELECT id, region, mgrendpoint, mgruser, mgrpasswd, cephfsid, cephfsroot, ganeshaendpoint, ganeshaclusterid, ganeshaexportuser FROM nas_disk_config where region = ? "
 	var config NasDiskConfig
+	if !InitDb() {
+		return config, ETTGETMYSQLCLIENT
+	}
+	defer db.Close()
+	sqlStr := "SELECT id, region, mgrendpoint, mgruser, mgrpasswd, cephfsid, cephfsroot, ganeshaendpoint, ganeshaclusterid, ganeshaexportuser FROM nas_disk_config where region = ? "
 	err := db.QueryRow(sqlStr, region).Scan(
 		&config.ID,
 		&config.Region,
