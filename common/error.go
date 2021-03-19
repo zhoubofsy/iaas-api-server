@@ -109,7 +109,7 @@ var (
 	ETTTRANS          = &Error{Code: 91003, Msg: "seq transform failed"}
 	EOSSGETCONFIG     = &Error{Code: 91005, Msg: "get oss config failed"}
 
-	ETTEDITDOMAIN = &Error{Code: 95001, Msg: "openstack uodate domain failed"}
+	ETTEDITDOMAIN = &Error{Code: 94001, Msg: "openstack update domain failed"}
 
 	ETTCREATEDOMAIN       = &Error{Code: 95001, Msg: "openstack create domain failed"}
 	ETTCREATEPROJECT      = &Error{Code: 95002, Msg: "openstack create project failed"}

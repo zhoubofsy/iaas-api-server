@@ -43,6 +43,7 @@ func init() {
 	log.SetOutput(os.Stdout)               //设置日志的输出为标准输出
 	log.SetLevel(log.InfoLevel)            //设置日志的显示级别，这一级别以及更高级别的日志信息将会输出
 	log.SetReportCaller(true)              //设置日志的调用文件，调用函数
+	log.SetFormatter(&log.JSONFormatter{}) //设置日志格式
 	if !common.InitDb() {                  //数据库初始化
 		panic("数据库初始化失败")
 	}

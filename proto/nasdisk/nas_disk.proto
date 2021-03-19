@@ -25,13 +25,8 @@ message CreateNasDiskRes {
     int32  share_size_in_g = 5;
     string region = 6;
     string  network_id = 7;
-    string share_status = 8;
-    string share_progress = 9;
-    string share_server_id = 10;
-    string share_server_host = 11;
-    string share_network_id = 12;
-    string created_time = 13;
-    string updated_time = 14;
+    string mount_point = 8;
+    string created_time = 9;
   }
   NasDisk nas_disk = 3;
 }
@@ -53,6 +48,7 @@ message DeleteNasDiskReq {
   string tenant_id = 2;
   string platform_userid = 3;
   string share_id = 4;
+  string region = 5;
 }
 
 message DeleteNasDiskRes {
@@ -67,6 +63,7 @@ message GetMountClientsReq {
   string tenant_id = 2;
   string platform_userid = 3;
   string share_id = 4;
+  string region = 5;
 }
 
 message GetMountClientsRes {
