@@ -54,6 +54,7 @@ func QueryOssConfigByRegion(region string) (OssConfig, error) {
 		}).Error("query sssConfig by region failed.")
 		return ossConfig, EOSSGETCONFIG
 	}
+	defer db.Close()
 	return ossConfig, nil
 }
 
