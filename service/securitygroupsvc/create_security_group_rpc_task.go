@@ -83,7 +83,6 @@ func (rpctask *CreateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 		}
 	}
 
-	//TODO 根据返回要求的时间格式返回
 	rpctask.Res.SecurityGroup = &securitygroup.SecurityGroupRes_SecurityGroup{
 		SecurityGroupId:    group.ID,
 		SecurityGroupName:  group.Name,
@@ -93,21 +92,17 @@ func (rpctask *CreateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 		SecurityGroupRules: make([]*securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule, 0),
 	}
 
+	// 创建安全组会默认创建2条安全组规则，删除这默认的2条规则
 	if len(group.Rules) > 0 {
-		cur := common.Now()
 		for _, rule := range group.Rules {
-			rpctask.Res.SecurityGroup.SecurityGroupRules = append(rpctask.Res.SecurityGroup.SecurityGroupRules, &securitygroup.SecurityGroupRes_SecurityGroup_SecurityGroupRule{
-				RuleId:          rule.ID,
-				RuleDesc:        rule.Description,
-				Direction:       rule.Direction,
-				Protocol:        rule.Protocol,
-				PortRangeMin:    int32(rule.PortRangeMin),
-				PortRangeMax:    int32(rule.PortRangeMax),
-				RemoteIpPrefix:  rule.RemoteIPPrefix,
-				SecurityGroupId: rule.SecGroupID,
-				UpdatedTime:     cur,
-				CreatedTime:     cur,
-			})
+			err = sr.Delete(client, rule.ID).ExtractErr()
+			if nil != err {
+				log.WithFields(log.Fields{
+					"err":             err,
+					"ruleID":          rule.ID,
+					"securitygroupid": group.ID,
+				}).Error("remove default security group rules error")
+			}
 		}
 	}
 
