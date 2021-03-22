@@ -74,7 +74,7 @@ func (o *CreateNasDiskOp) getGatewayByNetworkID(networkID string) (string, error
 }
 
 func (o *CreateNasDiskOp) Predo() error {
-	if o.Req == nil {
+	if o.Req == nil || o.Req.ShareSizeInG <= 0 || o.Req.Region == "" || o.Req.PlatformUserid == "" || o.Req.ShareName == "" || o.Req.TenantId == "" || o.Req.Apikey == "" {
 		return common.EPARAM
 	}
 	o.Res = new(nasdisk.CreateNasDiskRes)
@@ -110,15 +110,7 @@ func (o *CreateNasDiskOp) Do() error {
 	cephfsPath := rootPath + "/" + dirPath
 	pseudoPath := "/" + dirPath
 
-	maxSizeInG, err := config.GetInt("nasdisk_share_quota_max_size_in_g")
-	if nil != err {
-		log.Error("[NASDISK] CreateNasDiskOp get nasdisk_max_size_in_g failure")
-		return common.ENASGETCONFIG
-	}
-	if o.Req.ShareSizeInG > 0 {
-		maxSizeInG = int(o.Req.ShareSizeInG)
-	}
-	maxSize := maxSizeInG * 1024 * 1024 * 1024
+	maxSize := int(o.Req.ShareSizeInG) * 1024 * 1024 * 1024
 	maxFiles, err := config.GetInt("nasdisk_share_quota_max_files")
 	if nil != err {
 		log.Error("[NASDISK] CreateNasDiskOp get nasdisk_share_quota_max_files failure")
@@ -130,7 +122,7 @@ func (o *CreateNasDiskOp) Do() error {
 		ShareName:    o.Req.ShareName,
 		ShareDesc:    o.Req.ShareDesc,
 		ShareProto:   o.Req.ShareProto,
-		ShareSizeInG: int32(maxSizeInG),
+		ShareSizeInG: o.Req.ShareSizeInG,
 		Region:       o.Req.Region,
 		NetworkId:    o.Req.NetworkId,
 		MountPoint:   nfsDomain + ":" + pseudoPath,
@@ -143,42 +135,43 @@ func (o *CreateNasDiskOp) Do() error {
 	for _, dir := range dirs {
 		if dir == dirPath {
 			err = common.ENASPATHEXISTED
-			goto CREATE_FAILED
+			return err
 		}
 	}
 	gatewayIP, err = o.getGatewayByNetworkID(o.Req.NetworkId)
 	if err != common.EOK {
-		goto CREATE_FAILED
+		return err
 	}
 	// 2. 创建Cephfs目录
 	err = cephMgr.MakeCephFSDirectory(cephfsid, cephfsPath)
 	if err != common.EOK {
-		goto CREATE_FAILED
+		return err
 	}
 	CEPHFS_DIR_FLAG = true
-	// 3. 设置Cephfs目录的配额
-	err = cephMgr.SetCephFSQuotas(cephfsid, cephfsPath, maxSize, maxFiles)
-	if err != common.EOK {
-		goto CREATE_FAILED
-	}
-	// 4. 创建NFS-Ganesha Export
-	daemons, err = cephMgr.ListGaneshaDaemons()
-	if err != common.EOK {
-		goto CREATE_FAILED
-	}
-	for idx, daemon := range daemons {
-		log.Debug("daemon[", strconv.Itoa(idx), "]: ", daemon.DaemonID)
-		if daemon.Status == 1 {
-			dispatchDaemons = append(dispatchDaemons, daemon.DaemonID)
+	for true {
+		// 3. 设置Cephfs目录的配额
+		err = cephMgr.SetCephFSQuotas(cephfsid, cephfsPath, maxSize, maxFiles)
+		if err != common.EOK {
+			break
 		}
+		// 4. 创建NFS-Ganesha Export
+		daemons, err = cephMgr.ListGaneshaDaemons()
+		if err != common.EOK {
+			break
+		}
+		for idx, daemon := range daemons {
+			log.Debug("daemon[", strconv.Itoa(idx), "]: ", daemon.DaemonID)
+			if daemon.Status == 1 {
+				dispatchDaemons = append(dispatchDaemons, daemon.DaemonID)
+			}
+		}
+		err = cephMgr.CreateGaneshaExport(clusterID, userID, cephfsPath, pseudoPath, dispatchDaemons, gatewayIP)
+		if err != common.EOK {
+			break
+		}
+		return common.EOK
 	}
-	err = cephMgr.CreateGaneshaExport(clusterID, userID, cephfsPath, pseudoPath, dispatchDaemons, gatewayIP)
-	if err != common.EOK {
-		goto CREATE_FAILED
-	}
-	return common.EOK
 
-CREATE_FAILED:
 	if CEPHFS_DIR_FLAG {
 		// 删除 Cephfs 目录
 		cephMgr.RemoveCephFSDirectory(cephfsid, cephfsPath)
@@ -202,7 +195,7 @@ type DeleteNasDiskOp struct {
 }
 
 func (o *DeleteNasDiskOp) Predo() error {
-	if o.Req == nil {
+	if o.Req == nil || o.Req.ShareId == "" || o.Req.PlatformUserid == "" || o.Req.TenantId == "" || o.Req.Apikey == "" {
 		return common.EPARAM
 	}
 	o.Res = new(nasdisk.DeleteNasDiskRes)
