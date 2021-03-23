@@ -84,6 +84,7 @@ func (o *GetImageInfoOp) Do() error {
 	o.Res.Image.ImageContainerformat=imageResult.ContainerFormat
 	o.Res.Image.ImageDiskformat=imageResult.DiskFormat
 	o.Res.Image.ImageName=imageResult.Name
+	o.Res.Image.ImageSizeInG=float32(imageResult.SizeBytes)/(1024*1024*1024)
 	o.Res.Code=common.EOK.Code
 	o.Res.Msg=common.EOK.Msg
 	return common.EOK
@@ -152,7 +153,7 @@ func (o *ListImageInfoOp) Do() error {
 func getResult(lastAllImages []images.Image, o *ListImageInfoOp) {
 	o.Res.Images = []*image.Image{}
 	for _, img := range lastAllImages {
-		imageRes := &image.Image{ImageId: img.ID, ImageName: img.Name, ImageDiskformat: img.DiskFormat, ImageContainerformat: img.ContainerFormat}
+		imageRes := &image.Image{ImageId: img.ID, ImageName: img.Name, ImageDiskformat: img.DiskFormat, ImageContainerformat: img.ContainerFormat,ImageSizeInG:float32(img.SizeBytes)/(1024*1024*1024)}
 		o.Res.Images = append(o.Res.Images, imageRes)
 	}
 	o.Res.Code = common.EOK.Code

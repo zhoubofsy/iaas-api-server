@@ -114,6 +114,19 @@ func (rpctask *SetRoutesRPCTask) execute(providers *gophercloud.ProviderClient) 
 		}
 	}
 
+	//增加原生接口调用后返回错误信息的处理
+	resErr, err := result.Get("NeutronError").Get("message").String()
+	if nil == err {
+		log.WithFields(log.Fields{
+			"err": "routers set failed",
+			"req": rpctask.Req.String(),
+		}).Error("message: ", resErr)
+		return &common.Error{
+			Code: common.EROUTERSET.Code,
+			Msg:  resErr,
+		}
+	}
+
 	resId, err := result.Get("router").Get("id").String()
 	if nil != err {
 		log.WithFields(log.Fields{
