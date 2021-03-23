@@ -85,8 +85,7 @@ func (rpctask *UpdateSecurityGroupRPCTask) execute(providers *gophercloud.Provid
 
 	// TODO 下面的操作理论上得考虑事务性，
 	// 添加新的安全组规则
-	var existRule map[int]bool // 记录一下已经存在的而且又在本地更新的安全组规则
-	existRule = make(map[int]bool)
+	existRule := make(map[int]bool) // 记录一下已经存在的而且又在本地更新的安全组规则
 	for _, rule := range rpctask.Req.GetSecurityGroupRuleSets() {
 		ropts := sr.CreateOpts{
 			SecGroupID:     rpctask.Req.GetSecurityGroupId(),
