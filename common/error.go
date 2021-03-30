@@ -98,16 +98,29 @@ var (
 	EOSSNOPAGE          = &Error{Code: 51009, Msg: "OSS no page failed"}
 	EOSSLISTBUCKETS     = &Error{Code: 51010, Msg: "OSS list buckets failed"}
 
+	ENASPATHEXISTED = &Error{Code: 52001, Msg: "Path of NAS is existed"}
+
 	ETTGETTENANT        = &Error{Code: 90000, Msg: "tenant get failed"}
 	ETTCREATETENANT     = &Error{Code: 90001, Msg: "tenant create failed"}
 	ETTDELETETENANT     = &Error{Code: 90002, Msg: "tenant delete failed"}
 	ETTISEMPTYTENANT    = &Error{Code: 90003, Msg: "tenant info is empty"}
 	ETTGETTENANTNOTNULL = &Error{Code: 90004, Msg: "tenant info exits"}
 
-	ETTGETMYSQLCLIENT = &Error{Code: 91001, Msg: "mysql client get failed"}
-	ETTGETENATSEQ     = &Error{Code: 91002, Msg: "mysql get seq failed"}
-	ETTTRANS          = &Error{Code: 91003, Msg: "seq transform failed"}
-	EOSSGETCONFIG     = &Error{Code: 91005, Msg: "get oss config failed"}
+	ETTGETMYSQLCLIENT           = &Error{Code: 91001, Msg: "mysql client get failed"}
+	ETTGETENATSEQ               = &Error{Code: 91002, Msg: "mysql get seq failed"}
+	ETTTRANS                    = &Error{Code: 91003, Msg: "seq transform failed"}
+	EOSSGETCONFIG               = &Error{Code: 91005, Msg: "get oss config failed"}
+	EPARSE                      = &Error{Code: 91006, Msg: "parse failed"}
+	ECEPHMGRMKDIR               = &Error{Code: 91007, Msg: "Ceph MGR API make directory failed"}
+	ECEPHMGRRMDIR               = &Error{Code: 91008, Msg: "Ceph MGR API remove directory failed"}
+	ENASGETCONFIG               = &Error{Code: 91009, Msg: "get NAS config failed"}
+	EIO                         = &Error{Code: 91010, Msg: "I/O failed"}
+	ECEPHMGRSETQUOTA            = &Error{Code: 91011, Msg: "Ceph MGR API set quotas failed"}
+	ECEPHMGRLISTGANESHADAEMON   = &Error{Code: 91012, Msg: "Ceph MGR API list ganesha daemons"}
+	ECEPHMGRLISTGANESHAEXPORT   = &Error{Code: 91012, Msg: "Ceph MGR API list ganesha exports"}
+	ECEPHMGRCREATEGANESHAEXPORT = &Error{Code: 91013, Msg: "Ceph MGR API create ganesha exports"}
+	ECEPHMGRDELETEGANESHAEXPORT = &Error{Code: 91014, Msg: "Ceph MGR API delete ganesha exports"}
+	ENASDISKGETCONFIG           = &Error{Code: 91015, Msg: "get nas disk config failed"}
 
 	ETTEDITDOMAIN = &Error{Code: 94001, Msg: "openstack update domain failed"}
 

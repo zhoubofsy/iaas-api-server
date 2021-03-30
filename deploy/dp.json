@@ -166,6 +166,12 @@
                 "memory": "6.4G"
               }
             },
+            "volumeMounts": [
+              {
+                "mountPath": "/home/app/log",
+                "name": "log"
+              }
+            ],
             "securityContext": {}
           }
         ],
@@ -173,7 +179,15 @@
         "restartPolicy": "Always",
         "schedulerName": "default-scheduler",
         "securityContext": {},
-        "terminationGracePeriodSeconds": 30
+        "terminationGracePeriodSeconds": 30,
+        "volumes": [
+          {
+            "hostPath": {
+              "path": "/var/lib/docker/log/iaas/iaas-api-server"
+            },
+            "name": "log"
+          }
+        ]
       }
     }
   }

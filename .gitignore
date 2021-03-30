@@ -6,3 +6,4 @@ config.conf
 client/mongia.sh
 client/main
 env
+*.swp

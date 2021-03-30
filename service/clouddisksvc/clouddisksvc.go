@@ -1,8 +1,6 @@
 package clouddisksvc
 
 import (
-	"time"
-
 	//"fmt"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
@@ -72,39 +70,6 @@ func (clouddisktask *CloudDiskService) CreateCloudDisk(ctx context.Context, req 
 		UpdatedTime:  ret.UpdatedAt.Local().Format("2006-01-02 15:04:05"),
 	}
 
-	timer := common.NewTimer()
-	for ;; {
-
-		ret, err := cinder.Get(client, res.CloudDisk.VolumeId).Extract()
-
-		if nil != err {
-			res.Code = common.ESHOWVOLUME.Code
-			res.Msg = common.ESHOWVOLUME.Msg
-			log.Error(res.Msg, ": ", err)
-			return res, err
-		}
-
-		if ret.Status == "error" {
-			res.Code = common.ENEWVOLUME.Code
-			res.Msg = common.ENEWVOLUME.Msg
-			res.CloudDisk.VolumeStatus = ret.Status
-
-			break
-		}
-
-		if ret.Status == "available" {
-			res.CloudDisk.VolumeStatus = ret.Status
-			break
-		}
-
-		time.Sleep(time.Duration(1) * time.Second)
-
-		if timer.Elapse().Seconds() > 15 {
-			res.Code = common.ENEWVOLUME.Code
-			res.Msg = common.ENEWVOLUME.Msg
-			return res, common.ENINSCREATEVOLUME
-		}
-	}
 	log.Info("rpc CreateVolume: ", res, ". time elapse: ", timer_elasp.Elapse())
 	return res, err
 }
@@ -314,6 +279,15 @@ func (clouddisktask *CloudDiskService) OperateCloudDisk(ctx context.Context, req
 		return res, err
 	}
 
+	cinder_client, err := openstack.NewBlockStorageV3(provider, gophercloud.EndpointOpts{})
+
+	if nil != err {
+		res.Code = common.ENEWBLOCK.Code
+		res.Msg = common.ENEWBLOCK.Msg
+		log.Error(res.Msg, ": ", err)
+		return res, err
+	}
+
 	if req.OpsType == "Attach" {
 		ret, err := nova_op.Create(client, req.InstanceId, nova_op.CreateOpts{
 			//Device:   req.,
@@ -327,12 +301,22 @@ func (clouddisktask *CloudDiskService) OperateCloudDisk(ctx context.Context, req
 			return res, err
 		}
 
+		cinder_ret, err := cinder.Get(cinder_client, req.VolumeId).Extract()
+
+		if nil != err {
+			res.Code = common.ESHOWVOLUME.Code
+			res.Msg = common.ESHOWVOLUME.Msg
+			log.Error(res.Msg, ": ", err)
+			return res, err
+		}
+
 		res.CloudDisk = &clouddisk.CloudDiskRes_CloudDisk{
 			VolumeId:             ret.VolumeID,
 			AttachInstanceId:     ret.ServerID,
 			AttachInstanceDevice: ret.Device,
 			AttachedTime:         common.Now(),
 			UpdatedTime:          common.Now(),
+			VolumeStatus:         cinder_ret.Status,
 		}
 
 	} else {
@@ -345,10 +329,20 @@ func (clouddisktask *CloudDiskService) OperateCloudDisk(ctx context.Context, req
 			return res, err
 		}
 
+		cinder_ret, err := cinder.Get(cinder_client, req.VolumeId).Extract()
+
+		if nil != err {
+			res.Code = common.ESHOWVOLUME.Code
+			res.Msg = common.ESHOWVOLUME.Msg
+			log.Error(res.Msg, ": ", err)
+			return res, err
+		}
+
 		res.CloudDisk = &clouddisk.CloudDiskRes_CloudDisk{
 			VolumeId:         req.VolumeId,
 			UpdatedTime:      common.Now(),
 			AttachInstanceId: req.InstanceId,
+			VolumeStatus:     cinder_ret.Status,
 		}
 
 	}

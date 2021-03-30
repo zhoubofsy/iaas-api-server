@@ -39,6 +39,34 @@ func InitDb() bool {
 	}
 	return true
 }
+
+func QueryNasDiskConfigByRegion(region string) (NasDiskConfig, error) {
+	var config NasDiskConfig
+	if !InitDb() {
+		return config, ETTGETMYSQLCLIENT
+	}
+	defer db.Close()
+	sqlStr := "SELECT id, region, mgrendpoint, mgruser, mgrpasswd, cephfsid, cephfsroot, ganeshaendpoint, ganeshaclusterid, ganeshaexportuser FROM nas_disk_config where region = ? "
+	err := db.QueryRow(sqlStr, region).Scan(
+		&config.ID,
+		&config.Region,
+		&config.MGREndpoint,
+		&config.MGRUser,
+		&config.MGRPasswd,
+		&config.CephfsID,
+		&config.CephfsRoot,
+		&config.GaneshaEndpoint,
+		&config.GaneshaClusterID,
+		&config.GaneshaExportUser)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err": err,
+		}).Error("query NasDiskConfig by region failed.")
+		return config, ENASDISKGETCONFIG
+	}
+	return config, nil
+}
+
 func QueryOssConfigByRegion(region string) (OssConfig, error) {
 	var ossConfig OssConfig
 
@@ -183,6 +211,23 @@ type OssConfig struct {
 
 func (ossConfig OssConfig) IsEmpty() bool {
 	return reflect.DeepEqual(ossConfig, OssConfig{})
+}
+
+type NasDiskConfig struct {
+	ID                string
+	Region            string
+	MGREndpoint       string
+	MGRUser           string
+	MGRPasswd         string
+	CephfsID          string
+	CephfsRoot        string
+	GaneshaEndpoint   string
+	GaneshaClusterID  string
+	GaneshaExportUser string
+}
+
+func (nasdiskConfig NasDiskConfig) IsEmpty() bool {
+	return reflect.DeepEqual(nasdiskConfig, NasDiskConfig{})
 }
 
 // QuerySharedSubnetUsedIP for shared subnet
