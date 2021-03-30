@@ -3,6 +3,7 @@ package nasdisksvc
 import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
+	netfloatip "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	log "github.com/sirupsen/logrus"
@@ -46,31 +47,46 @@ type CreateNasDiskOp struct {
 	Ops *gophercloud.ProviderClient
 }
 
-func (o *CreateNasDiskOp) getGatewayByNetworkID(networkID string) (string, error) {
+func (o *CreateNasDiskOp) getAllowIPByNetworkID(networkID string) ([]string, error) {
+	allowIP := []string{}
 	client, err := openstack.NewNetworkV2(o.Ops, gophercloud.EndpointOpts{})
 	if err != nil {
-		return "", common.ENETWORKCLIENT
+		return allowIP, common.ENETWORKCLIENT
 	}
 	networkInfo, err := networks.Get(client, networkID).Extract()
 	if err != nil {
-		return "", common.ENETWORKSGET
+		return allowIP, common.ENETWORKSGET
 	}
 	routerName := "router-" + networkInfo.Name
 	routerPages, err := routers.List(client, routers.ListOpts{Name: routerName}).AllPages()
 	if err != nil {
-		return "", common.EROUTERLIST
+		return allowIP, common.EROUTERLIST
 	}
 	routersInfo, err := routers.ExtractRouters(routerPages)
 	if err != nil {
-		return "", common.EROUTEREXTRACT
+		return allowIP, common.EROUTEREXTRACT
 	}
 	if 1 != len(routersInfo) {
-		return "", common.EROUTERINFO
+		return allowIP, common.EROUTERINFO
 	}
 	if 0 >= len(routersInfo[0].GatewayInfo.ExternalFixedIPs) {
-		return "", common.EROUTERINFO
+		return allowIP, common.EROUTERINFO
 	}
-	return routersInfo[0].GatewayInfo.ExternalFixedIPs[0].IPAddress, common.EOK
+	pages, err := netfloatip.List(client, netfloatip.ListOpts{
+		RouterID: routersInfo[0].ID,
+	}).AllPages()
+	if nil != err {
+		return allowIP, common.EFLOATINGIPLIST
+	}
+	allFloatingIps, err := netfloatip.ExtractFloatingIPs(pages)
+	if nil != err {
+		return allowIP, common.EFLOATINGIPEXTRACT
+	}
+	allowIP = append(allowIP, routersInfo[0].GatewayInfo.ExternalFixedIPs[0].IPAddress)
+	for _, ip := range allFloatingIps {
+		allowIP = append(allowIP, ip.FloatingIP)
+	}
+	return allowIP, common.EOK
 }
 
 func (o *CreateNasDiskOp) Predo() error {
@@ -129,7 +145,6 @@ func (o *CreateNasDiskOp) Do() error {
 		CreatedTime:  common.Now()})
 	var daemons []common.GaneshaDaemonInfo
 	var dispatchDaemons []string
-	var gatewayIP string
 	// 1. 获取目录，判断目录是否存在
 	dirs, err := cephMgr.ListCephFSDirectory(cephfsid, rootPath)
 	for _, dir := range dirs {
@@ -138,7 +153,7 @@ func (o *CreateNasDiskOp) Do() error {
 			return err
 		}
 	}
-	gatewayIP, err = o.getGatewayByNetworkID(o.Req.NetworkId)
+	ips, err := o.getAllowIPByNetworkID(o.Req.NetworkId)
 	if err != common.EOK {
 		return err
 	}
@@ -165,7 +180,7 @@ func (o *CreateNasDiskOp) Do() error {
 				dispatchDaemons = append(dispatchDaemons, daemon.DaemonID)
 			}
 		}
-		err = cephMgr.CreateGaneshaExport(clusterID, userID, cephfsPath, pseudoPath, dispatchDaemons, gatewayIP)
+		err = cephMgr.CreateGaneshaExport(clusterID, userID, cephfsPath, pseudoPath, dispatchDaemons, ips)
 		if err != common.EOK {
 			break
 		}
@@ -257,4 +272,116 @@ func (o *DeleteNasDiskOp) Done(e error) (interface{}, error) {
 		return o.Res, nil
 	}
 	return o.Res, e
+}
+
+func getGatewayByNetworkID(apiKey string, tenantID string, platformUserid string, networkID string) (string, error) {
+	ops, err := common.GetOpenstackClient(apiKey, tenantID, platformUserid)
+	if err != nil {
+		return "", common.EGETOPSTACKCLIENT
+	}
+	client, err := openstack.NewNetworkV2(ops, gophercloud.EndpointOpts{})
+	if err != nil {
+		return "", common.ENETWORKCLIENT
+	}
+	networkInfo, err := networks.Get(client, networkID).Extract()
+	if err != nil {
+		return "", common.ENETWORKSGET
+	}
+	routerName := "router-" + networkInfo.Name
+	routerPages, err := routers.List(client, routers.ListOpts{Name: routerName}).AllPages()
+	if err != nil {
+		return "", common.EROUTERLIST
+	}
+	routersInfo, err := routers.ExtractRouters(routerPages)
+	if err != nil {
+		return "", common.EROUTEREXTRACT
+	}
+	if 1 != len(routersInfo) {
+		return "", common.EROUTERINFO
+	}
+	if 0 >= len(routersInfo[0].GatewayInfo.ExternalFixedIPs) {
+		return "", common.EROUTERINFO
+	}
+	return routersInfo[0].GatewayInfo.ExternalFixedIPs[0].IPAddress, common.EOK
+}
+
+func UpdateGaneshaExportClient(addition bool, apiKey string, tenantID string, platformUserid string, networkID string, floatingIP string, selectRegion ...string) error {
+	// 0. prepare CephMgrRest
+	conf := GetNasDiskConfigure()
+	region := "RegionOne"
+	if len(selectRegion) == 1 {
+		region = selectRegion[0]
+	}
+	endpoint, user, passwd, err := conf.GetMGRConfig(region)
+	if err != nil {
+		return common.ENASGETCONFIG
+	}
+	_, clusterID, _, err := conf.GetGaneshaConfig(region)
+	if err != nil {
+		return common.ENASGETCONFIG
+	}
+
+	// 1. get gateway by networkID
+	gateway, err := getGatewayByNetworkID(apiKey, tenantID, platformUserid, networkID)
+	if err != common.EOK {
+		return err
+	}
+	cephMgr := common.CephMgrRestful{Endpoint: endpoint, User: user, Passwd: passwd}
+	// 2. list all exports
+	exports, err := cephMgr.ListGaneshaExport()
+	if err != common.EOK {
+		return err
+	}
+
+	for ie, export := range exports {
+		for ic, clt := range export.Clients {
+			found := false
+			iExport := 0
+			iClient := 0
+			// 3. find export by networkID
+			for _, addr := range clt.Addresses {
+				if addr == gateway {
+					found = true
+					iExport = ie
+					iClient = ic
+					break
+				}
+			}
+			if found {
+				existed := false
+				idx := 0
+				fip := floatingIP
+				for i, addr := range exports[iExport].Clients[iClient].Addresses {
+					if addr == fip {
+						existed = true
+						idx = i
+						break
+					}
+				}
+				update := false
+				if addition {
+					if !existed {
+						// append floating ip
+						exports[iExport].Clients[iClient].Addresses = append(exports[iExport].Clients[iClient].Addresses, fip)
+						update = true
+					}
+				} else {
+					if existed {
+						// delete floating ip
+						exports[iExport].Clients[iClient].Addresses = append(exports[iExport].Clients[iClient].Addresses[:idx], exports[iExport].Clients[iClient].Addresses[idx+1:]...)
+						update = true
+					}
+				}
+				// 4. update export
+				if update {
+					err := cephMgr.PutGaneshaExport(clusterID, strconv.Itoa(exports[iExport].ExportID), exports[iExport])
+					if err != common.EOK {
+						return err
+					}
+				}
+			}
+		}
+	}
+
+	return common.EOK
 }

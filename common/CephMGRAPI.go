@@ -283,17 +283,34 @@ func (o *CephMgrRestful) ListGaneshaDaemons() ([]GaneshaDaemonInfo, error) {
 	return req.Daemons, err
 }
 
+type FSALCephfs struct {
+	FSName        string  `json:"fs_name"`
+	Name          string  `json:"name"`
+	SecLabelXattr *string `json:"sec_label_xattr"`
+	UserID        string  `json:"user_id"`
+}
+
+type GaneshaClients struct {
+	AccessType string   `json:"access_type"`
+	Addresses  []string `json:"addresses"`
+	Squash     string   `json:"squash"`
+}
+
 type GaneshaExportInfo struct {
-	ExportID      int      `json:"export_id"`
-	Path          string   `json:"path"`
-	ClusterID     string   `json:"cluster_id"`
-	Daemons       []string `json:"daemons"`
-	Pseudo        string   `json:"pseudo"`
-	AccessType    string   `json:"access_type"`
-	Squash        string   `json:"squash"`
-	SecurityLabel bool     `json:"security_label"`
-	Protocols     []int    `json:"protocols"`
-	Transports    []string `json:"transports"`
+	AccessType    string           `json:"access_type"`
+	Clients       []GaneshaClients `json:"clients"`
+	ClusterID     string           `json:"cluster_id",omitempty`
+	Daemons       []string         `json:"daemons"`
+	Path          string           `json:"path"`
+	Protocols     []int            `json:"protocols"`
+	Pseudo        string           `json:"pseudo"`
+	ReloadDaemons bool             `json:"reload_daemons",omitempty`
+	SecurityLabel bool             `json:"security_label"`
+	Squash        string           `json:"squash"`
+	Transports    []string         `json:"transports"`
+	ExportID      int              `json:"export_id",omitempty`
+	Tag           *string          `json:"tag"`
+	FSAL          FSALCephfs       `json:"fsal"`
 }
 
 type CephMgrRESTListGaneshaExport struct {
@@ -350,19 +367,6 @@ func (o *CephMgrRESTCreateGaneshaExport) DoRequest(endpoint string, token string
 	return EOK
 }
 
-type FSALCephfs struct {
-	FSName        string  `json:"fs_name"`
-	Name          string  `json:"name"`
-	SecLabelXattr *string `json:"sec_label_xattr"`
-	UserID        string  `json:"user_id"`
-}
-
-type GaneshaClients struct {
-	AccessType string   `json:"access_type"`
-	Addresses  []string `json:"addresses"`
-	Squash     string   `json:"squash"`
-}
-
 type CreateGaneshaSExportWithCephFS struct {
 	AccessType    string           `json:"access_type"`
 	Clients       []GaneshaClients `json:"clients"`
@@ -379,16 +383,14 @@ type CreateGaneshaSExportWithCephFS struct {
 	Transports    []string         `json:"transports"`
 }
 
-func (o *CephMgrRestful) CreateGaneshaExport(clusterID string, userID string, path string, pseudo string, dispatch []string, ip string) error {
-	addresses := []string{}
-	addresses = append(addresses, ip)
+func (o *CephMgrRestful) CreateGaneshaExport(clusterID string, userID string, path string, pseudo string, dispatch []string, ips []string) error {
 	exportConfig := &CreateGaneshaSExportWithCephFS{
 		AccessType: "NONE",
 		Clients: []GaneshaClients{
 			GaneshaClients{
 				AccessType: "RW",
 				Squash:     "no_root_squash",
-				Addresses:  addresses,
+				Addresses:  ips,
 			},
 		},
 		ClusterID: clusterID,
@@ -411,6 +413,41 @@ func (o *CephMgrRestful) CreateGaneshaExport(clusterID string, userID string, pa
 		return EPARSE
 	}
 	req := &CephMgrRESTCreateGaneshaExport{Url: "/api/nfs-ganesha/export", Body: body}
+	return o.Process(req)
+}
+
+type CephMgrRESTPutGaneshaExport struct {
+	Url  string // input
+	Body []byte // input
+}
+
+func (o *CephMgrRESTPutGaneshaExport) DoRequest(endpoint string, token string) error {
+	url := o.Url
+	header := make(map[string]string)
+	header["Content-Type"] = "application/json"
+	header["Authorization"] = "Bearer " + token
+
+	res, err := CallRestAPI(endpoint+url, "PUT", header, o.Body)
+	if err == nil {
+		switch res.StatusCode {
+		case 200:
+			return EOK
+		case 204:
+			return EOK
+		default:
+			return ECEPHMGRPUTGANESHAEXPORT
+		}
+	}
+	return ECEPHMGRPUTGANESHAEXPORT
+}
+
+func (o *CephMgrRestful) PutGaneshaExport(clusterID string, exportID string, context GaneshaExportInfo) error {
+	context.ReloadDaemons = true
+	body, err := json.Marshal(context)
+	if err != nil {
+		return EPARSE
+	}
+	req := &CephMgrRESTPutGaneshaExport{Url: "/api/nfs-ganesha/export/" + clusterID + "/" + exportID, Body: body}
 	return o.Process(req)
 }
 
