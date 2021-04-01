@@ -11,6 +11,7 @@ import (
 	"golang.org/x/net/context"
 	"iaas-api-server/common"
 	"iaas-api-server/proto/floatip"
+	nd "iaas-api-server/service/nasdisksvc"
 )
 
 type BindFloatIpToInstanceTask struct {
@@ -130,6 +131,10 @@ func (rpctask *BindFloatIpToInstanceTask) execute(providers *gophercloud.Provide
 			Msg:  err.Error(),
 		}
 	}
+
+	//通知Ganesha更新Export,增加浮动ip
+	go nd.UpdateGaneshaExportClient(true, rpctask.Req.Apikey, rpctask.Req.TenantId,
+		rpctask.Req.PlatformUserid, router.GatewayInfo.ExternalFixedIPs[0].IPAddress, floatingIp.FloatingIP)
 
 	rpctask.Res.FloatIp = floatingIp.FloatingIP
 	rpctask.Res.BindedTime = floatingIp.CreatedAt.Local().Format("2006-01-02 15:04:05")
