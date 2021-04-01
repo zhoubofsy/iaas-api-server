@@ -6,10 +6,12 @@ import (
 	"github.com/gophercloud/gophercloud/openstack"
 	computefloatip "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/floatingips"
 	netfloatip "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"iaas-api-server/common"
 	"iaas-api-server/proto/floatip"
+	nd "iaas-api-server/service/nasdisksvc"
 )
 
 type RevokeFloatIpFromInstanceTask struct {
@@ -68,7 +70,46 @@ func (rpctask *RevokeFloatIpFromInstanceTask) execute(providers *gophercloud.Pro
 		}
 	}
 
-	//取消floating ip关联并释放floating ip
+	pages, err := netfloatip.List(netcl, netfloatip.ListOpts{
+		FloatingIP: rpctask.Req.FloatIp,
+	}).AllPages()
+	if nil != err {
+		log.WithFields(log.Fields{
+			"err": err,
+			"req": rpctask.Req.String(),
+		}).Error("floating ip list failed")
+		return &common.Error{
+			Code: common.EFLOATINGIPLIST.Code,
+			Msg:  err.Error(),
+		}
+	}
+
+	allFloatingIps, err := netfloatip.ExtractFloatingIPs(pages)
+	if nil != err {
+		log.WithFields(log.Fields{
+			"err": err,
+			"req": rpctask.Req.String(),
+		}).Error("floating ip extract pages failed")
+		return &common.Error{
+			Code: common.EFLOATINGIPEXTRACT.Code,
+			Msg:  err.Error(),
+		}
+	}
+
+	//通过浮动ip查找router信息
+	router, err := routers.Get(netcl, allFloatingIps[0].RouterID).Extract()
+	if nil != err {
+		log.WithFields(log.Fields{
+			"err": err,
+			"req": rpctask.Req.String(),
+		}).Error("routers get failed")
+		return &common.Error{
+			Code: common.EROUTERGET.Code,
+			Msg:  err.Error(),
+		}
+	}
+
+	//取消浮动ip关联
 	err = computefloatip.DisassociateInstance(comcl, rpctask.Req.InstanceId, computefloatip.DisassociateOpts{
 		FloatingIP: rpctask.Req.FloatIp,
 	}).ExtractErr()
@@ -83,48 +124,7 @@ func (rpctask *RevokeFloatIpFromInstanceTask) execute(providers *gophercloud.Pro
 		}
 	}
 
-	pages, err := netfloatip.List(netcl, netfloatip.ListOpts{
-		FloatingIP: rpctask.Req.FloatIp,
-	}).AllPages()
-	if nil != err {
-		log.WithFields(log.Fields{
-			"err": err,
-			"req": rpctask.Req.String(),
-		}).Error("floating ip list failed")
-
-		rollBackErr := computefloatip.AssociateInstance(comcl, rpctask.Req.InstanceId, computefloatip.AssociateOpts{
-			FloatingIP: rpctask.Req.FloatIp,
-		}).ExtractErr()
-		if nil != rollBackErr {
-			log.Info("rollback AssociateInstance err: ", rollBackErr)
-		}
-
-		return &common.Error{
-			Code: common.EFLOATINGIPLIST.Code,
-			Msg:  err.Error(),
-		}
-	}
-
-	allFloatingIps, err := netfloatip.ExtractFloatingIPs(pages)
-	if nil != err {
-		log.WithFields(log.Fields{
-			"err": err,
-			"req": rpctask.Req.String(),
-		}).Error("floating ip extract pages failed")
-
-		rollBackErr := computefloatip.AssociateInstance(comcl, rpctask.Req.InstanceId, computefloatip.AssociateOpts{
-			FloatingIP: rpctask.Req.FloatIp,
-		}).ExtractErr()
-		if nil != rollBackErr {
-			log.Info("rollback AssociateInstance err: ", rollBackErr)
-		}
-
-		return &common.Error{
-			Code: common.EFLOATINGIPEXTRACT.Code,
-			Msg:  err.Error(),
-		}
-	}
-
+	//删除浮动ip
 	floatingIpID := allFloatingIps[0].ID
 	err = netfloatip.Delete(netcl, floatingIpID).ExtractErr()
 	if nil != err {
@@ -133,9 +133,8 @@ func (rpctask *RevokeFloatIpFromInstanceTask) execute(providers *gophercloud.Pro
 			"req": rpctask.Req.String(),
 		}).Error("floating ip delete failed")
 
-		rollBackErr := computefloatip.AssociateInstance(comcl, rpctask.Req.InstanceId, computefloatip.AssociateOpts{
-			FloatingIP: rpctask.Req.FloatIp,
-		}).ExtractErr()
+		rollBackErr := computefloatip.AssociateInstance(comcl, rpctask.Req.InstanceId,
+			computefloatip.AssociateOpts{FloatingIP: rpctask.Req.FloatIp}).ExtractErr()
 		if nil != rollBackErr {
 			log.Info("rollback AssociateInstance err: ", rollBackErr)
 		}
@@ -146,8 +145,11 @@ func (rpctask *RevokeFloatIpFromInstanceTask) execute(providers *gophercloud.Pro
 		}
 	}
 	revokeTime := common.Now()
-
 	rpctask.Res.RevokedTime = revokeTime
+
+	//通知Ganesha更新Export,删除浮动ip
+	go nd.UpdateGaneshaExportClient(false, rpctask.Req.Apikey, rpctask.Req.TenantId,
+		rpctask.Req.PlatformUserid, router.GatewayInfo.ExternalFixedIPs[0].IPAddress, rpctask.Req.FloatIp)
 
 	return common.EOK
 }
