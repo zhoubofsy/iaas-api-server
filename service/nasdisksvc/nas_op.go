@@ -274,33 +274,7 @@ func (o *DeleteNasDiskOp) Done(e error) (interface{}, error) {
 	return o.Res, e
 }
 
-func getGatewayByFloatingIP(apiKey string, tenantID string, platformUserid string, floatingIP string) (string, error) {
-	ops, err := common.GetOpenstackClient(apiKey, tenantID, platformUserid)
-	if err != nil {
-		return "", common.EGETOPSTACKCLIENT
-	}
-	client, err := openstack.NewNetworkV2(ops, gophercloud.EndpointOpts{})
-	if err != nil {
-		return "", common.ENETWORKCLIENT
-	}
-	pages, err := netfloatip.List(client, netfloatip.ListOpts{
-		FloatingIP: floatingIP,
-	}).AllPages()
-	if nil != err {
-		return "", common.EFLOATINGIPLIST
-	}
-	allFloatingIps, err := netfloatip.ExtractFloatingIPs(pages)
-	if nil != err {
-		return "", common.EFLOATINGIPEXTRACT
-	}
-	router, err := routers.Get(client, allFloatingIps[0].RouterID).Extract()
-	if nil != err {
-		return "", common.EROUTERGET
-	}
-	return router.GatewayInfo.ExternalFixedIPs[0].IPAddress, common.EOK
-}
-
-func UpdateGaneshaExportClient(addition bool, apiKey string, tenantID string, platformUserid string, floatingIP string, selectRegion ...string) error {
+func UpdateGaneshaExportClient(addition bool, apiKey string, tenantID string, platformUserid string, gatewayIP string, floatingIP string, selectRegion ...string) error {
 	// 0. prepare CephMgrRest
 	conf := GetNasDiskConfigure()
 	region := "RegionOne"
@@ -317,10 +291,7 @@ func UpdateGaneshaExportClient(addition bool, apiKey string, tenantID string, pl
 	}
 
 	// 1. get gateway by floatingIP
-	gateway, err := getGatewayByFloatingIP(apiKey, tenantID, platformUserid, floatingIP)
-	if err != common.EOK {
-		return err
-	}
+	gateway := gatewayIP
 	cephMgr := common.CephMgrRestful{Endpoint: endpoint, User: user, Passwd: passwd}
 	// 2. list all exports
 	exports, err := cephMgr.ListGaneshaExport()
@@ -371,7 +342,7 @@ func UpdateGaneshaExportClient(addition bool, apiKey string, tenantID string, pl
 				if update {
 					err := cephMgr.PutGaneshaExport(clusterID, strconv.Itoa(exports[iExport].ExportID), exports[iExport])
 					if err != common.EOK {
-						return err
+						log.Error("[NASDISK] UpdateGaneshaExportClient Failure. ClusterID: " + clusterID + " ExportID: " + strconv.Itoa(exports[iExport].ExportID))
 					}
 				}
 			}
