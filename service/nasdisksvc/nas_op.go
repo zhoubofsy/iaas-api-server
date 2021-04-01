@@ -274,38 +274,7 @@ func (o *DeleteNasDiskOp) Done(e error) (interface{}, error) {
 	return o.Res, e
 }
 
-func getGatewayByNetworkID(apiKey string, tenantID string, platformUserid string, networkID string) (string, error) {
-	ops, err := common.GetOpenstackClient(apiKey, tenantID, platformUserid)
-	if err != nil {
-		return "", common.EGETOPSTACKCLIENT
-	}
-	client, err := openstack.NewNetworkV2(ops, gophercloud.EndpointOpts{})
-	if err != nil {
-		return "", common.ENETWORKCLIENT
-	}
-	networkInfo, err := networks.Get(client, networkID).Extract()
-	if err != nil {
-		return "", common.ENETWORKSGET
-	}
-	routerName := "router-" + networkInfo.Name
-	routerPages, err := routers.List(client, routers.ListOpts{Name: routerName}).AllPages()
-	if err != nil {
-		return "", common.EROUTERLIST
-	}
-	routersInfo, err := routers.ExtractRouters(routerPages)
-	if err != nil {
-		return "", common.EROUTEREXTRACT
-	}
-	if 1 != len(routersInfo) {
-		return "", common.EROUTERINFO
-	}
-	if 0 >= len(routersInfo[0].GatewayInfo.ExternalFixedIPs) {
-		return "", common.EROUTERINFO
-	}
-	return routersInfo[0].GatewayInfo.ExternalFixedIPs[0].IPAddress, common.EOK
-}
-
-func UpdateGaneshaExportClient(addition bool, apiKey string, tenantID string, platformUserid string, networkID string, floatingIP string, selectRegion ...string) error {
+func UpdateGaneshaExportClient(addition bool, apiKey string, tenantID string, platformUserid string, gatewayIP string, floatingIP string, selectRegion ...string) {
 	// 0. prepare CephMgrRest
 	conf := GetNasDiskConfigure()
 	region := "RegionOne"
@@ -314,23 +283,23 @@ func UpdateGaneshaExportClient(addition bool, apiKey string, tenantID string, pl
 	}
 	endpoint, user, passwd, err := conf.GetMGRConfig(region)
 	if err != nil {
-		return common.ENASGETCONFIG
+		log.Error("[NASDISK] UpdateGaneshaExportClient GetMGRConfig Failure.")
+		return
 	}
 	_, clusterID, _, err := conf.GetGaneshaConfig(region)
 	if err != nil {
-		return common.ENASGETCONFIG
+		log.Error("[NASDISK] UpdateGaneshaExportClient GetGaneshaConfig Failure.")
+		return
 	}
 
-	// 1. get gateway by networkID
-	gateway, err := getGatewayByNetworkID(apiKey, tenantID, platformUserid, networkID)
-	if err != common.EOK {
-		return err
-	}
+	// 1. get gateway by floatingIP
+	gateway := gatewayIP
 	cephMgr := common.CephMgrRestful{Endpoint: endpoint, User: user, Passwd: passwd}
 	// 2. list all exports
 	exports, err := cephMgr.ListGaneshaExport()
 	if err != common.EOK {
-		return err
+		log.Error("[NASDISK] UpdateGaneshaExportClient ListGaneshaExports Failure.")
+		return
 	}
 
 	for ie, export := range exports {
@@ -376,12 +345,10 @@ func UpdateGaneshaExportClient(addition bool, apiKey string, tenantID string, pl
 				if update {
 					err := cephMgr.PutGaneshaExport(clusterID, strconv.Itoa(exports[iExport].ExportID), exports[iExport])
 					if err != common.EOK {
-						return err
+						log.Error("[NASDISK] UpdateGaneshaExportClient Failure. ClusterID: " + clusterID + " ExportID: " + strconv.Itoa(exports[iExport].ExportID))
 					}
 				}
 			}
 		}
 	}
-
-	return common.EOK
 }
