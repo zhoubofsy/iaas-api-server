@@ -274,7 +274,7 @@ func (o *DeleteNasDiskOp) Done(e error) (interface{}, error) {
 	return o.Res, e
 }
 
-func UpdateGaneshaExportClient(addition bool, apiKey string, tenantID string, platformUserid string, gatewayIP string, floatingIP string, selectRegion ...string) error {
+func UpdateGaneshaExportClient(addition bool, apiKey string, tenantID string, platformUserid string, gatewayIP string, floatingIP string, selectRegion ...string) {
 	// 0. prepare CephMgrRest
 	conf := GetNasDiskConfigure()
 	region := "RegionOne"
@@ -283,11 +283,13 @@ func UpdateGaneshaExportClient(addition bool, apiKey string, tenantID string, pl
 	}
 	endpoint, user, passwd, err := conf.GetMGRConfig(region)
 	if err != nil {
-		return common.ENASGETCONFIG
+		log.Error("[NASDISK] UpdateGaneshaExportClient GetMGRConfig Failure.")
+		return
 	}
 	_, clusterID, _, err := conf.GetGaneshaConfig(region)
 	if err != nil {
-		return common.ENASGETCONFIG
+		log.Error("[NASDISK] UpdateGaneshaExportClient GetGaneshaConfig Failure.")
+		return
 	}
 
 	// 1. get gateway by floatingIP
@@ -296,7 +298,8 @@ func UpdateGaneshaExportClient(addition bool, apiKey string, tenantID string, pl
 	// 2. list all exports
 	exports, err := cephMgr.ListGaneshaExport()
 	if err != common.EOK {
-		return err
+		log.Error("[NASDISK] UpdateGaneshaExportClient ListGaneshaExports Failure.")
+		return
 	}
 
 	for ie, export := range exports {
@@ -348,6 +351,4 @@ func UpdateGaneshaExportClient(addition bool, apiKey string, tenantID string, pl
 			}
 		}
 	}
-
-	return common.EOK
 }
