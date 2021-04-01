@@ -121,6 +121,7 @@ var (
 	ECEPHMGRCREATEGANESHAEXPORT = &Error{Code: 91013, Msg: "Ceph MGR API create ganesha exports"}
 	ECEPHMGRDELETEGANESHAEXPORT = &Error{Code: 91014, Msg: "Ceph MGR API delete ganesha exports"}
 	ENASDISKGETCONFIG           = &Error{Code: 91015, Msg: "get nas disk config failed"}
+	ECEPHMGRPUTGANESHAEXPORT    = &Error{Code: 91016, Msg: "Ceph MGR API put ganesha exports"}
 
 	ETTEDITDOMAIN = &Error{Code: 94001, Msg: "openstack update domain failed"}
 
