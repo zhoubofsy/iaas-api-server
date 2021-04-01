@@ -274,7 +274,7 @@ func (o *DeleteNasDiskOp) Done(e error) (interface{}, error) {
 	return o.Res, e
 }
 
-func getGatewayByNetworkID(apiKey string, tenantID string, platformUserid string, networkID string) (string, error) {
+func getGatewayByFloatingIP(apiKey string, tenantID string, platformUserid string, floatingIP string) (string, error) {
 	ops, err := common.GetOpenstackClient(apiKey, tenantID, platformUserid)
 	if err != nil {
 		return "", common.EGETOPSTACKCLIENT
@@ -283,29 +283,24 @@ func getGatewayByNetworkID(apiKey string, tenantID string, platformUserid string
 	if err != nil {
 		return "", common.ENETWORKCLIENT
 	}
-	networkInfo, err := networks.Get(client, networkID).Extract()
-	if err != nil {
-		return "", common.ENETWORKSGET
+	pages, err := netfloatip.List(client, netfloatip.ListOpts{
+		FloatingIP: floatingIP,
+	}).AllPages()
+	if nil != err {
+		return "", common.EFLOATINGIPLIST
 	}
-	routerName := "router-" + networkInfo.Name
-	routerPages, err := routers.List(client, routers.ListOpts{Name: routerName}).AllPages()
-	if err != nil {
-		return "", common.EROUTERLIST
+	allFloatingIps, err := netfloatip.ExtractFloatingIPs(pages)
+	if nil != err {
+		return "", common.EFLOATINGIPEXTRACT
 	}
-	routersInfo, err := routers.ExtractRouters(routerPages)
-	if err != nil {
-		return "", common.EROUTEREXTRACT
+	router, err := routers.Get(client, allFloatingIps[0].RouterID).Extract()
+	if nil != err {
+		return "", common.EROUTERGET
 	}
-	if 1 != len(routersInfo) {
-		return "", common.EROUTERINFO
-	}
-	if 0 >= len(routersInfo[0].GatewayInfo.ExternalFixedIPs) {
-		return "", common.EROUTERINFO
-	}
-	return routersInfo[0].GatewayInfo.ExternalFixedIPs[0].IPAddress, common.EOK
+	return router.GatewayInfo.ExternalFixedIPs[0].IPAddress, common.EOK
 }
 
-func UpdateGaneshaExportClient(addition bool, apiKey string, tenantID string, platformUserid string, networkID string, floatingIP string, selectRegion ...string) error {
+func UpdateGaneshaExportClient(addition bool, apiKey string, tenantID string, platformUserid string, floatingIP string, selectRegion ...string) error {
 	// 0. prepare CephMgrRest
 	conf := GetNasDiskConfigure()
 	region := "RegionOne"
@@ -321,8 +316,8 @@ func UpdateGaneshaExportClient(addition bool, apiKey string, tenantID string, pl
 		return common.ENASGETCONFIG
 	}
 
-	// 1. get gateway by networkID
-	gateway, err := getGatewayByNetworkID(apiKey, tenantID, platformUserid, networkID)
+	// 1. get gateway by floatingIP
+	gateway, err := getGatewayByFloatingIP(apiKey, tenantID, platformUserid, floatingIP)
 	if err != common.EOK {
 		return err
 	}
