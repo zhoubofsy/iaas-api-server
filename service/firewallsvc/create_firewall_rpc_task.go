@@ -73,6 +73,11 @@ func (rpctask *CreateFirewallRPCTask) execute(providers *gophercloud.ProviderCli
 		return common.ENETWORKCLIENT
 	}
 
+	rpctask.Res.Firewall = &firewall.Firewall{
+		FirewallIngressPolicy: &firewall.FirewallPolicy{},
+		FirewallEgressPolicy:  &firewall.FirewallPolicy{},
+	}
+
 	var wg sync.WaitGroup
 	// 异步创建rule
 	inRuleIDs := make([]string, len(rpctask.Req.GetFirewallIngressPolicyRules()))
@@ -81,7 +86,6 @@ func (rpctask *CreateFirewallRPCTask) execute(providers *gophercloud.ProviderCli
 		for idx, rule := range rpctask.Req.GetFirewallIngressPolicyRules() {
 			wg.Add(1)
 			go create_firewall_rules(client, rule, idx, inRuleIDs, &wg)
-
 		}
 	}
 	{
