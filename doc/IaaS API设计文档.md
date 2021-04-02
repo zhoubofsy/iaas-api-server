@@ -1412,6 +1412,188 @@ message RevokeFloatIpFromInstanceRes {
 3. 根据传入的floating ip，调用networking/v2/extensions/layer3/floatingips.list方法，找到该floating ip对象的id
 4. 根据上一步获得的floatingip的id，调用networking/v2/extensions/layer3/floatingips.Delete方法，删除该floating ip
 
+## 防火墙相关服务
+
+```
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package firewall;
+
+//防火墙相关服务
+service FirewallService{
+  //创建防火墙
+  rpc CreateFirewall(CreateFirewallReq) returns(FirewallRes);
+  //获取防火墙信息
+  rpc GetFirewall(GetFirewallReq) returns(FirewallRes);
+  //修改防火墙
+  rpc UpdateFirewall(UpdateFirewallReq) returns(FirewallRes);
+  //删除防火墙
+  rpc DeleteFirewall(DeleteFirewallReq) returns(DeleteFirewallRes);
+  //防火墙绑定/取消绑定路由器接口
+  rpc OperateFirewall(OperateFirewallReq) returns(OperateFirewallRes);
+}
+
+message FirewallRule {
+  string filewall_rule_id = 1;
+  string filewall_rule_name = 2;
+  string filewall_rule_desc = 3;
+  string filewall_rule_action = 4;
+  string filewall_rule_protocol = 5;
+  string filewall_rule_src_ip = 6;
+  string filewall_rule_src_port = 7;
+  string filewall_rule_dst_ip = 8;
+  string filewall_rule_dst_port = 9;
+}
+
+message FirewallPolicy {
+  string filewall_policy_id = 1;
+  string filewall_policy_name = 2;
+  string filewall_policy_desc = 3;
+  repeated FirewallRule filewall_policy_rules = 4;
+}
+
+//openstack原生支持一个firewall group对多个ports，本api限定firewall group与port为一一对应关系，故firewall_attached_port_id为单个string
+message Firewall {
+  string firewall_id = 1;
+  string firewall_name = 2;
+  string firewall_desc = 3;
+  string firewall_attached_port_id = 4;
+  string firewall_status = 5;
+  FirewallPolicy firewall_ingress_policy = 6;
+  FirewallPolicy firewall_egress_policy = 7;
+  string created_time = 8;
+  string updated_time = 9;
+}
+
+message FirewallRes {
+  int32 code = 1;
+  string msg = 2;
+  Firewall firewall = 3;
+}
+
+message FirewallRuleSet {
+  string filewall_rule_desc = 1;
+  string filewall_rule_action = 2;
+  string filewall_rule_protocol = 3;
+  string filewall_rule_src_ip = 4;
+  string filewall_rule_src_port = 5;
+  string filewall_rule_dst_ip = 6;
+  string filewall_rule_dst_port = 7;
+}
+message CreateFirewallReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string filewall_name = 4;
+  string firewall_desc = 5;
+  repeated FirewallRuleSet firewall_ingress_policy_rules = 6;
+  repeated FirewallRuleSet firewall_egress_policy_rules = 7;
+}
+
+message GetFirewallReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string firewall_id = 4;
+}
+
+message UpdateFirewallReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string firewall_id = 4;
+  string firewall_name = 5;
+  string firewall_desc = 6;
+  repeated FirewallRuleSet firewall_ingress_policy_rules = 7;
+  repeated FirewallRuleSet firewall_egress_policy_rules = 8;
+}
+
+message DeleteFirewallReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string firewall_id = 4;
+}
+
+message DeleteFirewallRes {
+  int32 code = 1;
+  string msg = 2;
+  string firewall_id = 3;
+  string deleted_time = 4;
+}
+
+message OperateFirewallReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string firewall_id = 4;
+  string port_id = 5;
+  string ops_type = 6; //attach or detach
+}
+
+message OperateFirewallRes {
+  int32 code = 1;
+  string msg = 2;
+  string firewall_id = 3;
+  string firewall_attached_port_id = 4;
+  string ops_type = 5;
+  string operated_time = 6;
+}
+```
+
+### 创建防火墙
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 创建一个空firewall group，name，describe根据入参
+3. 创建两个firewall policy，一个命名为<firewall_group_id>_ingress_policy，另一个命名为<firewall_group_id>_egress_policy
+4. 根据入参中的firewall_ingress_policy_rules、firewall_egress_policy_rules，分别创建入向firewall rule集，和出向firewall rule集，并分别装入刚才创建的firewall policy
+5. 更新firewall group，指定egress_policy_id，ingress_policy_id
+6. firewall_attached_port_id返回空串
+
+### 获取防火墙信息
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 根据入参的firewall_id，依次查询firewall group，firewall policy，firewall rules信息
+3. created_time，updated_timed，返回空。
+
+### 修改防火墙
+
+要点：
+
+1. 由于firewall rule集中可能既有permit规则，也有deny规则，并且有严格的顺序，如采用原子化的增删差集条目的方式操作，会造成条目顺序错误，故更新时采取整体替换方式（注意这一点和安全组规则不同）。
+2. 鉴权 && 查表获取该租户的openstack连接参数；
+3. 如果该firewall group已经绑定了路由器接口，先解绑
+4. 创建两个firewall policy，一个命名为<firewall_group_id>_ingress_policy，另一个命名为<firewall_group_id>_egress_policy
+5. 根据入参中的firewall_ingress_policy_rules、firewall_egress_policy_rules，分别创建入向firewall rule集，和出向firewall rule集，并分别装入刚才创建的firewall policy
+6. 更新firewall group，egress_policy_id，ingress_policy_id指向刚才新建的两个policy
+7. 如果原先firewall group已经绑定了路由器接口，重新绑定
+8. 根据两个旧的policy_id，先删除其下的firewall rules，再删除policy
+9. 回滚原则：第4，5步出现错误，清理垃圾数据即可；第6步出错，firewall group重新指向旧policyid
+
+### 删除防火墙
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 如果该firewall group已经绑定了路由器接口，不允许删除，提示解绑路由器端口后方可删除
+3. 根据传入的firewall_id，查出ingress_policy_id，egress_policy_id以及其下的各rule id，依次删除，删除顺序，firewall rule-->firewall policy-->firewall group
+
+### 防火墙绑定/取消绑定路由器接口
+
+要点：
+
+1. 鉴权 && 查表获取该租户的openstack连接参数；
+2. 如果该firewall group已经绑定了路由器接口，不允许再次绑定，提示解绑路由器端口后方可绑定
+3. 根据传入的firewall_id，port_id，ops_type，更新firewall group
+
+
+
 ## 统一注意事项
 
 1. 调用openstack API，ceph API，有的响应比较慢，应有超时处理

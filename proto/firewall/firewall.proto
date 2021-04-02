@@ -1,0 +1,126 @@
+// 指定的当前proto语法的版本，有2和3
+syntax = "proto3";
+
+// 指定文件生成出来的package
+package firewall;
+
+//防火墙相关服务
+service FirewallService{
+  //创建防火墙
+  rpc CreateFirewall(CreateFirewallReq) returns(FirewallRes);
+  //获取防火墙信息
+  rpc GetFirewall(GetFirewallReq) returns(FirewallRes);
+  //修改防火墙
+  rpc UpdateFirewall(UpdateFirewallReq) returns(FirewallRes);
+  //删除防火墙
+  rpc DeleteFirewall(DeleteFirewallReq) returns(DeleteFirewallRes);
+  //防火墙绑定/取消绑定路由器接口
+  rpc OperateFirewall(OperateFirewallReq) returns(OperateFirewallRes);
+}
+
+message FirewallRule {
+  string filewall_rule_id = 1;
+  string filewall_rule_name = 2;
+  string filewall_rule_desc = 3;
+  string filewall_rule_action = 4;
+  string filewall_rule_protocol = 5;
+  string filewall_rule_src_ip = 6;
+  string filewall_rule_src_port = 7;
+  string filewall_rule_dst_ip = 8;
+  string filewall_rule_dst_port = 9;
+}
+
+message FirewallPolicy {
+  string filewall_policy_id = 1;
+  string filewall_policy_name = 2;
+  string filewall_policy_desc = 3;
+  repeated FirewallRule filewall_policy_rules = 4;
+}
+
+//openstack原生支持一个firewall group对多个ports，本api限定firewall group与port为一一对应关系，故firewall_attached_port_id为单个string
+message Firewall {
+  string firewall_id = 1;
+  string firewall_name = 2;
+  string firewall_desc = 3;
+  string firewall_attached_port_id = 4;
+  string firewall_status = 5;
+  FirewallPolicy firewall_ingress_policy = 6;
+  FirewallPolicy firewall_egress_policy = 7;
+  string created_time = 8;
+  string updated_time = 9;
+}
+
+message FirewallRes {
+  int32 code = 1;
+  string msg = 2;
+  Firewall firewall = 3;
+}
+
+message FirewallRuleSet {
+  string filewall_rule_desc = 1;
+  string filewall_rule_action = 2;
+  string filewall_rule_protocol = 3;
+  string filewall_rule_src_ip = 4;
+  string filewall_rule_src_port = 5;
+  string filewall_rule_dst_ip = 6;
+  string filewall_rule_dst_port = 7;
+}
+message CreateFirewallReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string filewall_name = 4;
+  string firewall_desc = 5;
+  repeated FirewallRuleSet firewall_ingress_policy_rules = 6;
+  repeated FirewallRuleSet firewall_egress_policy_rules = 7;
+}
+
+message GetFirewallReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string firewall_id = 4;
+}
+
+message UpdateFirewallReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string firewall_id = 4;
+  string firewall_name = 5;
+  string firewall_desc = 6;
+  repeated FirewallRuleSet firewall_ingress_policy_rules = 7;
+  repeated FirewallRuleSet firewall_egress_policy_rules = 8;
+}
+
+message DeleteFirewallReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string firewall_id = 4;
+}
+
+message DeleteFirewallRes {
+  int32 code = 1;
+  string msg = 2;
+  string firewall_id = 3;
+  string deleted_time = 4;
+}
+
+message OperateFirewallReq {
+  string apikey = 1;
+  string tenant_id = 2;
+  string platform_userid = 3;
+  string firewall_id = 4;
+  string port_id = 5;
+  string ops_type = 6; //attach or detach
+}
+
+message OperateFirewallRes {
+  int32 code = 1;
+  string msg = 2;
+  string firewall_id = 3;
+  string firewall_attached_port_id = 4;
+  string ops_type = 5;
+  string operated_time = 6;
+}
