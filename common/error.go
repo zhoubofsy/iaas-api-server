@@ -146,4 +146,6 @@ var (
 	EPLCREATEADDINTERFACE = &Error{Code: 100004, Msg: "openstack peerlink create, add interface to router failed"}
 	EPLGETIPPOOL          = &Error{Code: 100005, Msg: "openstack get ip pool failed"}
 	EPLGETIPPOOLNONE      = &Error{Code: 100006, Msg: "openstack get ip pool none"}
+
+	EFCREATE = &Error{Code: 101000, Msg: "openstack firewall create failed"}
 )

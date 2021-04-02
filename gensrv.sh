@@ -8,13 +8,13 @@
 #  
 #=================================================================
 
-set -e
+set -e -x
 
-if [ $# != 6 ]; then
+if [ $# != 7 ]; then
     echo ""
-    echo "usage: ./gensvr.sh RpcTaskFilename ModuleName ServiceName MethodName ReqName ResName"
+    echo "usage: ./gensvr.sh RpcTaskFilename ModuleName ServiceName MethodName ReqName ResName AuthorName"
     echo ""
-    echo "example: ./gensrv.sh create_firewall_rpc_task.go firewall FirewallService CreateFirewall CreateFirewallReq FirewallRes"
+    echo "example: ./gensrv.sh create_firewall_rpc_task.go firewall FirewallService CreateFirewall CreateFirewallReq FirewallRes mongia"
     echo ""
     exit 0
 fi
@@ -26,7 +26,7 @@ taskname=$4RPCTask
 methodname=$4
 req=$5
 res=$6
-author=mongia
+author=$7
 time=`date +%Y年%m月%d日`
 
 cat > $filename << EOF
