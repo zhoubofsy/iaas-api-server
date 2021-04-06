@@ -30,13 +30,6 @@ type CreateFirewallRPCTask struct {
 	Err *common.Error
 }
 
-type groupInfo struct {
-	name       string
-	desc       string
-	inPolicyID string
-	ePolicyID  string
-}
-
 // Run call this func for doing task
 func (rpctask *CreateFirewallRPCTask) Run(context.Context) {
 	defer rpctask.setResult()
@@ -74,8 +67,12 @@ func (rpctask *CreateFirewallRPCTask) execute(providers *gophercloud.ProviderCli
 	}
 
 	rpctask.Res.Firewall = &firewall.Firewall{
-		FirewallIngressPolicy: &firewall.FirewallPolicy{},
-		FirewallEgressPolicy:  &firewall.FirewallPolicy{},
+		FirewallIngressPolicy: &firewall.FirewallPolicy{
+			FirewallPolicyRules: make([]*firewall.FirewallRule, len(rpctask.Req.GetFirewallIngressPolicyRules())),
+		},
+		FirewallEgressPolicy: &firewall.FirewallPolicy{
+			FirewallPolicyRules: make([]*firewall.FirewallRule, len(rpctask.Req.GetFirewallEgressPolicyRules())),
+		},
 	}
 
 	var wg sync.WaitGroup
@@ -85,61 +82,65 @@ func (rpctask *CreateFirewallRPCTask) execute(providers *gophercloud.ProviderCli
 	{
 		for idx, rule := range rpctask.Req.GetFirewallIngressPolicyRules() {
 			wg.Add(1)
-			go create_firewall_rules(client, rule, idx, inRuleIDs, &wg)
+			go create_firewall_rules(client, rule, idx, inRuleIDs, rpctask.Res.Firewall.FirewallIngressPolicy.FirewallPolicyRules, &wg)
 		}
 	}
 	{
 		for idx, rule := range rpctask.Req.GetFirewallEgressPolicyRules() {
 			wg.Add(1)
-			go create_firewall_rules(client, rule, idx, eRuleIDs, &wg)
+			go create_firewall_rules(client, rule, idx, eRuleIDs, rpctask.Res.Firewall.FirewallEgressPolicy.FirewallPolicyRules, &wg)
 		}
 	}
 	wg.Wait()
 
 	// 异步创建policy
-	info := groupInfo{}
 	{
 		wg.Add(1)
-		go create_firewall_policy(client, inRuleIDs, &info.inPolicyID, &wg)
+		go create_firewall_policy(client, inRuleIDs, rpctask.Res.Firewall.FirewallIngressPolicy, &wg)
 	}
 	{
 		wg.Add(1)
-		go create_firewall_policy(client, eRuleIDs, &info.ePolicyID, &wg)
+		go create_firewall_policy(client, eRuleIDs, rpctask.Res.Firewall.FirewallEgressPolicy, &wg)
 	}
 	wg.Wait()
 
 	// 创建防火墙
-	group := create_firewall_group(client, info)
-	if nil == group {
-		log.Error("call firewall, create group failed")
-		return common.EFCREATE
+	rpctask.Res.Firewall.FirewallName = rpctask.Req.FirewallName
+	rpctask.Res.Firewall.FirewallDesc = rpctask.Req.FirewallDesc
+	create_firewall_group(client, rpctask.Res.Firewall)
 
+	if rpctask.Res.Firewall.UpdatedTime == "" {
+		return common.EFCREATE
 	}
 
 	return common.EOK
 }
 
 func create_firewall_group(client *gophercloud.ServiceClient,
-	info groupInfo) *fg.Group {
+	group *firewall.Firewall) {
 
 	ret, err := fg.Create(client, fg.CreateOpts{
-		Name:                    info.name,
-		Description:             info.desc,
-		IngressFirewallPolicyID: info.inPolicyID,
-		EgressFirewallPolicyID:  info.ePolicyID,
+		Name:                    group.FirewallName,
+		Description:             group.FirewallDesc,
+		IngressFirewallPolicyID: group.FirewallIngressPolicy.FirewallPolicyId,
+		EgressFirewallPolicyID:  group.FirewallEgressPolicy.FirewallPolicyId,
 	}).Extract()
 
 	if nil != err {
 		log.WithField("err", err).Error("call firewall, create group failed")
-		return nil
+		return
 	}
 
-	return ret
+	group.FirewallId = ret.ID
+	group.FirewallAttachedPortId = ""
+	group.FirewallStatus = ret.Status
+	group.CreatedTime = common.Now()
+	group.UpdatedTime = common.Now()
 }
 
 func create_firewall_policy(client *gophercloud.ServiceClient,
 	rules []string,
-	policyID *string,
+	policy *firewall.FirewallPolicy,
 	wg *sync.WaitGroup) {
 	defer wg.Done()
 
@@ -152,24 +153,29 @@ func create_firewall_policy(client *gophercloud.ServiceClient,
 		return
 	}
 
-	*policyID = ret.ID
+	*policy = firewall.FirewallPolicy{
+		FirewallPolicyId:   ret.ID,
+		FirewallPolicyName: ret.Name,
+		FirewallPolicyDesc: ret.Description,
+	}
 }
 
 func create_firewall_rules(client *gophercloud.ServiceClient,
 	rule *firewall.FirewallRuleSet,
 	idx int,
 	ruleIDs []string,
+	rules []*firewall.FirewallRule,
 	wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	options := fr.CreateOpts{
-		Protocol:             fr.Protocol(rule.FilewallRuleProtocol),
-		Action:               fr.Action(rule.FilewallRuleAction),
-		Description:          rule.FilewallRuleDesc,
-		SourceIPAddress:      rule.FilewallRuleSrcIp,
-		SourcePort:           rule.FilewallRuleSrcPort,
-		DestinationIPAddress: rule.FilewallRuleDstIp,
-		DestinationPort:      rule.FilewallRuleDstPort,
+		Protocol:             fr.Protocol(rule.FirewallRuleProtocol),
+		Action:               fr.Action(rule.FirewallRuleAction),
+		Description:          rule.FirewallRuleDesc,
+		SourceIPAddress:      rule.FirewallRuleSrcIp,
+		SourcePort:           rule.FirewallRuleSrcPort,
+		DestinationIPAddress: rule.FirewallRuleDstIp,
+		DestinationPort:      rule.FirewallRuleDstPort,
 	}
 
 	ret, err := fr.Create(client, options).Extract()
@@ -179,6 +185,17 @@ func create_firewall_rules(client *gophercloud.ServiceClient,
 	}
 
 	ruleIDs[idx] = ret.ID
+	rules[idx] = &firewall.FirewallRule{
+		FirewallRuleId:       ret.ID,
+		FirewallRuleName:     ret.Name,
+		FirewallRuleDesc:     ret.Description,
+		FirewallRuleAction:   ret.Action,
+		FirewallRuleProtocol: ret.Protocol,
+		FirewallRuleSrcIp:    ret.SourceIPAddress,
+		FirewallRuleSrcPort:  ret.SourcePort,
+		FirewallRuleDstIp:    ret.DestinationIPAddress,
+		FirewallRuleDstPort:  ret.DestinationPort,
+	}
 }
 
 func (rpctask *CreateFirewallRPCTask) checkParam() error {
