@@ -147,5 +147,9 @@ var (
 	EPLGETIPPOOL          = &Error{Code: 100005, Msg: "openstack get ip pool failed"}
 	EPLGETIPPOOLNONE      = &Error{Code: 100006, Msg: "openstack get ip pool none"}
 
-	EFCREATE = &Error{Code: 101000, Msg: "openstack firewall create failed"}
+	EFCREATE    = &Error{Code: 101000, Msg: "openstack firewall create failed"}
+	EFGETGROUP  = &Error{Code: 101000, Msg: "openstack firewall get group failed"}
+	EFGROUPBIND = &Error{Code: 101001, Msg: "openstack firewall group has bind already"}
+	EFDELGROUP  = &Error{Code: 101002, Msg: "openstack firewall group delete failed"}
+	EFUPGROUP   = &Error{Code: 101003, Msg: "openstack firewall group update failed"}
 )

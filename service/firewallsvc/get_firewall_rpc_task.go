@@ -10,9 +10,11 @@ package firewallsvc
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
+	fg "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas_v2/groups"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
@@ -62,10 +64,60 @@ func (rpctask *GetFirewallRPCTask) execute(providers *gophercloud.ProviderClient
 		return common.ENETWORKCLIENT
 	}
 
-	//TODO code here
-	log.WithFields(log.Fields{
-		"client": client,
-	}).Info("remove this code")
+	ret, err := fg.Get(client, rpctask.Req.FirewallId).Extract()
+	if nil != err {
+		log.WithField("err", err).Error("get firewall group failed")
+		return common.EFGETGROUP
+	}
+
+	rpctask.Res.Firewall = &firewall.Firewall{
+		FirewallId:             ret.ID,
+		FirewallName:           ret.Name,
+		FirewallDesc:           ret.Description,
+		FirewallAttachedPortId: "",
+		FirewallStatus:         ret.Status,
+		FirewallIngressPolicy: &firewall.FirewallPolicy{
+			FirewallPolicyId:    ret.IngressFirewallPolicyID,
+			FirewallPolicyRules: make([]*firewall.FirewallRule, 0),
+		},
+		FirewallEgressPolicy: &firewall.FirewallPolicy{
+			FirewallPolicyId:    ret.EgressFirewallPolicyID,
+			FirewallPolicyRules: make([]*firewall.FirewallRule, 0),
+		},
+		CreatedTime: "",
+		UpdatedTime: "",
+	}
+	if len(ret.Ports) > 0 {
+		rpctask.Res.Firewall.FirewallAttachedPortId = ret.Ports[0]
+	}
+
+	var wg sync.WaitGroup
+	// 获取policy
+	{
+		wg.Add(1)
+		go getFirewallPolicy(client, rpctask.Res.Firewall.FirewallIngressPolicy, &wg)
+	}
+	{
+		wg.Add(1)
+		go getFirewallPolicy(client, rpctask.Res.Firewall.FirewallEgressPolicy, &wg)
+	}
+	wg.Wait()
+
+	// 获取rule
+	{
+		for _, rule := range rpctask.Res.Firewall.FirewallIngressPolicy.FirewallPolicyRules {
+			wg.Add(1)
+			go getFirewallRule(client, rule, &wg)
+		}
+	}
+	{
+		for _, rule := range rpctask.Res.Firewall.FirewallIngressPolicy.FirewallPolicyRules {
+			wg.Add(1)
+			go getFirewallRule(client, rule, &wg)
+		}
+	}
+
+	wg.Wait()
 
 	return common.EOK
 }
@@ -73,7 +125,8 @@ func (rpctask *GetFirewallRPCTask) execute(providers *gophercloud.ProviderClient
 func (rpctask *GetFirewallRPCTask) checkParam() error {
 	if "" == rpctask.Req.GetApikey() ||
 		"" == rpctask.Req.GetTenantId() ||
-		"" == rpctask.Req.GetPlatformUserid() {
+		"" == rpctask.Req.GetPlatformUserid() ||
+		"" == rpctask.Req.GetFirewallId() {
 		return errors.New("input params is wrong")
 	}
 	return nil

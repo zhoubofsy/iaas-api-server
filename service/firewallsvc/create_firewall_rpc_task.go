@@ -127,7 +127,10 @@ func create_firewall_group(client *gophercloud.ServiceClient,
 	}).Extract()
 
 	if nil != err {
-		log.WithField("err", err).Error("call firewall, create group failed")
+		log.WithFields(log.Fields{
+			"err":   err,
+			"group": group,
+		}).Error("call firewall, create group failed")
 		return
 	}
 
@@ -149,7 +152,10 @@ func create_firewall_policy(client *gophercloud.ServiceClient,
 	}).Extract()
 
 	if nil != err {
-		log.WithField("err", err).Error("call firewall, create policy failed")
+		log.WithFields(log.Fields{
+			"err":    err,
+			"policy": policy,
+		}).Error("call firewall, create policy failed")
 		return
 	}
 
@@ -180,7 +186,10 @@ func create_firewall_rules(client *gophercloud.ServiceClient,
 
 	ret, err := fr.Create(client, options).Extract()
 	if nil != err {
-		log.WithField("err", err).Error("call firewall, create rules failed ")
+		log.WithFields(log.Fields{
+			"err":  err,
+			"rule": rule,
+		}).Error("call firewall, create rules failed ")
 		return
 	}
 
@@ -201,9 +210,14 @@ func create_firewall_rules(client *gophercloud.ServiceClient,
 func (rpctask *CreateFirewallRPCTask) checkParam() error {
 	if "" == rpctask.Req.GetApikey() ||
 		"" == rpctask.Req.GetTenantId() ||
-		"" == rpctask.Req.GetPlatformUserid() {
+		"" == rpctask.Req.GetPlatformUserid() ||
+		"" == rpctask.Req.GetFirewallName() ||
+		"" == rpctask.Req.GetFirewallDesc() {
 		return errors.New("input params is wrong")
 	}
+
+	//TODO 对每个rule严格校验
+
 	return nil
 }
 
