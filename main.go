@@ -6,6 +6,7 @@ import (
 	"google.golang.org/grpc"
 	"iaas-api-server/common/config"
 	"iaas-api-server/proto/clouddisk"
+	"iaas-api-server/proto/firewall"
 	"iaas-api-server/proto/flavor"
 	"iaas-api-server/proto/floatip"
 	"iaas-api-server/proto/image"
@@ -19,6 +20,7 @@ import (
 	"iaas-api-server/proto/tenant"
 	"iaas-api-server/proto/vpc"
 	"iaas-api-server/service/clouddisksvc"
+	"iaas-api-server/service/firewallsvc"
 	"iaas-api-server/service/flavorsvc"
 	"iaas-api-server/service/floatipsvc"
 	"iaas-api-server/service/imagesvc"
@@ -74,6 +76,7 @@ func main() {
 	natgateway.RegisterNatGatewayServiceServer(rpcServer, &natgatewaysvc.NatGatewayService{})
 	peerlink.RegisterPeerLinkServiceServer(rpcServer, &peerlinksvc.PeerLinkService{})
 	floatip.RegisterFloatIpServiceServer(rpcServer, &floatipsvc.FloatIpService{})
+	firewall.RegisterFirewallServiceServer(rpcServer, &firewallsvc.FirewallService{})
 
 	addr, _ := config.GetString("listening_addr")
 	if addr == "" {
