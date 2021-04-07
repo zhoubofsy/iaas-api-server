@@ -10,12 +10,12 @@ package firewallsvc
 
 import (
 	"errors"
+	"net"
+	"strconv"
 	"sync"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
-	fg "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas_v2/groups"
-	fp "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas_v2/policies"
 	fr "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas_v2/rules"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -110,101 +110,13 @@ func (rpctask *CreateFirewallRPCTask) execute(providers *gophercloud.ProviderCli
 	create_firewall_group(client, rpctask.Res.Firewall)
 
 	if rpctask.Res.Firewall.UpdatedTime == "" {
+		log.WithFields(log.Fields{
+			"res": rpctask.Res,
+		}).Error("create firewall failed")
 		return common.EFCREATE
 	}
 
 	return common.EOK
-}
-
-func create_firewall_group(client *gophercloud.ServiceClient,
-	group *firewall.Firewall) {
-
-	ret, err := fg.Create(client, fg.CreateOpts{
-		Name:                    group.FirewallName,
-		Description:             group.FirewallDesc,
-		IngressFirewallPolicyID: group.FirewallIngressPolicy.FirewallPolicyId,
-		EgressFirewallPolicyID:  group.FirewallEgressPolicy.FirewallPolicyId,
-	}).Extract()
-
-	if nil != err {
-		log.WithFields(log.Fields{
-			"err":   err,
-			"group": group,
-		}).Error("call firewall, create group failed")
-		return
-	}
-
-	group.FirewallId = ret.ID
-	group.FirewallAttachedPortId = ""
-	group.FirewallStatus = ret.Status
-	group.CreatedTime = common.Now()
-	group.UpdatedTime = common.Now()
-}
-
-func create_firewall_policy(client *gophercloud.ServiceClient,
-	rules []string,
-	policy *firewall.FirewallPolicy,
-	wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	ret, err := fp.Create(client, fp.CreateOpts{
-		FirewallRules: rules,
-	}).Extract()
-
-	if nil != err {
-		log.WithFields(log.Fields{
-			"err":    err,
-			"policy": policy,
-		}).Error("call firewall, create policy failed")
-		return
-	}
-
-	*policy = firewall.FirewallPolicy{
-		FirewallPolicyId:   ret.ID,
-		FirewallPolicyName: ret.Name,
-		FirewallPolicyDesc: ret.Description,
-	}
-}
-
-func create_firewall_rules(client *gophercloud.ServiceClient,
-	rule *firewall.FirewallRuleSet,
-	idx int,
-	ruleIDs []string,
-	rules []*firewall.FirewallRule,
-	wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	options := fr.CreateOpts{
-		Protocol:             fr.Protocol(rule.FirewallRuleProtocol),
-		Action:               fr.Action(rule.FirewallRuleAction),
-		Description:          rule.FirewallRuleDesc,
-		SourceIPAddress:      rule.FirewallRuleSrcIp,
-		SourcePort:           rule.FirewallRuleSrcPort,
-		DestinationIPAddress: rule.FirewallRuleDstIp,
-		DestinationPort:      rule.FirewallRuleDstPort,
-	}
-
-	ret, err := fr.Create(client, options).Extract()
-	if nil != err {
-		log.WithFields(log.Fields{
-			"err":  err,
-			"rule": rule,
-		}).Error("call firewall, create rules failed ")
-		return
-	}
-
-	ruleIDs[idx] = ret.ID
-	rules[idx] = &firewall.FirewallRule{
-		FirewallRuleId:       ret.ID,
-		FirewallRuleName:     ret.Name,
-		FirewallRuleDesc:     ret.Description,
-		FirewallRuleAction:   ret.Action,
-		FirewallRuleProtocol: ret.Protocol,
-		FirewallRuleSrcIp:    ret.SourceIPAddress,
-		FirewallRuleSrcPort:  ret.SourcePort,
-		FirewallRuleDstIp:    ret.DestinationIPAddress,
-		FirewallRuleDstPort:  ret.DestinationPort,
-	}
 }
 
 func (rpctask *CreateFirewallRPCTask) checkParam() error {
@@ -216,7 +128,27 @@ func (rpctask *CreateFirewallRPCTask) checkParam() error {
 		return errors.New("input params is wrong")
 	}
 
-	//TODO 对每个rule严格校验
+	// 对每个rule严格校验
+	for _, rule := range rpctask.Req.GetFirewallIngressPolicyRules() {
+		protocol := fr.Protocol(rule.FirewallRuleProtocol)
+		action := fr.Action(rule.FirewallRuleAction)
+		if (fr.ProtocolAny == protocol || fr.ProtocolTCP == protocol || fr.ProtocolUDP == protocol || fr.ProtocolICMP == protocol) &&
+			(fr.ActionDeny == action || fr.ActionAllow == action || fr.ActionReject == action) {
+			continue
+		}
+		sourceIP := net.ParseIP(rule.FirewallRuleSrcIp)
+		sourcePort, srcerr := strconv.Atoi(rule.FirewallRuleSrcPort)
+		dstIP := net.ParseIP(rule.FirewallRuleDstIp)
+		dstPort, dsterr := strconv.Atoi(rule.FirewallRuleDstPort)
+
+		if nil != sourceIP && nil != dstIP &&
+			nil == srcerr && nil == dsterr &&
+			sourcePort > 0 && dstPort > 0 {
+			continue
+		}
+
+		return errors.New("params is unregular")
+	}
 
 	return nil
 }

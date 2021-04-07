@@ -10,12 +10,14 @@ package firewallsvc
 
 import (
 	"errors"
+	"net"
+	"strconv"
 	"sync"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	fg "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas_v2/groups"
-
+	fr "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas_v2/rules"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
@@ -222,6 +224,31 @@ func (rpctask *UpdateFirewallRPCTask) checkParam() error {
 		"" == rpctask.Req.GetPlatformUserid() {
 		return errors.New("input params is wrong")
 	}
+
+	for _, rule := range rpctask.Req.GetFirewallIngressPolicyRules() {
+		if (fr.ProtocolAny == fr.Protocol(rule.FirewallRuleProtocol) ||
+			fr.ProtocolTCP == fr.Protocol(rule.FirewallRuleProtocol) ||
+			fr.ProtocolUDP == fr.Protocol(rule.FirewallRuleProtocol) ||
+			fr.ProtocolICMP == fr.Protocol(rule.FirewallRuleProtocol)) &&
+			(fr.ActionDeny == fr.Action(rule.FirewallRuleAction) ||
+				fr.ActionAllow == fr.Action(rule.FirewallRuleAction) ||
+				fr.ActionReject == fr.Action(rule.FirewallRuleAction)) {
+			continue
+		}
+		sourceIP := net.ParseIP(rule.FirewallRuleSrcIp)
+		sourcePort, srcerr := strconv.Atoi(rule.FirewallRuleSrcPort)
+		dstIP := net.ParseIP(rule.FirewallRuleDstIp)
+		dstPort, dsterr := strconv.Atoi(rule.FirewallRuleDstPort)
+
+		if nil != sourceIP && nil != dstIP &&
+			nil == srcerr && nil == dsterr &&
+			sourcePort > 0 && dstPort > 0 {
+			continue
+		}
+
+		return errors.New("params is unregular")
+	}
+
 	return nil
 }
 

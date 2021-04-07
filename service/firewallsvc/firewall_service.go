@@ -16,10 +16,12 @@ import (
 	status "google.golang.org/grpc/status"
 
 	"github.com/gophercloud/gophercloud"
+	fg "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas_v2/groups"
 	fp "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas_v2/policies"
 	fr "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas_v2/rules"
 	log "github.com/sirupsen/logrus"
 
+	"iaas-api-server/common"
 	"iaas-api-server/proto/firewall"
 )
 
@@ -159,5 +161,96 @@ func delFirewallPolicy(client *gophercloud.ServiceClient,
 			"err":      err,
 			"policyID": policyID,
 		}).Error("delete firewall policy failed")
+	}
+}
+
+func create_firewall_group(client *gophercloud.ServiceClient,
+	group *firewall.Firewall) {
+
+	ret, err := fg.Create(client, fg.CreateOpts{
+		Name:                    group.FirewallName,
+		Description:             group.FirewallDesc,
+		IngressFirewallPolicyID: group.FirewallIngressPolicy.FirewallPolicyId,
+		EgressFirewallPolicyID:  group.FirewallEgressPolicy.FirewallPolicyId,
+	}).Extract()
+
+	if nil != err {
+		log.WithFields(log.Fields{
+			"err":   err,
+			"group": group,
+		}).Error("call firewall, create group failed")
+		return
+	}
+
+	group.FirewallId = ret.ID
+	group.FirewallAttachedPortId = ""
+	group.FirewallStatus = ret.Status
+	group.CreatedTime = common.Now()
+	group.UpdatedTime = common.Now()
+}
+
+func create_firewall_policy(client *gophercloud.ServiceClient,
+	rules []string,
+	policy *firewall.FirewallPolicy,
+	wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	ret, err := fp.Create(client, fp.CreateOpts{
+		FirewallRules: rules,
+	}).Extract()
+
+	if nil != err {
+		log.WithFields(log.Fields{
+			"err":    err,
+			"policy": policy,
+		}).Error("call firewall, create policy failed")
+		return
+	}
+
+	*policy = firewall.FirewallPolicy{
+		FirewallPolicyId:   ret.ID,
+		FirewallPolicyName: ret.Name,
+		FirewallPolicyDesc: ret.Description,
+	}
+}
+
+func create_firewall_rules(client *gophercloud.ServiceClient,
+	rule *firewall.FirewallRuleSet,
+	idx int,
+	ruleIDs []string,
+	rules []*firewall.FirewallRule,
+	wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	options := fr.CreateOpts{
+		Protocol:             fr.Protocol(rule.FirewallRuleProtocol),
+		Action:               fr.Action(rule.FirewallRuleAction),
+		Description:          rule.FirewallRuleDesc,
+		SourceIPAddress:      rule.FirewallRuleSrcIp,
+		SourcePort:           rule.FirewallRuleSrcPort,
+		DestinationIPAddress: rule.FirewallRuleDstIp,
+		DestinationPort:      rule.FirewallRuleDstPort,
+	}
+
+	ret, err := fr.Create(client, options).Extract()
+	if nil != err {
+		log.WithFields(log.Fields{
+			"err":  err,
+			"rule": rule,
+		}).Error("call firewall, create rules failed ")
+		return
+	}
+
+	ruleIDs[idx] = ret.ID
+	rules[idx] = &firewall.FirewallRule{
+		FirewallRuleId:       ret.ID,
+		FirewallRuleName:     ret.Name,
+		FirewallRuleDesc:     ret.Description,
+		FirewallRuleAction:   ret.Action,
+		FirewallRuleProtocol: ret.Protocol,
+		FirewallRuleSrcIp:    ret.SourceIPAddress,
+		FirewallRuleSrcPort:  ret.SourcePort,
+		FirewallRuleDstIp:    ret.DestinationIPAddress,
+		FirewallRuleDstPort:  ret.DestinationPort,
 	}
 }
