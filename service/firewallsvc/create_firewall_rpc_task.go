@@ -82,13 +82,13 @@ func (rpctask *CreateFirewallRPCTask) execute(providers *gophercloud.ProviderCli
 	{
 		for idx, rule := range rpctask.Req.GetFirewallIngressPolicyRules() {
 			wg.Add(1)
-			go create_firewall_rules(client, rule, idx, inRuleIDs, rpctask.Res.Firewall.FirewallIngressPolicy.FirewallPolicyRules, &wg)
+			go create_firewall_rules(client, rule, idx, &inRuleIDs, rpctask.Res.Firewall.FirewallIngressPolicy, &wg)
 		}
 	}
 	{
 		for idx, rule := range rpctask.Req.GetFirewallEgressPolicyRules() {
 			wg.Add(1)
-			go create_firewall_rules(client, rule, idx, eRuleIDs, rpctask.Res.Firewall.FirewallEgressPolicy.FirewallPolicyRules, &wg)
+			go create_firewall_rules(client, rule, idx, &eRuleIDs, rpctask.Res.Firewall.FirewallEgressPolicy, &wg)
 		}
 	}
 	wg.Wait()

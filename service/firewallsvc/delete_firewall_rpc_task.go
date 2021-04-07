@@ -105,6 +105,27 @@ func (rpctask *DeleteFirewallRPCTask) execute(providers *gophercloud.ProviderCli
 	}
 	wg.Wait()
 
+	// 删除group
+	err = fg.Delete(client, rpctask.Req.FirewallId).ExtractErr()
+	if nil != err {
+		log.WithFields(log.Fields{
+			"err":        err,
+			"firewallID": rpctask.Req.FirewallId,
+		}).Error("delete firewall group id failed")
+		return common.EFDELGROUP
+	}
+
+	// 删除policy
+	{
+		wg.Add(1)
+		go delFirewallPolicy(client, fw.FirewallIngressPolicy.FirewallPolicyId, &wg)
+	}
+	{
+		wg.Add(1)
+		go delFirewallPolicy(client, fw.FirewallEgressPolicy.FirewallPolicyId, &wg)
+	}
+	wg.Wait()
+
 	// 删除rule
 	{
 		for _, ruleID := range fw.FirewallIngressPolicy.FirewallPolicyRules {
@@ -119,27 +140,6 @@ func (rpctask *DeleteFirewallRPCTask) execute(providers *gophercloud.ProviderCli
 		}
 	}
 	wg.Wait()
-
-	// 删除policy
-	{
-		wg.Add(1)
-		go delFirewallPolicy(client, fw.FirewallIngressPolicy.FirewallPolicyId, &wg)
-	}
-	{
-		wg.Add(1)
-		go delFirewallPolicy(client, fw.FirewallEgressPolicy.FirewallPolicyId, &wg)
-	}
-	wg.Wait()
-
-	// 删除group
-	err = fg.Delete(client, rpctask.Req.FirewallId).ExtractErr()
-	if nil != err {
-		log.WithFields(log.Fields{
-			"err":        err,
-			"firewallID": rpctask.Req.FirewallId,
-		}).Error("delete firewall group id failed")
-		return common.EFDELGROUP
-	}
 
 	rpctask.Res.DeletedTime = common.Now()
 	rpctask.Res.FirewallId = rpctask.Req.FirewallId

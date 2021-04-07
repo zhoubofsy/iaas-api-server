@@ -207,18 +207,16 @@ func create_firewall_policy(client *gophercloud.ServiceClient,
 		return
 	}
 
-	*policy = firewall.FirewallPolicy{
-		FirewallPolicyId:   ret.ID,
-		FirewallPolicyName: ret.Name,
-		FirewallPolicyDesc: ret.Description,
-	}
+	policy.FirewallPolicyName = ret.Name
+	policy.FirewallPolicyId = ret.ID
+	policy.FirewallPolicyDesc = ret.Description
 }
 
 func create_firewall_rules(client *gophercloud.ServiceClient,
 	rule *firewall.FirewallRuleSet,
 	idx int,
-	ruleIDs []string,
-	rules []*firewall.FirewallRule,
+	ruleIDs *[]string,
+	policy *firewall.FirewallPolicy,
 	wg *sync.WaitGroup) {
 	defer wg.Done()
 
@@ -241,8 +239,8 @@ func create_firewall_rules(client *gophercloud.ServiceClient,
 		return
 	}
 
-	ruleIDs[idx] = ret.ID
-	rules[idx] = &firewall.FirewallRule{
+	(*ruleIDs)[idx] = ret.ID
+	policy.FirewallPolicyRules[idx] = &firewall.FirewallRule{
 		FirewallRuleId:       ret.ID,
 		FirewallRuleName:     ret.Name,
 		FirewallRuleDesc:     ret.Description,
