@@ -22,3 +22,6 @@
 使用的openStack Admin Role的ID，此处填写`717326b924e04133921719c9dc169c96`
 #### TOKEN_URL
 使用的openStack获取Token的地址，此处填写`http://120.92.19.57:5000/identity/v3/auth/tokens` 
+
+## .env
+使用时，source .env
