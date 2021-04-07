@@ -10,8 +10,8 @@
 
 # firewall
 #./main -method 'fCreate' -param '{"apikey": "RoYuYLWBdI", "tenant_id": "t-0000000019", "platform_userid": "xiaott14", "firewall_name": "firewallA", "firewall_desc": "firewall desc", "firewall_ingress_policy_rules": [{"firewall_rule_desc": "ingress rule", "firewall_rule_action": "allow", "firewall_rule_protocol": "tcp", "firewall_rule_src_ip": "127.0.0.1", "firewall_rule_src_port": "80", "firewall_rule_dst_ip": "127.0.0.1", "firewall_rule_dst_port": "90"}], "firewall_egress_policy_rules": [{"firewall_rule_desc": "egress rule", "firewall_rule_action": "deny", "firewall_rule_protocol": "udp", "firewall_rule_src_ip": "127.0.0.1", "firewall_rule_src_port": "580", "firewall_rule_dst_ip": "127.0.0.1", "firewall_rule_dst_port": "900"}]}'
-#./main -method 'fGet' -param '{"apikey": "RoYuYLWBdI", "tenant_id": "t-0000000019", "platform_userid": "xiaott14", "firewall_id": "a295b632-2eb0-4347-bf11-f4d11dedab23"}'
-#./main -method 'fDelete' -param '{"apikey": "RoYuYLWBdI", "tenant_id": "t-0000000019", "platform_userid": "xiaott14", "firewall_id": "a676c753-6e1e-4d37-8669-0d75cba74352"}'
+#./main -method 'fGet' -param '{"apikey": "RoYuYLWBdI", "tenant_id": "t-0000000019", "platform_userid": "xiaott14", "firewall_id": "a03d3a21-dbf1-44bb-bddf-ce01f3699c50"}'
+./main -method 'fDelete' -param '{"apikey": "RoYuYLWBdI", "tenant_id": "t-0000000019", "platform_userid": "xiaott14", "firewall_id": "a03d3a21-dbf1-44bb-bddf-ce01f3699c50"}'
 
 # 金山云测试
 

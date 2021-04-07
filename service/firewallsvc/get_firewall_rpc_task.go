@@ -111,7 +111,7 @@ func (rpctask *GetFirewallRPCTask) execute(providers *gophercloud.ProviderClient
 		}
 	}
 	{
-		for _, rule := range rpctask.Res.Firewall.FirewallIngressPolicy.FirewallPolicyRules {
+		for _, rule := range rpctask.Res.Firewall.FirewallEgressPolicy.FirewallPolicyRules {
 			wg.Add(1)
 			go getFirewallRule(client, rule, &wg)
 		}

@@ -14,3 +14,10 @@ go build -o flavor.exe flavor_cli.go flag_def.go
 ```bash
 ./flavor.exe -param '{"apikey":"xxx","tenant_id":"t100","platform_userid":"xxx","flavor_id":"1"}' -timeout 3 -method GetFlavor
 ```
+
+
+## 使用main.go 
+
+### 编译(可以按需添加cli的go文件，main.go跟flag_def.go是必须的)
+go build main.go firewall_cli.go security_group_cli.go peerlink_cli.go flag_def.go
+
