@@ -77,9 +77,7 @@ func (rpctask *UpdateFirewallRPCTask) execute(providers *gophercloud.ProviderCli
 
 	// 1: 解绑
 	if len(oldfw.Ports) > 0 {
-		_, err := fg.Update(client, rpctask.Req.FirewallId, fg.UpdateOpts{
-			Ports: []string{},
-		}).Extract()
+		err := DetachFirewallToPortsRawAPI(client, rpctask.Req.FirewallId)
 		if nil != err {
 			log.WithFields(log.Fields{
 				"err": err,
