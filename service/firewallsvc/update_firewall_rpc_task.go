@@ -77,9 +77,7 @@ func (rpctask *UpdateFirewallRPCTask) execute(providers *gophercloud.ProviderCli
 
 	// 1: 解绑
 	if len(oldfw.Ports) > 0 {
-		_, err := fg.Update(client, rpctask.Req.FirewallId, fg.UpdateOpts{
-			Ports: []string{},
-		}).Extract()
+		err := DetachFirewallToPortsRawAPI(client, rpctask.Req.FirewallId)
 		if nil != err {
 			log.WithFields(log.Fields{
 				"err": err,
@@ -129,6 +127,8 @@ func (rpctask *UpdateFirewallRPCTask) execute(providers *gophercloud.ProviderCli
 
 	// 3: 绑定新的policy和重新绑定port
 	ops := fg.UpdateOpts{
+		Description:             &rpctask.Req.FirewallDesc,
+		Name:                    &rpctask.Req.FirewallName,
 		IngressFirewallPolicyID: &rpctask.Res.Firewall.FirewallIngressPolicy.FirewallPolicyId,
 		EgressFirewallPolicyID:  &rpctask.Res.Firewall.FirewallEgressPolicy.FirewallPolicyId,
 	}
@@ -191,6 +191,17 @@ func (rpctask *UpdateFirewallRPCTask) deleteOldPolicy(client *gophercloud.Servic
 	}
 	wg.Wait()
 
+	// 删除policy
+	{
+		wg.Add(1)
+		go delFirewallPolicy(client, fw.FirewallIngressPolicy.FirewallPolicyId, &wg)
+	}
+	{
+		wg.Add(1)
+		go delFirewallPolicy(client, fw.FirewallEgressPolicy.FirewallPolicyId, &wg)
+	}
+	wg.Wait()
+
 	// 删除rule
 	{
 		for _, ruleID := range fw.FirewallIngressPolicy.FirewallPolicyRules {
@@ -206,16 +217,6 @@ func (rpctask *UpdateFirewallRPCTask) deleteOldPolicy(client *gophercloud.Servic
 	}
 	wg.Wait()
 
-	// 删除policy
-	{
-		wg.Add(1)
-		go delFirewallPolicy(client, fw.FirewallIngressPolicy.FirewallPolicyId, &wg)
-	}
-	{
-		wg.Add(1)
-		go delFirewallPolicy(client, fw.FirewallEgressPolicy.FirewallPolicyId, &wg)
-	}
-	wg.Wait()
 }
 
 func (rpctask *UpdateFirewallRPCTask) checkParam() error {

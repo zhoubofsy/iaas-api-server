@@ -252,3 +252,27 @@ func create_firewall_rules(client *gophercloud.ServiceClient,
 		FirewallRuleDstPort:  ret.DestinationPort,
 	}
 }
+
+func DetachFirewallToPortsRawAPI(client *gophercloud.ServiceClient, firewallID string) error {
+	url := client.ResourceBase + "fwaas/firewall_groups/" + firewallID
+
+	jsTemplate := `{
+	"firewall_group": {
+		"ports": []
+	}
+}`
+
+	mp := map[string]string{}
+
+	jsonReq, err := common.CreateJsonByTmpl(jsTemplate, mp)
+	if nil != err {
+		return err
+	}
+
+	_, err = common.CallRawAPI(url, "PUT", jsonReq, client.TokenID)
+	if nil != err {
+		return err
+	}
+
+	return nil
+}

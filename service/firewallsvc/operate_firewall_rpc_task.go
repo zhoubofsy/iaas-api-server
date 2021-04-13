@@ -93,11 +93,9 @@ func (rpctask *OperateFirewallRPCTask) execute(providers *gophercloud.ProviderCl
 			}).Error("attach firewall to port failed")
 			return common.EFUPGROUP
 		}
-	} else {
+	} else if DetachType == rpctask.Req.OpsType {
 		if len(ret.Ports) > 0 {
-			_, err := fg.Update(client, rpctask.Req.FirewallId, fg.UpdateOpts{
-				Ports: []string{},
-			}).Extract()
+			err := DetachFirewallToPortsRawAPI(client, rpctask.Req.FirewallId)
 			if nil != err {
 				log.WithFields(log.Fields{
 					"err": err,
