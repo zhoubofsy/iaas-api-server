@@ -152,4 +152,5 @@ var (
 	EFGROUPBIND = &Error{Code: 101001, Msg: "openstack firewall group has bind already"}
 	EFDELGROUP  = &Error{Code: 101002, Msg: "openstack firewall group delete failed"}
 	EFUPGROUP   = &Error{Code: 101003, Msg: "openstack firewall group update failed"}
+	EFSETSTATUS = &Error{Code: 101004, Msg: "openstack firewall group set status failed"}
 )
