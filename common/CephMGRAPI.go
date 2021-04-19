@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
-	"os"
 	"strconv"
 )
 
@@ -144,13 +143,6 @@ func (o *CephMgrRESTRemoveCephFSDirectory) DoRequest(endpoint string, token stri
 		switch res.StatusCode {
 		case 200:
 			return EOK
-		case 500:
-			suberr := os.RemoveAll(o.Path)
-			if suberr != nil {
-				log.Error("os remove failed, ", suberr, o.Path)
-				return ECEPHMGRRMDIR
-			}
-			return EOK
 		default:
 			return ECEPHMGRRMDIR
 		}
@@ -159,7 +151,7 @@ func (o *CephMgrRESTRemoveCephFSDirectory) DoRequest(endpoint string, token stri
 }
 
 func (o *CephMgrRestful) RemoveCephFSDirectory(cephfsID string, path string) error {
-	req := &CephMgrRESTRemoveCephFSDirectory{Url: "/api/cephfs/" + cephfsID + "/rm_dir", Path: path}
+	req := &CephMgrRESTRemoveCephFSDirectory{Url: "/api/cephfs/" + cephfsID + "/recursive_rm_dir", Path: path}
 	return o.Process(req)
 }
 
