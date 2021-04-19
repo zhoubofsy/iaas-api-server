@@ -101,11 +101,18 @@ func (rpctask *DeleteFirewallRPCTask) execute(providers *gophercloud.ProviderCli
 	}
 	{
 		wg.Add(1)
-		go getFirewallPolicy(client, fw.FirewallIngressPolicy, &wg)
+		go getFirewallPolicy(client, fw.FirewallEgressPolicy, &wg)
 	}
 	wg.Wait()
 
-	// 删除group
+	// 删除group(首先强制修改database中group的status为’INACTIVE‘，再调用sdk进行删除操作)
+	var setRet bool = false
+	setRet = common.SetFirewallGroupStatus(rpctask.Req.FirewallId, false)
+	if !setRet {
+		log.Error("set firewall group status failed")
+		return common.EFSETSTATUS
+	}
+
 	err = fg.Delete(client, rpctask.Req.FirewallId).ExtractErr()
 	if nil != err {
 		log.WithFields(log.Fields{

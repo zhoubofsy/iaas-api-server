@@ -12,12 +12,14 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
+	"iaas-api-server/common/config"
 	"os"
 	"reflect"
 )
 
 //Db info
 var db = &sql.DB{}
+var neutronDB = &sql.DB{}
 
 func InitDb() bool {
 	driverName := os.Getenv("DRIVER_NAME")
@@ -35,6 +37,23 @@ func InitDb() bool {
 	//验证连接
 	if err := db.Ping(); err != nil {
 		fmt.Println("open database fail")
+		return false
+	}
+	return true
+}
+
+func InitNeutronDb() bool {
+	driverName, _ := config.GetString("NeutronDriverName")
+	dbHostIP, _ := config.GetString("Neutron_DB_HOST_IP")
+	dbUserName, _ := config.GetString("Neutron_DB_USERNAME")
+	dbPassWord, _ := config.GetString("Neutron_DB_PASSWORD")
+	dbName, _ := config.GetString("Neutron_DB_NAME")
+
+	dns := dbUserName + ":" + dbPassWord + "@tcp(" + dbHostIP + ")/" + dbName
+	neutronDB, _ = sql.Open(driverName, dns+"?charset=utf8")
+	//验证连接
+	if err := neutronDB.Ping(); err != nil {
+		fmt.Println("open neutron database fail")
 		return false
 	}
 	return true
@@ -295,6 +314,35 @@ func UpdateSharedSubnetUsedIP(subnetID string, usedIP string) bool {
 			"subnetID": subnetID,
 			"usedIP":   usedIP,
 		}).Error("update shared subnet ip pool failed.")
+		return false
+	}
+	n, err := ret.RowsAffected()
+	if n > 0 {
+		return true
+	}
+	return false
+}
+
+// SetFirewallGroupStatus for shared subnet
+func SetFirewallGroupStatus(firewallId string, isActive bool) bool {
+	if !InitNeutronDb() {
+		return false
+	}
+	defer neutronDB.Close()
+
+	status := "INACTIVE"
+	if isActive {
+		status = "ACTIVE"
+	}
+	sqlStr := "UPDATE firewall_groups_v2 SET status = ? WHERE id = ?"
+	ret, err := neutronDB.Exec(sqlStr, status, firewallId)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err":        err,
+			"sql":        sqlStr,
+			"firewallId": firewallId,
+			"status":     status,
+		}).Error("update firewall group status failed.")
 		return false
 	}
 	n, err := ret.RowsAffected()
