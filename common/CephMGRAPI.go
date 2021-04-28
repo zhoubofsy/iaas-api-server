@@ -137,17 +137,25 @@ func (o *CephMgrRESTRemoveCephFSDirectory) DoRequest(endpoint string, token stri
 		"path": o.Path,
 	}
 	body, err := CreateJsonByTmpl(bodyTmpl, mp)
-
-	res, err := CallRestAPI(endpoint+url, "POST", header, body)
-	if err == nil {
-		switch res.StatusCode {
-		case 200:
-			return EOK
-		default:
-			return ECEPHMGRRMDIR
-		}
+	if err != nil {
+		return EPARSE
 	}
-	return ECEPHMGRRMDIR
+
+	go func() {
+		log.Info("CephMgrRESTRemoveCephFSDirectory wanna remove ", o.Path)
+		res, err := CallRestAPI(endpoint+url, "POST", header, body)
+		if err == nil {
+			switch res.StatusCode {
+			case 200:
+				log.Info("CephMgrRESTRemoveCephFSDirectory remove success : ", o.Path)
+				return
+			default:
+				log.Error("CephMgrRESTRemoveCephFSDirectory remove failure : ", o.Path)
+			}
+		}
+		log.Error("CephMgrRESTRemoveCephFSDirectory remove failure : ", o.Path, err)
+	}()
+	return EOK
 }
 
 func (o *CephMgrRestful) RemoveCephFSDirectory(cephfsID string, path string) error {
